@@ -52,7 +52,8 @@
         </div>
     </div>
 
-    <div class="max-w-4xl mx-auto p-4 pb-24">
+    <!-- تم زيادة الحشو السفلي هنا pb-32 لضمان ظهور العناصر فوق الفوتر تماماً -->
+    <div class="max-w-4xl mx-auto p-4 pb-32">
         
         <header class="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm mb-6 border border-gray-100">
             <div>
@@ -68,6 +69,81 @@
         <section class="bg-white p-5 rounded-xl shadow-sm mb-6 border border-gray-100 space-y-4">
             <h3 id="sec-client-info" class="font-bold text-lg text-gray-700 mb-2 border-b pb-2"></h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label id="lbl-customer-name" class="block text-xs font-semibold mb-1 text-gray-500"></label>
+                    <input type="text" id="client-name" class="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label id="lbl-customer-phone" class="block text-xs font-semibold mb-1 text-gray-500"></label>
+                    <input type="text" id="client-phone" class="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t">
+                <div>
+                    <label id="lbl-markup" class="block text-[10px] md:text-xs font-semibold mb-1 text-gray-500"></label>
+                    <input type="number" id="markup-rate" value="15" class="w-full p-2 border rounded-lg text-center font-bold">
+                </div>
+                <div>
+                    <label id="lbl-contingency" class="block text-[10px] md:text-xs font-semibold mb-1 text-gray-500"></label>
+                    <input type="number" id="contingency-rate" value="5" class="w-full p-2 border rounded-lg text-center font-bold">
+                </div>
+                <div>
+                    <label id="lbl-waste" class="block text-[10px] md:text-xs font-semibold mb-1 text-gray-500"></label>
+                    <input type="number" id="waste-rate" value="5" class="w-full p-2 border rounded-lg text-center font-bold">
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-4" id="items-container">
+            <h3 id="sec-items" class="font-bold text-lg text-gray-700 mb-2"></h3>
+            <div id="dynamic-items-list" class="space-y-3"></div>
+        </section>
+
+        <!-- تم ضبط الفوتر ليكون متوافقاً ومستقراً أسفل جميع الشاشات بدون تغطية البنود الأخيرة -->
+        <footer class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 shadow-xl flex gap-4 max-w-4xl mx-auto z-30 mb-[env(safe-area-inset-bottom)]">
+            <button id="add-new-item-btn" class="bg-gray-800 text-white font-semibold px-4 py-3 rounded-xl hover:bg-gray-900 transition flex items-center justify-center gap-1 shrink-0">
+                <span>➕</span> <span id="btn-text-add"></span>
+            </button>
+            <button id="generate-pdf-btn" class="flex-1 bg-green-600 text-white font-bold py-3 rounded-xl hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-md shadow-green-100">
+                <span>📄</span> <span id="btn-text-pdf"></span>
+            </button>
+        </footer>
+
+    </div>
+
+    <div id="add-item-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+            <h3 id="modal-add-title" class="font-bold text-lg mb-4 text-gray-800"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label id="lbl-new-name" class="block text-xs font-semibold text-gray-500 mb-1"></label>
+                    <input type="text" id="new-item-name" class="w-full p-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label id="lbl-new-mat" class="block text-xs font-semibold text-gray-500 mb-1"></label>
+                    <input type="number" id="new-item-mat-cost" class="w-full p-2 border rounded-lg outline-none">
+                </div>
+                <div>
+                    <label id="lbl-new-lab" class="block text-xs font-semibold text-gray-500 mb-1"></label>
+                    <input type="number" id="new-item-lab-cost" class="w-full p-2 border rounded-lg outline-none">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button id="close-modal-btn" class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 rounded-lg">إلغاء</button>
+                    <button id="save-new-item-btn" class="flex-1 bg-blue-600 text-white font-semibold py-2 rounded-lg">حفظ البند</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js");
+        }
+    </script>
+</body>
+</html>
                 <div>
                     <label id="lbl-customer-name" class="block text-xs font-semibold mb-1 text-gray-500"></label>
                     <input type="text" id="client-name" class="w-full p-2.5 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
