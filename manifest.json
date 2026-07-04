@@ -1,0 +1,17 @@
+{
+    "short_name": "Contractor",
+    "name": "The Smart Contractor By Ahmed Mohamed",
+    "icons": [
+      {
+        "src": "https://cdn-icons-png.flaticon.com/512/684/684849.png",
+        "type": "image/png",
+        "sizes": "512x512",
+        "purpose": "any maskable"
+      }
+    ],
+    "start_url": "./index.html",
+    "background_color": "#1e3a8a",
+    "theme_color": "#1e3a8a",
+    "display": "standalone",
+    "orientation": "portrait"
+  }
