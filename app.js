@@ -382,4 +382,197 @@ function generateQuotationPDF() {
         </html>
     `);
     printWindow.document.close();
+        }lue = initialRates.markup;
+            document.getElementById('contingency-rate').value = initialRates.contingency;
+            document.getElementById('waste-rate').value = initialRates.waste;
+        }
+    }
+    
+    document.getElementById('save-setup-btn').addEventListener('click', () => {
+        const name = document.getElementById('setup-company-name').value.trim();
+        const phone = document.getElementById('setup-company-phone').value.trim();
+        const address = document.getElementById('setup-company-address').value.trim();
+        const logoFile = document.getElementById('setup-company-logo').files[0];
+        
+        if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
+        
+        localStorage.setItem('contractor_initial_rates', JSON.stringify({
+            markup: document.getElementById('markup-rate').value || "15",
+            contingency: document.getElementById('contingency-rate').value || "5",
+            waste: document.getElementById('waste-rate').value || "5"
+        }));
+        
+        const save = (logoBase64 = '') => {
+            localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
+            window.location.reload();
+        };
+        
+        if (logoFile) {
+            const reader = new FileReader();
+            reader.onloadend = () => save(reader.result);
+            reader.readAsDataURL(logoFile);
+        } else { save(); }
+    });
+
+    document.getElementById('lang-toggle-btn').addEventListener('click', () => {
+        currentLang = currentLang === 'ar' ? 'en' : 'ar';
+        localStorage.setItem('contractor_lang', currentLang);
+        updateUILanguage();
+        renderItems();
+    });
+
+    document.getElementById('settings-btn').addEventListener('click', () => {
+        if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
+            localStorage.removeItem('contractor_company');
+            localStorage.removeItem('contractor_initial_rates');
+            window.location.reload();
+        }
+    });
+
+    document.getElementById('add-new-item-btn').addEventListener('click', () => {
+        document.getElementById('add-item-modal').classList.remove('hidden');
+    });
+    document.getElementById('close-modal-btn').addEventListener('click', () => {
+        document.getElementById('add-item-modal').classList.add('hidden');
+    });
+
+    document.getElementById('save-new-item-btn').addEventListener('click', () => {
+        const name = document.getElementById('new-item-name').value.trim();
+        const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
+        const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
+        
+        if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
+        
+        customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
+        localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+        document.getElementById('add-item-modal').classList.add('hidden');
+        renderItems();
+    });
+
+    document.getElementById('generate-pdf-btn').addEventListener('click', () => {
+        generateQuotationPDF();
+    });
+
+    updateUILanguage();
+    renderItems();
+});
+
+function generateQuotationPDF() {
+    const cName = document.getElementById('client-name').value || (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
+    const cPhone = document.getElementById('client-phone').value || '---';
+    const markup = parseFloat(document.getElementById('markup-rate').value) / 100;
+    const contingency = parseFloat(document.getElementById('contingency-rate').value) / 100;
+    const waste = parseFloat(document.getElementById('waste-rate').value) / 100;
+    
+    const allItems = [...defaultItems, ...customItems];
+    let rowsHTML = '';
+    let grandTotal = 0;
+    
+    allItems.forEach(item => {
+        const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
+        const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
+        const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
+        const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
+
+        const area = areaInput ? parseFloat(areaInput.value) : 0;
+        const currentItemName = nameInput ? nameInput.value.trim() : (currentLang === 'ar' ? item.name_ar : item.name_en);
+        const currentMatCost = matInput ? parseFloat(matInput.value) : item.mat_cost;
+        const currentLabCost = labInput ? parseFloat(labInput.value) : item.lab_cost;
+        
+        if (!isNaN(area) && area > 0) {
+            const totalMaterialCost = area * currentMatCost * (1 + waste);
+            const totalLaborCost = area * currentLabCost;
+            const baseCost = totalMaterialCost + totalLaborCost;
+            const finalPrice = baseCost * (1 + markup + contingency);
+            
+            grandTotal += finalPrice;
+            
+            rowsHTML += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px; text-align: start;">${currentItemName}</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${area.toLocaleString('en-US')} M²</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        }
+    });
+    
+    if (grandTotal === 0) {
+        alert(currentLang === 'ar' ? 'برجاء إدخال مساحة بند واحد على الأقل!' : 'Please enter area for at least one item!');
+        return;
+    }
+
+    const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="${currentLang}" dir="${direction}">
+        <head>
+            <meta charset="UTF-8">
+            <title>Quotation_${cName}</title>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+                body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
+                @media print {
+                    body { padding: 0; }
+                }
+            </style>
+        </head>
+        <body>
+            <div style="padding: 20px; background-color: #ffffff;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+                    <div>
+                        <h2 style="margin: 0; color: #1e3a8a; font-size: 22px;">${companyData ? companyData.name : 'The Smart Contractor'}</h2>
+                        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">${companyData ? companyData.phone : ''} | ${companyData ? companyData.address : ''}</p>
+                    </div>
+                    <div>
+                        ${companyData && companyData.logo ? `<img src="${companyData.logo}" style="max-height: 70px;">` : ''}
+                    </div>
+                </div>
+                
+                <h3 style="text-align: center; color: #1e3a8a; font-size: 24px; margin-bottom: 25px;">${currentLang === 'ar' ? 'مقايسة أعمال تشطيبات وهندسة' : 'Engineering Work Quotation'}</h3>
+                
+                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
+                    <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
+                    <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
+                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${new Date().toLocaleDateString('en-US')}<br>
+                </div>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                    <thead>
+                        <tr style="background-color: #1e3a8a; color: white;">
+                            <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والبند' : 'Description / Item'}</th>
+                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/المساحة' : 'Quantity / Area'}</th>
+                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'سعر الفئة التقريبي' : 'Unit Price'}</th>
+                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'إجمالي البند' : 'Total Price'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHTML}
+                    </tbody>
+                </table>
+                
+                <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
+                    ${currentLang === 'ar' ? 'Grand Total Amount:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+                </div>
+                
+                <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
+                    <strong style="color: #334155;">${currentLang === 'ar' ? 'ملاحظات هامة وطريقة السداد:' : 'Important Notes & Payment Terms:'}</strong><br>
+                    1. ${i18n[currentLang].txtValid}<br>
+                    2. ${document.getElementById('payment-terms-input') ? document.getElementById('payment-terms-input').value : i18n[currentLang].txtPayments}<br>
+                    <p style="text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+                </div>
+            </div>
+            <script>
+                setTimeout(() => {
+                    window.print();
+                    window.close();
+                }, 500);
+            <\/script>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
