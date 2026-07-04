@@ -313,17 +313,24 @@ function generateQuotationPDF() {
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
     const printWindow = window.open('', '_blank');
     
+    // تنسيق التوقيت واليوم بشكل كامل للتاريخ الحالي
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
+    
     printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="${currentLang}" dir="${direction}">
         <head>
             <meta charset="UTF-8">
-            <title>Quotation_${cName}</title>
+            <title>${cName}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
                 body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
+                
+                /* إخفاء تام لروابط المشروع والتفاصيل الجانبية للمتصفح في الطباعة */
                 @media print {
-                    body { padding: 0; }
+                    @page { size: auto; margin: 10mm 0mm; }
+                    body { padding: 0; margin: 0; }
                 }
             </style>
         </head>
@@ -344,7 +351,7 @@ function generateQuotationPDF() {
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
                     <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
                     <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
-                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${new Date().toLocaleDateString('en-US')}<br>
+                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
                 </div>
                 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
@@ -362,14 +369,12 @@ function generateQuotationPDF() {
                 </table>
                 
                 <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
-                    ${currentLang === 'ar' ? 'Grand Total Amount:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
                 </div>
                 
                 <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
-                    <strong style="color: #334155;">${currentLang === 'ar' ? 'ملاحظات هامة وطريقة السداد:' : 'Important Notes & Payment Terms:'}</strong><br>
-                    1. ${i18n[currentLang].txtValid}<br>
-                    2. ${document.getElementById('payment-terms-input') ? document.getElementById('payment-terms-input').value : i18n[currentLang].txtPayments}<br>
-                    <p style="text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+                    <!-- تم مسح بنود الملاحظات وعرض التذييل المطلوب فقط بشكل منظم وشيك جداً -->
+                    <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
                 </div>
             </div>
             <script>
