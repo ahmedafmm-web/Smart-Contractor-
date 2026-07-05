@@ -318,46 +318,33 @@ function generateQuotationPDF() {
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
     
-    const directionStyle = direction === 'rtl' ? 'direction: rtl; text-align: right;' : 'direction: ltr; text-align: left;';
-    const headerAlign = direction === 'rtl' ? 'left' : 'right';
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.width = '0px';
-    iframe.style.height = '0px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`
-        <!DOCTYPE html>
-        <html lang="${currentLang}" dir="${direction}">
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-                @media print {
-                    @page { size: A4 portrait; margin: 0mm !important; }
-                    html, body { margin: 0mm !important; padding: 0mm !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                }
-                body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20mm; margin: 0; box-sizing: border-box; ${directionStyle} }
-            </style>
-        </head>
-        <body>
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; ${directionStyle}">
-                <div style="text-align: start;">
+    const element = document.createElement('div');
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '0px';
+    element.style.width = '210mm';
+    element.style.padding = '20mm';
+    element.style.backgroundColor = '#ffffff';
+    element.dir = direction;
+    
+    element.innerHTML = `
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        </style>
+        <div style="font-family: 'Cairo', sans-serif; color: #1e293b; background-color: #ffffff;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+                <div>
                     <h2 style="margin: 0; color: #1e3a8a; font-size: 22px;">${companyData ? companyData.name : 'The Smart Contractor'}</h2>
                     <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">${companyData ? companyData.phone : ''} | ${companyData ? companyData.address : ''}</p>
                 </div>
-                <div style="text-align: ${headerAlign};">
+                <div>
                     ${companyData && companyData.logo ? `<img src="${companyData.logo}" style="max-height: 70px;">` : ''}
                 </div>
             </div>
             
             <h3 style="text-align: center; color: #1e3a8a; font-size: 24px; margin-bottom: 25px;">${currentLang === 'ar' ? 'مقايسة أعمال تشطيبات وهندسة' : 'Engineering Work Quotation'}</h3>
             
-            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px; text-align: start;">
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
                 <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
                 <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
                 <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
@@ -381,27 +368,23 @@ function generateQuotationPDF() {
                 ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
             </div>
             
-            <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8; text-align: center;">
-                <p style="margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+            <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
+                <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
             </div>
-        </body>
-        </html>
-    `);
-    doc.close();
+        </div>
+    `;
 
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.html(iframe.contentWindow.document.body, {
-        callback: function (pdfInstance) {
-            pdfInstance.save(`مقايسة_${cName}.pdf`);
-            document.body.removeChild(iframe);
-        },
-        margin: [0, 0, 0, 0],
-        autoPaging: 'text',
-        x: 0,
-        y: 0,
-        width: 210,
-        windowWidth: 800
+    document.body.appendChild(element);
+
+    const options = {
+        margin: 0,
+        filename: `مقايسة_${cName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(options).from(element).save().then(() => {
+        document.body.removeChild(element);
     });
 }
- 
