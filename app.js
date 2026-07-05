@@ -315,76 +315,66 @@ function generateQuotationPDF() {
     }
 
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
-    const printWindow = window.open('', '_blank');
-    
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
     
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="${currentLang}" dir="${direction}">
-        <head>
-            <meta charset="UTF-8">
-            <title>${cName}</title>
-            <style>
-                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-                body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
-                @media print {
-                    @page { size: auto; margin: 10mm 0mm; }
-                    body { padding: 0; margin: 0; }
-                }
-            </style>
-        </head>
-        <body>
-            <div style="padding: 20px; background-color: #ffffff;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
-                    <div>
-                        <h2 style="margin: 0; color: #1e3a8a; font-size: 22px;">${companyData ? companyData.name : 'The Smart Contractor'}</h2>
-                        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">${companyData ? companyData.phone : ''} | ${companyData ? companyData.address : ''}</p>
-                    </div>
-                    <div>
-                        ${companyData && companyData.logo ? `<img src="${companyData.logo}" style="max-height: 70px;">` : ''}
-                    </div>
+    const element = document.createElement('div');
+    element.style.padding = '30px';
+    element.style.backgroundColor = '#ffffff';
+    element.dir = direction;
+    
+    element.innerHTML = `
+        <div style="font-family: 'Cairo', sans-serif; color: #1e293b;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px;">
+                <div>
+                    <h2 style="margin: 0; color: #1e3a8a; font-size: 22px;">${companyData ? companyData.name : 'The Smart Contractor'}</h2>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">${companyData ? companyData.phone : ''} | ${companyData ? companyData.address : ''}</p>
                 </div>
-                
-                <h3 style="text-align: center; color: #1e3a8a; font-size: 24px; margin-bottom: 25px;">${currentLang === 'ar' ? 'مقايسة أعمال تشطيبات وهندسة' : 'Engineering Work Quotation'}</h3>
-                
-                <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
-                    <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
-                    <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
-                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
-                </div>
-                
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #1e3a8a; color: white;">
-                            <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والبند' : 'Description / Item'}</th>
-                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/المساحة' : 'Quantity / Area'}</th>
-                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'سعر الفئة التقريبي' : 'Unit Price'}</th>
-                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'إجمالي البند' : 'Total Price'}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHTML}
-                    </tbody>
-                </table>
-                
-                <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
-                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
-                </div>
-                
-                <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
-                    <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+                <div>
+                    ${companyData && companyData.logo ? `<img src="${companyData.logo}" style="max-height: 70px;">` : ''}
                 </div>
             </div>
-            <script>
-                setTimeout(() => {
-                    window.print();
-                    window.close();
-                }, 500);
-            <\/script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
+            
+            <h3 style="text-align: center; color: #1e3a8a; font-size: 24px; margin-bottom: 25px;">${currentLang === 'ar' ? 'مقايسة أعمال تشطيبات وهندسة' : 'Engineering Work Quotation'}</h3>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
+                <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
+                <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
+                <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #1e3a8a; color: white;">
+                        <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والبند' : 'Description / Item'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/المساحة' : 'Quantity / Area'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'سعر الفئة التقريبي' : 'Unit Price'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'إجمالي البند' : 'Total Price'}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+            </table>
+            
+            <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
+                ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+            </div>
+            
+            <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
+                <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+            </div>
+        </div>
+    `;
+
+    const options = {
+        margin: [10, 10, 10, 10],
+        filename: `مقايسة_${cName}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    html2pdf().set(options).from(element).save();
 }
+ 
