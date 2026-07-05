@@ -278,3 +278,130 @@ function generateQuotationPDF() {
     const allItems = [...defaultItems, ...customItems];
     let rowsHTML = '';
     let grandTotal = 0;
+    
+    allItems.forEach(item => {
+        const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
+        const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
+        const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
+        const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
+
+        const area = areaInput ? parseFloat(areaInput.value) : 0;
+        const currentItemName = nameInput ? nameInput.value.trim() : (currentLang === 'ar' ? item.name_ar : item.name_en);
+        const currentMatCost = matInput ? parseFloat(matInput.value) : item.mat_cost;
+        const currentLabCost = labInput ? parseFloat(labInput.value) : item.lab_cost;
+        
+        if (!isNaN(area) && area > 0) {
+            const totalMaterialCost = area * currentMatCost * (1 + waste);
+            const totalLaborCost = area * currentLabCost;
+            const baseCost = totalMaterialCost + totalLaborCost;
+            const finalPrice = baseCost * (1 + markup + contingency);
+            
+            grandTotal += finalPrice;
+            
+            rowsHTML += `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px; text-align: start;">${currentItemName}</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${area.toLocaleString('en-US')} M²</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+            `;
+        }
+    });
+    
+    if (grandTotal === 0) {
+        alert(currentLang === 'ar' ? 'برجاء إدخال مساحة بند واحد على الأقل!' : 'Please enter area for at least one item!');
+        return;
+    }
+
+    const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
+    
+    const directionStyle = direction === 'rtl' ? 'direction: rtl; text-align: right;' : 'direction: ltr; text-align: left;';
+    const headerAlign = direction === 'rtl' ? 'left' : 'right';
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0px';
+    iframe.style.height = '0px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow.document;
+    doc.open();
+    doc.write(`
+        <!DOCTYPE html>
+        <html lang="${currentLang}" dir="${direction}">
+        <head>
+            <meta charset="UTF-8">
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+                @media print {
+                    @page { size: A4 portrait; margin: 0mm !important; }
+                    html, body { margin: 0mm !important; padding: 0mm !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+                body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20mm; margin: 0; box-sizing: border-box; ${directionStyle} }
+            </style>
+        </head>
+        <body>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; margin-bottom: 30px; ${directionStyle}">
+                <div style="text-align: start;">
+                    <h2 style="margin: 0; color: #1e3a8a; font-size: 22px;">${companyData ? companyData.name : 'The Smart Contractor'}</h2>
+                    <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">${companyData ? companyData.phone : ''} | ${companyData ? companyData.address : ''}</p>
+                </div>
+                <div style="text-align: ${headerAlign};">
+                    ${companyData && companyData.logo ? `<img src="${companyData.logo}" style="max-height: 70px;">` : ''}
+                </div>
+            </div>
+            
+            <h3 style="text-align: center; color: #1e3a8a; font-size: 24px; margin-bottom: 25px;">${currentLang === 'ar' ? 'مقايسة أعمال تشطيبات وهندسة' : 'Engineering Work Quotation'}</h3>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px; text-align: start;">
+                <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
+                <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
+                <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
+            </div>
+            
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
+                <thead>
+                    <tr style="background-color: #1e3a8a; color: white;">
+                        <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والبند' : 'Description / Item'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/المساحة' : 'Quantity / Area'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'سعر الفئة التقريبي' : 'Unit Price'}</th>
+                        <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'إجمالي البند' : 'Total Price'}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHTML}
+                </tbody>
+            </table>
+            
+            <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
+                ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+            </div>
+            
+            <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8; text-align: center;">
+                <p style="margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+            </div>
+        </body>
+        </html>
+    `);
+    doc.close();
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.html(iframe.contentWindow.document.body, {
+        callback: function (pdfInstance) {
+            pdfInstance.save(`مقايسة_${cName}.pdf`);
+            document.body.removeChild(iframe);
+        },
+        margin: [0, 0, 0, 0],
+        autoPaging: 'text',
+        x: 0,
+        y: 0,
+        width: 210,
+        windowWidth: 800
+    });
+}
+ 
