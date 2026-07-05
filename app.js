@@ -265,8 +265,12 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 function generateQuotationPDF() {
-    const cName = document.getElementById('client-name').value || (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
-    const cPhone = document.getElementById('client-phone').value || '---';
+    const clientNameInput = document.getElementById('client-name');
+    const cName = clientNameInput && clientNameInput.value.trim() ? clientNameInput.value.trim() : (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
+    
+    const clientPhoneInput = document.getElementById('client-phone');
+    const cPhone = clientPhoneInput && clientPhoneInput.value.trim() ? clientPhoneInput.value.trim() : '---';
+    
     const markup = parseFloat(document.getElementById('markup-rate').value) / 100;
     const contingency = parseFloat(document.getElementById('contingency-rate').value) / 100;
     const waste = parseFloat(document.getElementById('waste-rate').value) / 100;
@@ -313,7 +317,6 @@ function generateQuotationPDF() {
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
     const printWindow = window.open('', '_blank');
     
-    // تنسيق التوقيت واليوم بشكل كامل للتاريخ الحالي
     const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
     
@@ -326,8 +329,6 @@ function generateQuotationPDF() {
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
                 body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
-                
-                /* إخفاء تام لروابط المشروع والتفاصيل الجانبية للمتصفح في الطباعة */
                 @media print {
                     @page { size: auto; margin: 10mm 0mm; }
                     body { padding: 0; margin: 0; }
@@ -373,7 +374,6 @@ function generateQuotationPDF() {
                 </div>
                 
                 <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
-                    <!-- تم مسح بنود الملاحظات وعرض التذييل المطلوب فقط بشكل منظم وشيك جداً -->
                     <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
                 </div>
             </div>
