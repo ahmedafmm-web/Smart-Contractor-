@@ -88,13 +88,26 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل الأساسية عند فتح التطبيق (تطلب منه التحقق صراحة لمنع التخطي التلقائي)
+// دالة فحص التفعيل الأساسية عند فتح التطبيق (محدثة لتفحص الكاش التلقائي الموفر للضغط)
 async function checkActivation() {
     const fingerprint = getDeviceID();
+    const now = new Date();
     
     const idBox = document.getElementById('device-id-box');
     if(idBox) idBox.innerText = fingerprint;
 
+    // فحص لو العميل تم التحقق منه مسبقاً وتاريخ انتهاء اشتراكه الكاش لسه شغال ومعداش
+    const cachedExpiry = localStorage.getItem('contractor_subscription_expiry_cache');
+    if (cachedExpiry) {
+        const expiryDate = new Date(cachedExpiry);
+        if (expiryDate > now) {
+            // الاشتراك ساري ومسجل محلياً؛ نخفي شاشة القفل ونفتح علطول بدون إجبار على الضغط
+            document.getElementById('activation-screen').classList.add('hidden');
+            return true;
+        }
+    }
+
+    // لو مفيش كاش أو الكاش انتهى، تظهر شاشة القفل تطلب فحص جديد بالسحابة
     showLockScreen("برجاء الضغط على زرار التحقق بالأسفل لفحص حالة اشتراكك وفتح النظام.");
     return false;
 }
@@ -183,6 +196,7 @@ async function registerNewTrialUser(deviceId) {
                 is_subscribed: false 
             })
         });
+        localStorage.setItem('contractor_subscription_expiry_cache', trialExpiryString);
         localStorage.setItem('contractor_offline_verified', 'true');
     } catch(e) { console.error(e); }
 }
@@ -285,6 +299,9 @@ function renderItems() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+    updateUILanguage();
+    renderItems();
+
     const isAllowed = await checkActivation();
     if (!isAllowed) {
         return;
@@ -365,9 +382,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('generate-pdf-btn').addEventListener('click', () => {
         generateQuotationPDF();
     });
-
-    updateUILanguage();
-    renderItems();
 });
 
 function generateQuotationPDF() {
@@ -496,7 +510,7 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
-// دالة مخصصة للتحقق اليدوي عند ضغط الزرار الجديد (مضافة في نهاية الملف بنجاح)
+// دالة مخصصة للتحقق اليدوي عند ضغط الزرار وتخزين وقت الانتهاء محلياً لمنع تكرار السؤال
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -526,7 +540,7 @@ async function checkSubscriptionManually() {
             btn.style.background = "#10b981";
             
             setTimeout(() => {
-                document.getElementById('activation-screen').classList.add('hidden');
+                window.location.reload(); // إعادة تحميل لتطبيق حالة الكاش الجديدة مباشرة والفتح الدائم
             }, 1500);
             return;
         }
@@ -534,27 +548,35 @@ async function checkSubscriptionManually() {
         const user = data[0];
         let isAccessGranted = false;
         let expiryDateFormatted = "";
+        let rawExpiryString = null;
 
         if (user.is_subscribed === true || user.is_subscribed === "true") {
             if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
                 isAccessGranted = true;
+                rawExpiryString = user.subscription_expires_at;
                 const subExpiry = new Date(user.subscription_expires_at);
                 expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             } else {
                 lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
+                localStorage.removeItem('contractor_subscription_expiry_cache');
             }
         }
         else if (user.trial_expires_at) {
             const trialExpiry = new Date(user.trial_expires_at);
             if (now < trialExpiry) {
                 isAccessGranted = true;
+                rawExpiryString = user.trial_expires_at;
                 expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             } else {
                 lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
+                localStorage.removeItem('contractor_subscription_expiry_cache');
             }
         }
 
         if (isAccessGranted) {
+            // حفظ وقت انتهاء الاشتراك في الكاش المحلي للمتصفح لمنع طلب التحقق مجدداً
+            localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
+
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
                 expiryBox.classList.remove('hidden');
@@ -566,6 +588,7 @@ async function checkSubscriptionManually() {
 
             setTimeout(() => {
                 document.getElementById('activation-screen').classList.add('hidden');
+                window.location.reload(); // إعادة تنشيط الواجهة في حالة الأمان الكامل
             }, 1800);
         } else {
             if (expiryBox) expiryBox.classList.add('hidden');
