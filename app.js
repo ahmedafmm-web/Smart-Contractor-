@@ -88,6 +88,7 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
+// دالة فحص التفعيل المحدثة بالكامل لتقرأ الأعمدة الحقيقية من جدولك بدقة
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -101,6 +102,7 @@ async function checkActivation() {
         });
         const data = await response.json();
 
+        // 1. إذا كان جهاز جديد تماماً وغير مسجل في السحابة
         if (data.length === 0) {
             await registerNewTrialUser(fingerprint);
             document.getElementById('activation-screen').classList.add('hidden');
@@ -109,8 +111,9 @@ async function checkActivation() {
 
         const user = data[0];
 
-        if (user.status === 'monthly' || user.status === 'yearly') {
-            if (new Date(user.expiry_date) > now) {
+        // 2. التحقق من الاشتراك المدفوع بناءً على حقل is_subscribed و subscription_expires_at الحقيقيين بالجدول
+        if (user.is_subscribed === true || user.is_subscribed === "true") {
+            if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
                 document.getElementById('activation-screen').classList.add('hidden');
                 return true;
             } else {
@@ -119,11 +122,11 @@ async function checkActivation() {
             }
         }
 
-        if (user.status === 'trial') {
-            const trialEnd = new Date(user.trial_start);
-            trialEnd.setHours(trialEnd.getHours() + 48);
+        // 3. التحقق من فترة الـ 48 ساعة التجريبية بناءً على حقل trial_expires_at الحقيقي بالجدول
+        if (user.trial_expires_at) {
+            const trialExpiry = new Date(user.trial_expires_at);
 
-            if (now < trialEnd) {
+            if (now < trialExpiry) {
                 document.getElementById('activation-screen').classList.add('hidden');
                 return true;
             } else {
@@ -150,10 +153,74 @@ async function checkActivation() {
 function showLockScreen(msg) {
     document.getElementById('activation-screen').classList.remove('hidden');
     document.getElementById('lock-message').innerText = msg;
+
+    let whatsappSection = document.getElementById('whatsapp-verification-section');
+    if (!whatsappSection) {
+        const container = document.getElementById('activation-screen');
+        whatsappSection = document.createElement('div');
+        whatsappSection.id = 'whatsapp-verification-section';
+        whatsappSection.style.marginTop = '20px';
+        whatsappSection.style.textAlign = 'center';
+        container.appendChild(whatsappSection);
+    }
+
+    whatsappSection.innerHTML = `
+        <div style="background: #f1f5f9; padding: 15px; border-radius: 12px; border: 1px solid #cbd5e1; margin-top: 15px;">
+            <p style="font-size: 13px; color: #475569; font-weight: bold; margin-bottom: 10px;">
+                💡 بعد إتمام الدفع بنجاح، يرجى إدخال رقم العملية وإرسال التأكيد لتفعيل حسابك فوراً:
+            </p>
+            <input type="number" id="user-tx-id" placeholder="أدخل رقم العملية (Transaction ID)" 
+                   style="width: 80%; padding: 10px; border: 1px solid #0284c7; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 10px; font-family: monospace;">
+            
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="redirectToWhatsApp('monthly')" style="background-color: #25D366; color: white; padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    🟢 تأكيد الباقة الشهرية (250ج)
+                </button>
+                <button onclick="redirectToWhatsApp('yearly')" style="background-color: #128C7E; color: white; padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    🟢 تأكيد الباقة السنوية (2000ج)
+                </button>
+            </div>
+            <p style="font-size: 11px; color: #ef4444; margin-top: 8px; font-weight: bold;">
+                ⚠️ تنبيه: يجب إحضار (صورة لقطة شاشة من إيصال الدفع الناجح) داخل محادثة الواتساب مع الرسالة للتحقق.
+            </p>
+        </div>
+    `;
 }
 
+function redirectToWhatsApp(planType) {
+    const fingerprint = getDeviceID();
+    const txIdInput = document.getElementById('user-tx-id');
+    const txId = txIdInput ? txIdInput.value.trim() : '';
+    
+    // فحص صارم لمنع التوجيه العشوائي: يجب إدخال رقم عملية منطقي لا يقل عن 6 خانات
+    if (!txId || txId.length < 6 || isNaN(txId)) {
+        if (txIdInput) txIdInput.style.border = "2px solid #ef4444";
+        alert('❌ خطأ: رقم العملية غير صحيح أو غير مكتمل. برجاء إدخال رقم الـ Transaction ID الحقيقي المأخوذ من إيصال الدفع لإتمام التوجيه.');
+        return;
+    }
+
+    if (txIdInput) txIdInput.style.border = "1px solid #0284c7";
+
+    const planName = planType === 'yearly' ? 'الباقة السنوية (2000 EGP)' : 'الباقة الشهرية (250 EGP)';
+    
+    const message = `طلب تفعيل أداة المقاول الذكي\n\n` +
+                    `📱 كود الجهاز: ${fingerprint}\n` +
+                    `💳 رقم العملية: ${txId}\n` +
+                    `📦 نوع الباقة: ${planName}\n\n` +
+                    `مرفق مع الرسالة صورة إيصال الدفع للتأكيد الدائم.`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/201155421710?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+}
+
+// دالة تسجيل المستخدم الجديد وحساب انتهاء الـ 48 ساعة التجريبية وإرسالها للحقل الحقيقي بالجدول trial_expires_at
 async function registerNewTrialUser(deviceId) {
-    const now = new Date().toISOString();
+    const now = new Date();
+    now.setHours(now.getHours() + 48); // حساب 48 ساعة بدقة من وقت الفتح
+    const trialExpiryString = now.toISOString();
+
     try {
         await fetch(`${SUPABASE_URL}/rest/v1/users`, {
             method: "POST",
@@ -163,15 +230,17 @@ async function registerNewTrialUser(deviceId) {
                 "Content-Type": "application/json",
                 "Prefer": "return=minimal"
             },
-            body: JSON.stringify({ device_id: deviceId, trial_start: now, status: "trial" })
+            body: JSON.stringify({ 
+                device_id: deviceId, 
+                trial_expires_at: trialExpiryString, // الحقل الحقيقي المتواجد بجدولك
+                is_subscribed: false 
+            })
         });
         localStorage.setItem('contractor_offline_verified', 'true');
     } catch(e) { console.error(e); }
 }
 
-// دالة الدفع المحدثة باستخدام روابط Paymob Quick Links المباشرة لتفادي الـ CORS
 function startPaymobPayment(planType) {
-    // الروابط الثابتة والآمنة لبراند Devext المخصصة لعدد غير محدود من العملاء
     const paymentLinks = {
         'monthly': 'https://paymob.link/giB0F',
         'yearly': 'https://paymob.link/OE2wT'
@@ -181,7 +250,6 @@ function startPaymobPayment(planType) {
 
     if (targetUrl) {
         console.log(`Redirecting to Paymob Quick Link for [${planType}] plan...`);
-        // التوجيه المباشر لصفحة الدفع بأمان وسلاسة
         window.location.href = targetUrl;
     } else {
         console.error('Error: Invalid subscription plan type provided.');
@@ -415,7 +483,7 @@ function generateQuotationPDF() {
         <!DOCTYPE html>
         <html lang="${currentLang}" dir="${direction}">
         <head>
-            <meta charset="UTF-8);
+            <meta charset="UTF-8">
             <title>${cName}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
@@ -480,4 +548,3 @@ function generateQuotationPDF() {
     `);
     printWindow.document.close();
 }
- 
