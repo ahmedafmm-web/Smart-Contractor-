@@ -169,73 +169,23 @@ async function registerNewTrialUser(deviceId) {
     } catch(e) { console.error(e); }
 }
 
-// دالة الدفع بعد تخطي الـ CORS بالكامل لتعمل من الهاتف بامتياز[span_2](start_span)[span_2](end_span)
-async function startPaymobPayment(planType) {
-    const fingerprint = getDeviceID();
-    console.log(`جاري تجهيز فاتورة Paymob للباقة [${planType}] للجهاز [${fingerprint}]`);
-    
-    const amountCents = planType === 'yearly' ? 200000 : 25000; 
-    
-    const billingData = {
-        first_name: companyData ? companyData.name.split(' ')[0] : "Contractor",
-        last_name: companyData ? (companyData.name.split(' ')[1] || "User") : "User",
-        email: "client@smartcontractor.com",
-        phone_number: companyData ? companyData.phone : "+201000000000",
-        currency: "EGP",
-        floor: "1", street: "Street", building: "1", room: "1", city: "Cairo", country: "EG"
+// دالة الدفع المحدثة باستخدام روابط Paymob Quick Links المباشرة لتفادي الـ CORS
+function startPaymobPayment(planType) {
+    // الروابط الثابتة والآمنة لبراند Devext المخصصة لعدد غير محدود من العملاء
+    const paymentLinks = {
+        'monthly': 'https://paymob.link/giB0F',
+        'yearly': 'https://paymob.link/OE2wT'
     };
 
-    // استخدام البروكسي الآمن لتفادي حظر المتصفحات للمكالمات المباشرة لـ Paymob
-    const proxyUrl = "https://corsproxy.io/?";
+    const targetUrl = paymentLinks[planType];
 
-    try {
-        // الخطوة 1: طلب الـ Authentication Token
-        const authRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/auth/tokens"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ "api_key": "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRJd01EVTNOQ3dpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS5VbVUtNDlnR2hiRTBTRnAyMU9URHoxbGJxUXNLUEVtS3hvNkw4THZEMGdtM2pmb3U5NUJkdGw1clYzNV92WXduTU4zclJGT1BITm05c1B1ZnB0TUJxZw==" })
-        });
-        const authData = await authRes.json();
-        const authToken = authData.token;
-
-        // الخطوة 2: إنشاء طلب أمر الدفع مع تمرير الـ device_id
-        const orderRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/acceptance/orders"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                auth_token: authToken,
-                delivery_needed: "false",
-                amount_cents: amountCents,
-                currency: "EGP",
-                items: [{ name: `Subscription ${planType}`, amount_cents: amountCents, quantity: 1 }],
-                extra_data: { device_id: fingerprint }
-            })
-        });
-        const orderData = await orderRes.json();
-
-        // الخطوة 3: توليد الـ Payment Key للـ Integration الخاصة بك
-        const keyRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/acceptance/payment_keys"), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                auth_token: authToken,
-                amount_cents: amountCents,
-                expiration: 3600,
-                order_id: orderData.id,
-                billing_data: billingData,
-                currency: "EGP",
-                integration_id: 5783318
-            })
-        });
-        const keyData = await keyRes.json();
-
-        // الخطوة 4: تحويل العميل لصفحة الدفع بأمان
-        console.log("تم تكوين الفاتورة بنجاح عبر البروكسي، جاري التوجيه...");
-        window.location.href = `https://accept.paymob.com/api/acceptance/iframes/v2?payment_token=${keyData.token}`;
-
-    } catch (error) {
-        console.error("خطأ تقني في معالجة بوابة الدفع التلقائية:", error);
-        alert("عذراً، حدث خطأ أثناء الاتصال ببوابة الدفع. يرجى المحاولة مرة أخرى.");
+    if (targetUrl) {
+        console.log(`Redirecting to Paymob Quick Link for [${planType}] plan...`);
+        // التوجيه المباشر لصفحة الدفع بأمان وسلاسة
+        window.location.href = targetUrl;
+    } else {
+        console.error('Error: Invalid subscription plan type provided.');
+        alert('حدث خطأ في تحديد باقة الاشتراك، برجاء المحاولة مرة أخرى.');
     }
 }
 
@@ -465,7 +415,7 @@ function generateQuotationPDF() {
         <!DOCTYPE html>
         <html lang="${currentLang}" dir="${direction}">
         <head>
-            <meta charset="UTF-8">
+            <meta charset="UTF-8);
             <title>${cName}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
@@ -530,3 +480,4 @@ function generateQuotationPDF() {
     `);
     printWindow.document.close();
 }
+ 
