@@ -63,7 +63,7 @@ let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) ||
 
 // إعداد ربط Supabase
 const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
-const SUPABASE_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
 
 function generateDeviceFingerprint() {
     const specs = [
@@ -88,66 +88,15 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل المحدثة بالكامل لتقرأ الأعمدة الحقيقية من جدولك بدقة
+// دالة فحص التفعيل الأساسية عند فتح التطبيق (تطلب منه التحقق صراحة لمنع التخطي التلقائي)
 async function checkActivation() {
     const fingerprint = getDeviceID();
-    const now = new Date();
     
     const idBox = document.getElementById('device-id-box');
     if(idBox) idBox.innerText = fingerprint;
 
-    try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
-            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
-        });
-        const data = await response.json();
-
-        // 1. إذا كان جهاز جديد تماماً وغير مسجل في السحابة
-        if (data.length === 0) {
-            await registerNewTrialUser(fingerprint);
-            document.getElementById('activation-screen').classList.add('hidden');
-            return true;
-        }
-
-        const user = data[0];
-
-        // 2. التحقق من الاشتراك المدفوع بناءً على حقل is_subscribed و subscription_expires_at الحقيقيين بالجدول
-        if (user.is_subscribed === true || user.is_subscribed === "true") {
-            if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
-                document.getElementById('activation-screen').classList.add('hidden');
-                return true;
-            } else {
-                showLockScreen("💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة والحفاظ على حساباتك.");
-                return false;
-            }
-        }
-
-        // 3. التحقق من فترة الـ 48 ساعة التجريبية بناءً على حقل trial_expires_at الحقيقي بالجدول
-        if (user.trial_expires_at) {
-            const trialExpiry = new Date(user.trial_expires_at);
-
-            if (now < trialExpiry) {
-                document.getElementById('activation-screen').classList.add('hidden');
-                return true;
-            } else {
-                showLockScreen("🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً وتفعيل النظام.");
-                return false;
-            }
-        }
-
-        showLockScreen("🔒 الوصول محدود. يرجى الاشتراك لتفعيل النظام.");
-        return false;
-
-    } catch (error) {
-        console.error("جاري العمل بنظام الأوفلاين الاحتياطي:", error);
-        const localStatus = localStorage.getItem('contractor_offline_verified');
-        if (localStatus === 'true') {
-            document.getElementById('activation-screen').classList.add('hidden');
-            return true;
-        }
-        showLockScreen("🌐 يرجى الاتصال بالإنترنت للمرة الأولى لتأكيد حالة اشتراكك.");
-        return false;
-    }
+    showLockScreen("برجاء الضغط على زرار التحقق بالأسفل لفحص حالة اشتراكك وفتح النظام.");
+    return false;
 }
 
 function showLockScreen(msg) {
@@ -170,7 +119,7 @@ function showLockScreen(msg) {
                 💡 بعد إتمام الدفع بنجاح، يرجى إدخال رقم العملية وإرسال التأكيد لتفعيل حسابك فوراً:
             </p>
             <input type="number" id="user-tx-id" placeholder="أدخل رقم العملية (Transaction ID)" 
-                   style="width: 80%; padding: 10px; border: 1px solid #0284c7; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 10px; font-family: monospace;">
+                   style="width: 80%; padding: 10px; border: 1px solid #0284c7; border-radius: 8px; text-align: center; font-weight: bold; margin-bottom: 10px; font-family: monospace; background: white;">
             
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button onclick="redirectToWhatsApp('monthly')" style="background-color: #25D366; color: white; padding: 10px 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
@@ -192,7 +141,6 @@ function redirectToWhatsApp(planType) {
     const txIdInput = document.getElementById('user-tx-id');
     const txId = txIdInput ? txIdInput.value.trim() : '';
     
-    // فحص صارم لمنع التوجيه العشوائي: يجب إدخال رقم عملية منطقي لا يقل عن 6 خانات
     if (!txId || txId.length < 6 || isNaN(txId)) {
         if (txIdInput) txIdInput.style.border = "2px solid #ef4444";
         alert('❌ خطأ: رقم العملية غير صحيح أو غير مكتمل. برجاء إدخال رقم الـ Transaction ID الحقيقي المأخوذ من إيصال الدفع لإتمام التوجيه.');
@@ -215,10 +163,9 @@ function redirectToWhatsApp(planType) {
     window.open(whatsappUrl, '_blank');
 }
 
-// دالة تسجيل المستخدم الجديد وحساب انتهاء الـ 48 ساعة التجريبية وإرسالها للحقل الحقيقي بالجدول trial_expires_at
 async function registerNewTrialUser(deviceId) {
     const now = new Date();
-    now.setHours(now.getHours() + 48); // حساب 48 ساعة بدقة من وقت الفتح
+    now.setHours(now.getHours() + 48); 
     const trialExpiryString = now.toISOString();
 
     try {
@@ -232,7 +179,7 @@ async function registerNewTrialUser(deviceId) {
             },
             body: JSON.stringify({ 
                 device_id: deviceId, 
-                trial_expires_at: trialExpiryString, // الحقل الحقيقي المتواجد بجدولك
+                trial_expires_at: trialExpiryString, 
                 is_subscribed: false 
             })
         });
@@ -547,4 +494,104 @@ function generateQuotationPDF() {
         </html>
     `);
     printWindow.document.close();
+}
+
+// دالة مخصصة للتحقق اليدوي عند ضغط الزرار الجديد (مضافة في نهاية الملف بنجاح)
+async function checkSubscriptionManually() {
+    const fingerprint = getDeviceID();
+    const now = new Date();
+    
+    const btn = document.getElementById('manual-verify-btn');
+    const btnText = document.getElementById('verify-btn-text');
+    const btnIcon = document.getElementById('verify-btn-icon');
+    const lockMsg = document.getElementById('lock-message');
+    const expiryBox = document.getElementById('expiry-display-box');
+    const expiryDateText = document.getElementById('expiry-date-text');
+
+    btn.disabled = true;
+    btnText.innerText = "جاري فحص السحابة والتواريخ...";
+    btnIcon.innerText = "⏳";
+    btn.classList.add('opacity-80');
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        if (data.length === 0) {
+            await registerNewTrialUser(fingerprint);
+            btnText.innerText = "تم تفعيل الـ 48 ساعة التجريبية!";
+            btnIcon.innerText = "🎁";
+            btn.style.background = "#10b981";
+            
+            setTimeout(() => {
+                document.getElementById('activation-screen').classList.add('hidden');
+            }, 1500);
+            return;
+        }
+
+        const user = data[0];
+        let isAccessGranted = false;
+        let expiryDateFormatted = "";
+
+        if (user.is_subscribed === true || user.is_subscribed === "true") {
+            if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
+                isAccessGranted = true;
+                const subExpiry = new Date(user.subscription_expires_at);
+                expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
+            } else {
+                lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
+            }
+        }
+        else if (user.trial_expires_at) {
+            const trialExpiry = new Date(user.trial_expires_at);
+            if (now < trialExpiry) {
+                isAccessGranted = true;
+                expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
+            } else {
+                lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
+            }
+        }
+
+        if (isAccessGranted) {
+            if (expiryBox && expiryDateText) {
+                expiryDateText.innerText = expiryDateFormatted;
+                expiryBox.classList.remove('hidden');
+            }
+
+            btnText.innerText = "تم التحقق والفتح بنجاح";
+            btnIcon.innerText = "✓";
+            btn.style.background = "#10b981"; 
+
+            setTimeout(() => {
+                document.getElementById('activation-screen').classList.add('hidden');
+            }, 1800);
+        } else {
+            if (expiryBox) expiryBox.classList.add('hidden');
+            btnText.innerText = "فشل التحقق (الاشتراك منتهي)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
+        }
+
+    } catch (error) {
+        console.error(error);
+        const localStatus = localStorage.getItem('contractor_offline_verified');
+        if (localStatus === 'true') {
+            if (expiryBox && expiryDateText) {
+                expiryDateText.innerText = "تم الفتح بنظام الأوفلاين الاحتياطي مؤقتاً";
+                expiryBox.classList.remove('hidden');
+            }
+            setTimeout(() => {
+                document.getElementById('activation-screen').classList.add('hidden');
+            }, 1500);
+        } else {
+            btnText.innerText = "خطأ في الاتصال بالسحابة";
+            btnIcon.innerText = "🌐";
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
+        }
+    }
 }
