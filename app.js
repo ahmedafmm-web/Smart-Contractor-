@@ -61,6 +61,9 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
+const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+const SUPABASE_KEY = "YOUR_ANON_KEY";
+
 function generateDeviceFingerprint() {
     const specs = [
         navigator.userAgent,
@@ -80,28 +83,103 @@ function generateDeviceFingerprint() {
     return "TSCAM-" + Math.abs(hash).toString(16).toUpperCase();
 }
 
-function checkActivation() {
-    const activeKey = localStorage.getItem('contractor_active_key');
-    const fingerprint = generateDeviceFingerprint();
-    const expectedKey = "LIC-" + btoa(fingerprint + "AHMED").substring(0, 12).toUpperCase();
+function getDeviceID() {
+    return generateDeviceFingerprint();
+}
+
+async function checkActivation() {
+    const fingerprint = getDeviceID();
+    const now = new Date();
     
-    if (activeKey !== expectedKey) {
-        document.getElementById('activation-screen').classList.remove('hidden');
-        document.getElementById('device-id-box').innerText = fingerprint;
+    const idBox = document.getElementById('device-id-box');
+    if(idBox) idBox.innerText = fingerprint;
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        if (data.length === 0) {
+            await registerNewTrialUser(fingerprint);
+            document.getElementById('activation-screen').classList.add('hidden');
+            return true;
+        }
+
+        const user = data[0];
+
+        if (user.status === 'monthly' || user.status === 'yearly') {
+            if (new Date(user.expiry_date) > now) {
+                document.getElementById('activation-screen').classList.add('hidden');
+                return true;
+            } else {
+                showLockScreen("💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة والحفاظ على حساباتك.");
+                return false;
+            }
+        }
+
+        if (user.status === 'trial') {
+            const trialEnd = new Date(user.trial_start);
+            trialEnd.setHours(trialEnd.getHours() + 48);
+
+            if (now < trialEnd) {
+                document.getElementById('activation-screen').classList.add('hidden');
+                return true;
+            } else {
+                showLockScreen("🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً وتفعيل النظام.");
+                return false;
+            }
+        }
+
+        showLockScreen("🔒 الوصول محدود. يرجى الاشتراك لتفعيل النظام.");
+        return false;
+
+    } catch (error) {
+        console.error("جاري العمل بنظام الأوفلاين الاحتياطي:", error);
+        const localStatus = localStorage.getItem('contractor_offline_verified');
+        if (localStatus === 'true') {
+            document.getElementById('activation-screen').classList.add('hidden');
+            return true;
+        }
+        showLockScreen("🌐 يرجى الاتصال بالإنترنت للمرة الأولى لتأكيد حالة اشتراكك.");
         return false;
     }
-    document.getElementById('activation-screen').classList.add('hidden');
-    return true;
+}
+
+function showLockScreen(msg) {
+    document.getElementById('activation-screen').classList.remove('hidden');
+    document.getElementById('lock-message').innerText = msg;
+}
+
+async function registerNewTrialUser(deviceId) {
+    const now = new Date().toISOString();
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+            method: "POST",
+            headers: { 
+                "apikey": SUPABASE_KEY, 
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ device_id: deviceId, trial_start: now, status: "trial" })
+        });
+        localStorage.setItem('contractor_offline_verified', 'true');
+    } catch(e) { console.error(e); }
+}
+
+function startPaymobPayment(planType) {
+    console.log("جاري تجهيز فاتورة Paymob للباقة:", planType);
 }
 
 (function selfDefending() {
     const initialConfig = checkActivation.toString().length;
     setInterval(() => {
         if (checkActivation.toString().length !== initialConfig || checkActivation.toString().includes('return true; //bypass')) {
-            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات النظام</div>";
+            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات الأمان الرقمية</div>";
             localStorage.clear();
         }
-    }, 2000);
+    }, 3000);
 })();
 
 function updateUILanguage() {
@@ -174,13 +252,9 @@ function renderItems() {
     });
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    if (!checkActivation()) {
-        document.getElementById('activate-btn').addEventListener('click', () => {
-            const key = document.getElementById('license-key-input').value.trim();
-            localStorage.setItem('contractor_active_key', key);
-            if (checkActivation()) { window.location.reload(); } else { alert('كود تفعيل خاطئ! | Invalid Key'); }
-        });
+window.addEventListener('DOMContentLoaded', async () => {
+    const isAllowed = await checkActivation();
+    if (!isAllowed) {
         return;
     }
     
@@ -389,3 +463,4 @@ function generateQuotationPDF() {
     `);
     printWindow.document.close();
 }
+ 
