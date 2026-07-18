@@ -88,7 +88,7 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل الأساسية عند فتح التطبيق (محدثة لتفحص الكاش التلقائي الموفر للضغط)
+// دالة فحص التفعيل الأساسية عند فتح التطبيق (معدلة خصيصاً لقطع الخدمة تماماً عند فصل الإنترنت)
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -96,20 +96,77 @@ async function checkActivation() {
     const idBox = document.getElementById('device-id-box');
     if(idBox) idBox.innerText = fingerprint;
 
-    // فحص لو العميل تم التحقق منه مسبقاً وتاريخ انتهاء اشتراكه الكاش لسه شغال ومعداش
+    // 1. فحص مبدئي سريع للكاش المحلي لمعرفة هل يوجد اشتراك مسجل أصلاً
     const cachedExpiry = localStorage.getItem('contractor_subscription_expiry_cache');
+    let isCacheValid = false;
+
     if (cachedExpiry) {
         const expiryDate = new Date(cachedExpiry);
         if (expiryDate > now) {
-            // الاشتراك ساري ومسجل محلياً؛ نخفي شاشة القفل ونفتح علطول بدون إجبار على الضغط
+            // الكاش لسه ساري، بنفتح الواجهة مؤقتاً لتفادي البطء
             document.getElementById('activation-screen').classList.add('hidden');
-            return true;
+            isCacheValid = true;
+        } else {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
         }
     }
 
-    // لو مفيش كاش أو الكاش انتهى، تظهر شاشة القفل تطلب فحص جديد بالسحابة
-    showLockScreen("برجاء الضغط على زرار التحقق بالأسفل لفحص حالة اشتراكك وفتح النظام.");
-    return false;
+    // لو مفيش كاش صالح من البداية، تظهر شاشة القفل فوراً
+    if (!isCacheValid) {
+        showLockScreen("برجاء الضغط على زرار التحقق بالأسفل لفحص حالة اشتراكك وفتح النظام.");
+    }
+
+    // 2. الفحص الخلفي الإجباري للتأكد من حالة الاتصال والسحابة
+    try {
+        // فحص صريح إذا كان المتصفح في وضع الأوفلاين قبل إرسال الطلب للشبكة
+        if (!navigator.onLine) {
+            throw new Error("OfflineMode");
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        // [الحالة أ]: إذا تم حذف الجهاز من لوحة الـ Admin
+        if (!data || data.length === 0) {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            showLockScreen("🔒 هذا الجهاز غير مسجل بالسحابة أو تم إلغاء تفعيله من الإدارة.");
+            return false;
+        }
+
+        const user = data[0];
+        let remoteExpiry = null;
+
+        if (user.is_subscribed === true || user.is_subscribed === "true") {
+            remoteExpiry = user.subscription_expires_at;
+        } else if (user.trial_expires_at) {
+            remoteExpiry = user.trial_expires_at;
+        }
+
+        // [الحالة ب]: مقارنة تاريخ التفعيل بالوقت الحالي
+        if (remoteExpiry && new Date(remoteExpiry) > now) {
+            localStorage.setItem('contractor_subscription_expiry_cache', remoteExpiry);
+            document.getElementById('activation-screen').classList.add('hidden');
+            return true;
+        } else {
+            // [الحالة ج]: انتهاء المدة في قاعدة البيانات
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            showLockScreen("🔒 انتهت صلاحية الاشتراك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.");
+            return false;
+        }
+
+    } catch (error) {
+        // حماية ضد الأوفلاين: إذا حاول المستخدم قفل الإنترنت لتخطي الفحص أو حدث انقطاع حقيقي
+        console.error("تم كشف محاولة تشغيل بدون إنترنت أو فشل الاتصال بالسيرفر:", error);
+        
+        // مسح الكاش المحلي فوراً لقطع الطريق على تشغيل التطبيق دون اتصال
+        localStorage.removeItem('contractor_subscription_expiry_cache');
+        
+        // إجبار المستخدم على العودة لشاشة التفعيل الرئيسية ولا يمكن فتح الواجهة إلا عند الاتصال والضغط
+        showLockScreen("⚠️ عذراً، لا يمكن استخدام الأداة بدون اتصال بالإنترنت. يرجى الاتصال بالشبكة واضغط على زر التحقق للتأكد من صلاحية اشتراكك.");
+        return false;
+    }
 }
 
 function showLockScreen(msg) {
@@ -197,7 +254,6 @@ async function registerNewTrialUser(deviceId) {
             })
         });
         localStorage.setItem('contractor_subscription_expiry_cache', trialExpiryString);
-        localStorage.setItem('contractor_offline_verified', 'true');
     } catch(e) { console.error(e); }
 }
 
@@ -528,6 +584,10 @@ async function checkSubscriptionManually() {
     btn.classList.add('opacity-80');
 
     try {
+        if (!navigator.onLine) {
+            throw new Error("NoInternetManual");
+        }
+
         const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
             headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
         });
@@ -540,7 +600,7 @@ async function checkSubscriptionManually() {
             btn.style.background = "#10b981";
             
             setTimeout(() => {
-                window.location.reload(); // إعادة تحميل لتطبيق حالة الكاش الجديدة مباشرة والفتح الدائم
+                window.location.reload(); 
             }, 1500);
             return;
         }
@@ -574,7 +634,6 @@ async function checkSubscriptionManually() {
         }
 
         if (isAccessGranted) {
-            // حفظ وقت انتهاء الاشتراك في الكاش المحلي للمتصفح لمنع طلب التحقق مجدداً
             localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
 
             if (expiryBox && expiryDateText) {
@@ -588,7 +647,7 @@ async function checkSubscriptionManually() {
 
             setTimeout(() => {
                 document.getElementById('activation-screen').classList.add('hidden');
-                window.location.reload(); // إعادة تنشيط الواجهة في حالة الأمان الكامل
+                window.location.reload(); 
             }, 1800);
         } else {
             if (expiryBox) expiryBox.classList.add('hidden');
@@ -601,20 +660,11 @@ async function checkSubscriptionManually() {
 
     } catch (error) {
         console.error(error);
-        const localStatus = localStorage.getItem('contractor_offline_verified');
-        if (localStatus === 'true') {
-            if (expiryBox && expiryDateText) {
-                expiryDateText.innerText = "تم الفتح بنظام الأوفلاين الاحتياطي مؤقتاً";
-                expiryBox.classList.remove('hidden');
-            }
-            setTimeout(() => {
-                document.getElementById('activation-screen').classList.add('hidden');
-            }, 1500);
-        } else {
-            btnText.innerText = "خطأ في الاتصال بالسحابة";
-            btnIcon.innerText = "🌐";
-            btn.disabled = false;
-            btn.classList.remove('opacity-80');
-        }
+        localStorage.removeItem('contractor_subscription_expiry_cache');
+        btnText.innerText = "لا يوجد إنترنت! فشل التفعيل";
+        btnIcon.innerText = "🌐";
+        btn.disabled = false;
+        btn.classList.remove('opacity-80');
+        alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
