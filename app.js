@@ -61,8 +61,9 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
-const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
-const SUPABASE_KEY = "YOUR_ANON_KEY";
+// إعداد ربط Supabase بالمفتاح الممرر[span_0](start_span)[span_0](end_span)
+const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
+const SUPABASE_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
 
 function generateDeviceFingerprint() {
     const specs = [
@@ -168,8 +169,71 @@ async function registerNewTrialUser(deviceId) {
     } catch(e) { console.error(e); }
 }
 
-function startPaymobPayment(planType) {
-    console.log("جاري تجهيز فاتورة Paymob للباقة:", planType);
+// دالة الدفع مدمج بها مفتاح Paymob الممرر بنجاح[span_1](start_span)[span_1](end_span)
+async function startPaymobPayment(planType) {
+    const fingerprint = getDeviceID();
+    console.log(`جاري تجهيز فاتورة Paymob للباقة [${planType}] للجهاز [${fingerprint}]`);
+    
+    const amountCents = planType === 'yearly' ? 200000 : 25000; 
+    
+    const billingData = {
+        first_name: companyData ? companyData.name.split(' ')[0] : "Contractor",
+        last_name: companyData ? (companyData.name.split(' ')[1] || "User") : "User",
+        email: "client@smartcontractor.com",
+        phone_number: companyData ? companyData.phone : "+201000000000",
+        currency: "EGP",
+        floor: "1", street: "Street", building: "1", room: "1", city: "Cairo", country: "EG"
+    };
+
+    try {
+        // الخطوة 1: طلب الـ Authentication Token بمفتاحك الأصلي
+        const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ "api_key": "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRJd01EVTNOQ3dpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS5VbVUtNDlnR2hiRTBTRnAyMU9URHoxbGJxUXNLUEVtS3hvNkw4THZEMGdtM2pmb3U5NUJkdGw1clYzNV92WXduTU4zclJGT1BITm05c1B1ZnB0TUJxZw==" })
+        });
+        const authData = await authRes.json();
+        const authToken = authData.token;
+
+        // الخطوة 2: إنشاء طلب أمر الدفع مع تمرير الـ device_id
+        const orderRes = await fetch("https://accept.paymob.com/api/acceptance/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                auth_token: authToken,
+                delivery_needed: "false",
+                amount_cents: amountCents,
+                currency: "EGP",
+                items: [{ name: `Subscription ${planType}`, amount_cents: amountCents, quantity: 1 }],
+                extra_data: { device_id: fingerprint }
+            })
+        });
+        const orderData = await orderRes.json();
+
+        // الخطوة 3: توليد الـ Payment Key للـ Integration الخاصة بك
+        const keyRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                auth_token: authToken,
+                amount_cents: amountCents,
+                expiration: 3600,
+                order_id: orderData.id,
+                billing_data: billingData,
+                currency: "EGP",
+                integration_id: 5783318
+            })
+        });
+        const keyData = await keyRes.json();
+
+        // الخطوة 4: تحويل المستخدم لصفحة الدفع
+        console.log("تم تكوين الفاتورة، جاري الانتقال لصفحة السداد الآمنة...");
+        window.location.href = `https://accept.paymob.com/api/acceptance/iframes/v2?payment_token=${keyData.token}`;
+
+    } catch (error) {
+        console.error("خطأ تقني في معالجة بوابة الدفع التلقائية:", error);
+        alert("عذراً، حدث خطأ أثناء الاتصال ببوابة الدفع. يرجى المحاولة مرة أخرى.");
+    }
 }
 
 (function selfDefending() {
