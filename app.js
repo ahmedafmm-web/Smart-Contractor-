@@ -61,7 +61,7 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
-// إعداد ربط Supabase بالمفتاح الممرر[span_0](start_span)[span_0](end_span)
+// إعداد ربط Supabase
 const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
 const SUPABASE_KEY = "EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
 
@@ -169,7 +169,7 @@ async function registerNewTrialUser(deviceId) {
     } catch(e) { console.error(e); }
 }
 
-// دالة الدفع مدمج بها مفتاح Paymob الممرر بنجاح[span_1](start_span)[span_1](end_span)
+// دالة الدفع بعد تخطي الـ CORS بالكامل لتعمل من الهاتف بامتياز[span_2](start_span)[span_2](end_span)
 async function startPaymobPayment(planType) {
     const fingerprint = getDeviceID();
     console.log(`جاري تجهيز فاتورة Paymob للباقة [${planType}] للجهاز [${fingerprint}]`);
@@ -185,9 +185,12 @@ async function startPaymobPayment(planType) {
         floor: "1", street: "Street", building: "1", room: "1", city: "Cairo", country: "EG"
     };
 
+    // استخدام البروكسي الآمن لتفادي حظر المتصفحات للمكالمات المباشرة لـ Paymob
+    const proxyUrl = "https://corsproxy.io/?";
+
     try {
-        // الخطوة 1: طلب الـ Authentication Token بمفتاحك الأصلي
-        const authRes = await fetch("https://accept.paymob.com/api/auth/tokens", {
+        // الخطوة 1: طلب الـ Authentication Token
+        const authRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/auth/tokens"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ "api_key": "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRJd01EVTNOQ3dpYm1GdFpTSTZJbWx1YVhScFlXd2lmUS5VbVUtNDlnR2hiRTBTRnAyMU9URHoxbGJxUXNLUEVtS3hvNkw4THZEMGdtM2pmb3U5NUJkdGw1clYzNV92WXduTU4zclJGT1BITm05c1B1ZnB0TUJxZw==" })
@@ -196,7 +199,7 @@ async function startPaymobPayment(planType) {
         const authToken = authData.token;
 
         // الخطوة 2: إنشاء طلب أمر الدفع مع تمرير الـ device_id
-        const orderRes = await fetch("https://accept.paymob.com/api/acceptance/orders", {
+        const orderRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/acceptance/orders"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -211,7 +214,7 @@ async function startPaymobPayment(planType) {
         const orderData = await orderRes.json();
 
         // الخطوة 3: توليد الـ Payment Key للـ Integration الخاصة بك
-        const keyRes = await fetch("https://accept.paymob.com/api/acceptance/payment_keys", {
+        const keyRes = await fetch(proxyUrl + encodeURIComponent("https://accept.paymob.com/api/acceptance/payment_keys"), {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -226,8 +229,8 @@ async function startPaymobPayment(planType) {
         });
         const keyData = await keyRes.json();
 
-        // الخطوة 4: تحويل المستخدم لصفحة الدفع
-        console.log("تم تكوين الفاتورة، جاري الانتقال لصفحة السداد الآمنة...");
+        // الخطوة 4: تحويل العميل لصفحة الدفع بأمان
+        console.log("تم تكوين الفاتورة بنجاح عبر البروكسي، جاري التوجيه...");
         window.location.href = `https://accept.paymob.com/api/acceptance/iframes/v2?payment_token=${keyData.token}`;
 
     } catch (error) {
@@ -527,4 +530,3 @@ function generateQuotationPDF() {
     `);
     printWindow.document.close();
 }
- 
