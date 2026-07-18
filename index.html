@@ -15,20 +15,53 @@
 </head>
 <body class="h-full text-gray-800">
 
+    <!-- شاشة التفعيل المطورة بتصميم جذاب وأيقونات مودرن وزرار الفحص اليدوي -->
     <div id="activation-screen" class="hidden fixed inset-0 bg-gray-900 bg-opacity-95 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl text-center">
-            <h2 id="lock-title" class="text-2xl font-bold text-red-600 mb-2">تنبيه النظام | System Notice</h2>
-            <p class="text-xs text-gray-400 mb-4">The Smart Contractor By Ahmed Mohamed</p>
-            <hr class="mb-4">
-            <p id="lock-message" class="text-sm font-semibold text-gray-700 mb-4 px-2 leading-relaxed"></p>
-            <p class="text-xs font-bold text-gray-500 mb-2">بصمة جهازك الذكية (محمية ومقترنة بحسابك):</p>
-            <div id="device-id-box" class="bg-gray-100 p-3 rounded-lg font-mono text-xs select-all border border-gray-300 mb-6 break-all font-bold text-blue-900"></div>
-            <div class="space-y-3">
-                <button onclick="startPaymobPayment('monthly')" class="w-full bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-green-700 transition shadow-lg shadow-green-100 flex items-center justify-center gap-2">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl text-center border border-gray-100 relative overflow-hidden">
+            <!-- تأثير خلفية جمالي صغير -->
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-50 rounded-full blur-2xl opacity-60"></div>
+            
+            <!-- أيقونة القفل المتحركة الجذابة -->
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-50 mb-4 animate-bounce">
+                <span class="text-3xl">🔒</span>
+            </div>
+
+            <h2 id="lock-title" class="text-2xl font-bold text-gray-900 mb-1">تنبيه النظام | System Notice</h2>
+            <p class="text-xs text-gray-400 mb-4 font-mono tracking-wider">The Smart Contractor By Ahmed Mohamed</p>
+            <hr class="border-gray-100 mb-4">
+            
+            <!-- رسالة النظام الأساسية -->
+            <p id="lock-message" class="text-sm font-semibold text-gray-600 mb-4 px-2 leading-relaxed"></p>
+            
+            <!-- مربع عرض تاريخ الانتهاء الجذاب (يظهر فقط عند الفحص الناجح) -->
+            <div id="expiry-display-box" class="hidden bg-emerald-50 border border-emerald-200 text-emerald-800 p-3.5 rounded-xl text-sm font-bold mb-4 flex items-center justify-center gap-2 animate-pulse">
+                <span>📅</span> <span id="expiry-date-text"></span>
+            </div>
+
+            <!-- زرار التحقق اليدوي المودرن الجديد -->
+            <button id="manual-verify-btn" onclick="checkSubscriptionManually()" class="w-full mb-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-100 flex items-center justify-center gap-2 text-sm">
+                <span id="verify-btn-icon">🔄</span>
+                <span id="verify-btn-text">اضغط هنا للتحقق وتفعيل الأداة الآن</span>
+            </button>
+
+            <p class="text-xs font-bold text-gray-400 mb-2 flex items-center justify-center gap-1">
+                <span>🆔</span> بصمة جهازك الذكية المقترنة بحسابك:
+            </p>
+            <div id="device-id-box" class="bg-gray-50 p-3 rounded-xl font-mono text-xs select-all border border-gray-200 mb-5 break-all font-bold text-blue-900 tracking-tight"></div>
+            
+            <div class="relative flex py-2 items-center my-2">
+                <div class="flex-grow border-t border-gray-200"></div>
+                <span class="flex-shrink mx-4 text-gray-400 text-xs font-bold">باقات الاشتراك السريع</span>
+                <div class="flex-grow border-t border-gray-200"></div>
+            </div>
+
+            <!-- أزرار باقمب بتنسيق أنيق ومتناسق -->
+            <div class="grid grid-cols-1 gap-3 mt-2">
+                <button onclick="startPaymobPayment('monthly')" class="w-full bg-emerald-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-emerald-700 transition duration-200 shadow-md shadow-emerald-50 flex items-center justify-center gap-2 text-sm transform hover:scale-[1.01]">
                     <span>💳</span> تفعيل الاشتراك الشهري (250 ج.م)
                 </button>
-                <button onclick="startPaymobPayment('yearly')" class="w-full bg-blue-600 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-100 flex items-center justify-center gap-2">
-                    <span>💎</span> تفعيل الاشتراك السنوي (2000 ج.م - توفير)
+                <button onclick="startPaymobPayment('yearly')" class="w-full bg-blue-900 text-white font-bold py-3.5 px-4 rounded-xl hover:bg-slate-900 transition duration-200 shadow-md shadow-blue-50 flex items-center justify-center gap-2 text-sm transform hover:scale-[1.01]">
+                    <span>💎</span> تفعيل الاشتراك السنوي (2000 ج.م)
                 </button>
             </div>
         </div>
@@ -147,4 +180,3 @@
     </script>
 </body>
 </html>
- 
