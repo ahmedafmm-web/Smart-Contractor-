@@ -77,7 +77,7 @@
             <h3 class="font-bold text-amber-200">الاشتراك السنوي</h3>
             <p class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs text-slate-400 font-normal">جنيه/سنوياً</span></p>
           </div>
-          <a href="https://paymob.link/Hgw6W" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
+          <a href="https://paymob.link/FssME" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
             <span>دفع الآن</span>
             <i class="fas fa-external-link-alt text-[10px]"></i>
           </a>
@@ -97,6 +97,27 @@
       </div>
     </section>
 
+    <!-- Section 3: AI Chat -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col h-[450px]">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2 text-cyan-400 font-semibold">
+          <i class="fas fa-robot text-lg"></i>
+          <h2>المساعد الذكي للدعم الفني</h2>
+        </div>
+        <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">شغال 24/7</span>
+      </div>
+      <div id="chatBox" class="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-y-auto space-y-3 chat-scroll text-sm">
+        <div class="bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
+          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك؟
+        </div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <input type="text" id="userQuery" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="اسأل عن أي شيء..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1">
+        <button onclick="sendChatMessage()" id="chatBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl transition">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </section>
   </main>
 
   <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/80">
@@ -104,7 +125,7 @@
   </footer>
 
   <script>
-    // تم توحيد المشروع مع المشروع الرئيسي للأداة (lwffkkzdkvafyuwrcbzl)
+    // ربط مع المشروع الأساسي الموحد (lwffkkzdkvafyuwrcbzl)
     const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
 
@@ -135,75 +156,149 @@
       alert.scrollIntoView({ behavior: 'smooth' });
     }
 
-    // 1. دالة تفعيل التجربة المجانية (48 ساعة)
+    // 1. تفعيل التجربة المجانية (48 ساعة)
     async function activateTrial() {
       document.getElementById('statusAlert').classList.add('hidden');
       const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();
       const trialBtn = document.getElementById('trialBtn');
-      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) { showAlert("❌ يرجى إدخال كود جهاز صحيح يبدأ بـ TSCAM-", "error"); return; }
+      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) { showAlert("❌ كود غير صحيح", "error"); return; }
       trialBtn.disabled = true;
       try {
         const { data: existingDevice } = await supabaseClient.from('users').select('*').eq('device_id', deviceCode).maybeSingle();
-        if (existingDevice && existingDevice.trial_expires_at) { showAlert("⚠️ الفترة التجريبية مستنفدة لهذا الجهاز مسبقاً.", "warning"); }
+        if (existingDevice && existingDevice.trial_expires_at) { showAlert("⚠️ الفترة التجريبية مستنفدة.", "warning"); }
         else {
           const expiryDate = new Date(); expiryDate.setHours(expiryDate.getHours() + 48);
           await supabaseClient.from('users').upsert([{ device_id: deviceCode, is_subscribed: false, trial_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
-          showAlert(`🎉 تم تفعيل الفترة التجريبية (48 ساعة) بنجاح!`, "success");
+          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح!`, "success");
         }
-      } catch (err) { showAlert("❌ خطأ في الاتصال بالسحابة.", "error"); }
+      } catch (err) { showAlert("❌ خطأ في الاتصال.", "error"); }
       trialBtn.disabled = false;
     }
 
-    // 2. دالة تفعيل الاشتراك وتسجيل الجهاز
+    // 2. دالة التفعيل بالريسيت والتمييز التلقائي للنسب والخطط + نظام الأمان الصارم
     async function processSubscription() {
       document.getElementById('statusAlert').classList.add('hidden');
       const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();
       const transactionId = document.getElementById('transactionId').value.trim();
       const subBtn = document.getElementById('subBtn');
 
-      if (!deviceCode || !transactionId) { showAlert("❌ يرجى إدخال كود الجهاز ورقم المعاملة.", "error"); return; }
+      if (!deviceCode || !transactionId) { 
+        showAlert("❌ يرجى ملء البيانات.", "error"); 
+        return; 
+      }
 
       subBtn.disabled = true;
       subBtn.innerText = "جاري التحقق والتفعيل...";
 
       try {
-        // تحديد مدة الاشتراك تلقائياً (سنوي إذا تضمن النص YEAR أو المبلغ، أو شهري افتراضي)
-        const isYearly = transactionId.toLowerCase().includes("year") || transactionId.startsWith("2000");
-        const addDays = isYearly ? 365 : 30;
-        const paidAmount = isYearly ? 2000 : 250;
+        // 🛑 أمان: فحص استخدام الريسيت سابقاً لمنع إعادة تكرار كود التحويل
+        const { data: existingPayment, error: checkError } = await supabaseClient
+          .from('payments')
+          .select('transaction_id')
+          .eq('transaction_id', transactionId)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error(checkError);
+          showAlert("❌ خطأ أثناء التحقق من قاعدة البيانات.", "error");
+          subBtn.disabled = false;
+          subBtn.innerText = "تأكيد التفعيل";
+          return;
+        }
+
+        // إذا وُجد رقم التحويل مسجلاً من قبل، يتم تسجيل محاولة فاشلة وإلغاء العملية فوراً
+        if (existingPayment) {
+          const attempts = await handleFailedAttempt(deviceCode);
+          showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");
+          subBtn.disabled = false; 
+          subBtn.innerText = "تأكيد التفعيل"; 
+          return;
+        }
+
+        // 💡 التمييز التلقائي لقيمة الاشتراك بناءً على البيانات ورقم العملية
+        let paidAmount = 250; 
+        let addDays = 30; // شهر كافتراضي
+
+        if (transactionId.startsWith("2000") || transactionId.toLowerCase().includes("year") || transactionId.endsWith("2000")) {
+          paidAmount = 2000;
+          addDays = 365; // سنة كاملة
+        }
 
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + addDays);
 
-        // تسجيل العملية في جدول payments
-        await supabaseClient.from('payments').insert([
-          { transaction_id: String(transactionId), device_fingerprint: deviceCode, amount: paidAmount }
-        ]);
+        // تسجيل العمليات في جدول payments لحرق الريسيت ومنع إعادة استخدامه نهائياً
+        const { error: insertError } = await supabaseClient
+          .from('payments')
+          .insert([{ transaction_id: String(transactionId), device_fingerprint: deviceCode, amount: paidAmount }]);
+        
+        if (insertError) { 
+          showAlert("⚠️ فشل حفظ المعاملة.", "error"); 
+          subBtn.disabled = false; 
+          subBtn.innerText = "تأكيد التفعيل";
+          return; 
+        }
 
-        // حفظ/تحديث بيانات الجهاز في جدول users
-        const { error: upsertError } = await supabaseClient.from('users').upsert([
+        // تحديث حالة المستخدم بالجهاز وتحديد موعد انتهاء الاشتراك في جدول users
+        const { error: upsertError } = await supabaseClient
+          .from('users')
+          .upsert([{ device_id: deviceCode, is_subscribed: true, subscription_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
+
+        if (upsertError) {
+          showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");
+        } else {
+          const planName = (paidAmount === 2000) ? "السنوية (2000 جنيه)" : "الشهرية (250 جنيه)";
+          showAlert(`🎉 تم تفعيل الباقة ${planName} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
+        }
+
+      } catch (err) { 
+        console.error(err);
+        showAlert("❌ خطأ غير متوقع.", "error"); 
+      }
+      
+      subBtn.disabled = false; 
+      subBtn.innerText = "تأكيد التفعيل";
+    }
+
+    // 3. دالة معالجة المحاولات الخاطئة والـ Blacklist
+    async function handleFailedAttempt(deviceCode) {
+      try {
+        const { data: dev } = await supabaseClient
+          .from('users')
+          .select('failed_attempts')
+          .eq('device_id', deviceCode)
+          .maybeSingle();
+
+        let currentAttempts = ((dev && dev.failed_attempts) ? dev.failed_attempts : 0) + 1;
+
+        await supabaseClient.from('users').upsert([
           { 
             device_id: deviceCode, 
-            is_subscribed: true, 
-            subscription_expires_at: expiryDate.toISOString() 
+            failed_attempts: currentAttempts 
           }
         ], { onConflict: 'device_id' });
 
-        if (upsertError) {
-          console.error(upsertError);
-          showAlert("⚠️ حدث خطأ في السحابة أثناء حفظ الجهاز.", "error");
-        } else {
-          showAlert(`🎉 تم تفعيل الاشتراك وتسجيل الجهاز بنجاح حتى تاريخ: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
+        if (currentAttempts >= 5) {
+          await supabaseClient.from('blacklisted_devices').upsert([
+            { 
+              device_fingerprint: deviceCode, 
+              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة" 
+            }
+          ], { onConflict: 'device_fingerprint' });
         }
 
-      } catch (err) {
-        console.error(err);
-        showAlert("❌ خطأ غير متوقع أثناء الاتصال بالسحابة.", "error");
+        return currentAttempts;
+      } catch (e) {
+        console.error("خطأ في العداد:", e);
+        return 1;
       }
-      subBtn.disabled = false;
-      subBtn.innerText = "تأكيد التفعيل";
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('userQuery');
+      if (!input.value.trim()) return;
+      input.value = '';
     }
   </script>
 </body>
 </html>
- 
