@@ -61,6 +61,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- الاشتراك الشهري -->
         <div class="border border-slate-700 bg-slate-900/50 p-4 rounded-xl flex justify-between items-center">
           <div>
             <h3 class="font-bold text-slate-200">الاشتراك الشهري</h3>
@@ -71,19 +72,23 @@
             <i class="fas fa-external-link-alt text-[10px]"></i>
           </a>
         </div>
+
+        <!-- الاشتراك السنوي (تم تصحيح الرابط الأصلي) -->
         <div class="border border-amber-500/30 bg-amber-500/5 p-4 rounded-xl flex justify-between items-center relative overflow-hidden">
           <span class="absolute -left-6 top-2 bg-amber-500 text-slate-950 font-bold text-[9px] px-6 py-0.5 -rotate-45">الأوفر</span>
           <div>
             <h3 class="font-bold text-amber-200">الاشتراك السنوي</h3>
             <p class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs text-slate-400 font-normal">جنيه/سنوياً</span></p>
           </div>
-          <a href="https://paymob.link/FssME" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
+          <a href="https://paymob.link/Hgw6W" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
             <span>دفع الآن</span>
             <i class="fas fa-external-link-alt text-[10px]"></i>
           </a>
         </div>
       </div>
+
       <hr class="border-slate-700/50">
+
       <div class="space-y-3">
         <label class="block text-xs text-slate-300 font-medium">تأكيد الاشتراك بعد الدفع (أدخل رقم عملية التحويل Transaction ID):</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -97,22 +102,31 @@
       </div>
     </section>
 
-    <!-- Section 3: AI Chat -->
-    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col h-[450px]">
-      <div class="flex items-center justify-between mb-3">
+    <!-- Section 3: AI Chat (المساعد الذكي المعدل بالكامل) -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col h-[520px]">
+      <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 text-cyan-400 font-semibold">
           <i class="fas fa-robot text-lg"></i>
           <h2>المساعد الذكي للدعم الفني</h2>
         </div>
         <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">شغال 24/7</span>
       </div>
+
+      <!-- الأسئلة الشائعة السريعة -->
+      <div id="quickQuestions" class="flex gap-2 overflow-x-auto pb-2 mb-2 chat-scroll text-xs">
+        <!-- سيتم توليد الأسئلة أوتوماتيكياً بواسطة JS -->
+      </div>
+
+      <!-- صندوق الشات -->
       <div id="chatBox" class="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-y-auto space-y-3 chat-scroll text-sm">
         <div class="bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
-          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك؟
+          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك اليوم؟ اضغط على أحد الأسئلة السريعة أعلاه أو اكتب استفسارك مباشرة! 🚀
         </div>
       </div>
+
+      <!-- خانة الإدخال -->
       <div class="flex gap-2 mt-3">
-        <input type="text" id="userQuery" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="اسأل عن أي شيء..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1">
+        <input type="text" id="userQuery" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="اسأل عن كيفية الاستخدام، الحسابات، أو التفعيل..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1">
         <button onclick="sendChatMessage()" id="chatBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl transition">
           <i class="fas fa-paper-plane"></i>
         </button>
@@ -142,6 +156,8 @@
         if (trialInput) trialInput.value = device;
         if (subInput) subInput.value = device;
       }
+
+      initSmartAssistant();
     });
 
     function showAlert(msg, type = 'info') {
@@ -246,10 +262,102 @@
       }
     }
 
-    async function sendChatMessage() {
+    // ==========================================
+    // 🤖 محرك المساعد الذكي والأسئلة الشائعة
+    // ==========================================
+    const assistantKnowledgeBase = [
+      {
+        q: "كيف يتم تفعيل الحساب؟",
+        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة"],
+        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري."
+      },
+      {
+        q: "كيف تحسب الأداة المقايسة؟",
+        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل."
+      },
+      {
+        q: "كيف أضيف بنوداً مخصصة؟",
+        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص"],
+        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم."
+      },
+      {
+        q: "ما فائدة نسبة الطوارئ والهدر؟",
+        keywords: ["طوارئ", "هدر", "نسبة", "ربح"],
+        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية."
+      },
+      {
+        q: "كيف أحصل على رقم Transaction ID؟",
+        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال"],
+        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'."
+      }
+    ];
+
+    function initSmartAssistant() {
+      const container = document.getElementById('quickQuestions');
+      if (!container) return;
+      container.innerHTML = '';
+
+      assistantKnowledgeBase.forEach((item, index) => {
+        const btn = document.createElement('button');
+        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0";
+        btn.innerText = "💡 " + item.q;
+        btn.onclick = () => askQuestionDirectly(index);
+        container.appendChild(btn);
+      });
+    }
+
+    function askQuestionDirectly(index) {
+      const item = assistantKnowledgeBase[index];
+      appendUserMessage(item.q);
+      setTimeout(() => {
+        appendBotMessage(item.a);
+      }, 300);
+    }
+
+    function sendChatMessage() {
       const input = document.getElementById('userQuery');
-      if (!input.value.trim()) return;
+      const text = input.value.trim();
+      if (!text) return;
+
+      appendUserMessage(text);
       input.value = '';
+
+      // البحث عن أفضل إجابة مطابقة
+      setTimeout(() => {
+        let matchedAnswer = null;
+        const lowerText = text.toLowerCase();
+
+        for (const item of assistantKnowledgeBase) {
+          if (item.keywords && item.keywords.some(kw => lowerText.includes(kw))) {
+            matchedAnswer = item.a;
+            break;
+          }
+        }
+
+        if (!matchedAnswer) {
+          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة من الأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب عبر الزر بالعلَى! 💬";
+        }
+
+        appendBotMessage(matchedAnswer);
+      }, 400);
+    }
+
+    function appendUserMessage(msg) {
+      const chatBox = document.getElementById('chatBox');
+      const userDiv = document.createElement('div');
+      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed text-left font-medium shadow";
+      userDiv.innerText = msg;
+      chatBox.appendChild(userDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function appendBotMessage(msg) {
+      const chatBox = document.getElementById('chatBox');
+      const botDiv = document.createElement('div');
+      botDiv.className = "bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed shadow";
+      botDiv.innerText = msg;
+      chatBox.appendChild(botDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
     }
   </script>
 </body>
