@@ -214,8 +214,8 @@ async function registerNewTrialUser(deviceId) {
 
 function startPaymobPayment(planType) {
     const paymentLinks = {
-        'monthly': 'https://paymob.link/giB0F',
-        'yearly': 'https://paymob.link/OE2wT'
+        'monthly': 'https://paymob.link/FssME',
+        'yearly': 'https://paymob.link/Hgw6W'
     };
 
     const targetUrl = paymentLinks[planType];
