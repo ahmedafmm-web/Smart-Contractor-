@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Contractor | بوابة التفعيل والدعم</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+    .chat-scroll::-webkit-scrollbar { width: 6px; }
+    .chat-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 p-4">
+    <div class="max-w-4xl mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/30">SC</div>
+        <div>
+          <h1 class="font-bold text-lg leading-tight text-white">Smart Contractor</h1>
+          <p class="text-xs text-slate-400">منظومة التفعيل والدعم الذكي</p>
+        </div>
+      </div>
+      <a id="whatsappLink" href="https://wa.me/201155421710" target="_blank" class="text-xs md:text-sm bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-lg hover:bg-emerald-600/30 transition flex items-center gap-2">
+        <i class="fab font-bold text-base fa-whatsapp"></i>
+        <span>الدعم الفني المباشر</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-4xl mx-auto w-full p-4 space-y-6 my-auto">
+
+    <div id="statusAlert" class="hidden p-4 rounded-xl border text-sm font-medium transition-all"></div>
+
+    <!-- Section 1: Trial -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur">
+      <div class="flex items-center gap-2 text-indigo-400 font-semibold mb-3">
+        <i class="fas fa-bolt text-lg"></i>
+        <h2>التفعيل التجريبي المجاني (48 ساعة)</h2>
+      </div>
+      <p class="text-xs text-slate-400 mb-4">أدخل كود جهازك الظاهر داخل البرنامج لمرة واحدة لتفعيل التجربة الفورية.</p>
+      <div class="flex flex-col sm:flex-row gap-2">
+        <input type="text" id="trialDeviceCode" placeholder="أدخل كود الجهاز (مثال: TSCAM-12345)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-indigo-500 flex-1 uppercase text-slate-200 tracking-wider">
+        <button onclick="activateTrial()" id="trialBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+          <span>تفعيل 48 ساعة</span>
+          <i class="fas fa-arrow-left"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- Section 2: Paid Subscriptions -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur space-y-5">
+      <div class="flex items-center gap-2 text-amber-400 font-semibold">
+        <i class="fas fa-crown text-lg"></i>
+        <h2>الاشتراكات والدفع الإلكتروني</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="border border-slate-700 bg-slate-900/50 p-4 rounded-xl flex justify-between items-center">
+          <div>
+            <h3 class="font-bold text-slate-200">الاشتراك الشهري</h3>
+            <p class="text-2xl font-black text-indigo-400 mt-1">250 <span class="text-xs text-slate-400 font-normal">جنيه/شهرياً</span></p>
+          </div>
+          <a href="https://paymob.link/giB0F" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-1">
+            <span>دفع الآن</span>
+            <i class="fas fa-external-link-alt text-[10px]"></i>
+          </a>
+        </div>
+        <div class="border border-amber-500/30 bg-amber-500/5 p-4 rounded-xl flex justify-between items-center relative overflow-hidden">
+          <span class="absolute -left-6 top-2 bg-amber-500 text-slate-950 font-bold text-[9px] px-6 py-0.5 -rotate-45">الأوفر</span>
+          <div>
+            <h3 class="font-bold text-amber-200">الاشتراك السنوي</h3>
+            <p class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs text-slate-400 font-normal">جنيه/سنوياً</span></p>
+          </div>
+          <a href="https://paymob.link/OE2wT" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
+            <span>دفع الآن</span>
+            <i class="fas fa-external-link-alt text-[10px]"></i>
+          </a>
+        </div>
+      </div>
+      <hr class="border-slate-700/50">
+      <div class="space-y-3">
+        <label class="block text-xs text-slate-300 font-medium">تأكيد الاشتراك بعد الدفع (أدخل رقم عملية التحويل Transaction ID):</label>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <input type="text" id="subDeviceCode" placeholder="كود الجهاز (TSCAM-)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 uppercase">
+          <input type="text" id="transactionId" placeholder="رقم عملية التحويل" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+          <button onclick="processSubscription()" id="subBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+            <span>تأكيد التفعيل</span>
+            <i class="fas fa-check-circle"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: AI Chat -->
+    <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col h-[450px]">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2 text-cyan-400 font-semibold">
+          <i class="fas fa-robot text-lg"></i>
+          <h2>المساعد الذكي للدعم الفني</h2>
+        </div>
+        <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">شغال 24/7</span>
+      </div>
+      <div id="chatBox" class="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-y-auto space-y-3 chat-scroll text-sm">
+        <div class="bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
+          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك؟
+        </div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <input type="text" id="userQuery" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="اسأل عن أي شيء..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1">
+        <button onclick="sendChatMessage()" id="chatBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl transition">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/80">
+    جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
+  </footer>
+
+  <script>
+    const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
+    const GEMINI_API_KEY = "AQ.Ab8RN6LluolJFa9xuw93wRdHRMOF3y89PeeyA7kItoZprIGgAA";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // قراءة كود الجهاز تلقائياً من الرابط عند فتح الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const device = urlParams.get('device');
+      
+      if (device) {
+        const trialInput = document.getElementById('trialDeviceCode');
+        const subInput = document.getElementById('subDeviceCode');
+        
+        if (trialInput) trialInput.value = device;
+        if (subInput) subInput.value = device;
+      }
+    });
+
+    function showAlert(msg, type = 'info') {
+      const alert = document.getElementById('statusAlert');
+      alert.className = "p-4 rounded-xl border text-sm font-medium transition-all";
+      if (type === 'success') alert.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
+      else if (type === 'error') alert.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
+      else alert.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
+      alert.innerHTML = msg;
+      alert.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    async function activateTrial() {
+      document.getElementById('statusAlert').classList.add('hidden');
+      const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();
+      const trialBtn = document.getElementById('trialBtn');
+      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) { showAlert("❌ كود غير صحيح", "error"); return; }
+      trialBtn.disabled = true;
+      try {
+        const { data: existingDevice } = await supabaseClient.from('users').select('*').eq('device_id', deviceCode).maybeSingle();
+        if (existingDevice && existingDevice.trial_expires_at) { showAlert("⚠️ الفترة التجريبية مستنفدة.", "warning"); }
+        else {
+          const expiryDate = new Date(); expiryDate.setHours(expiryDate.getHours() + 48);
+          await supabaseClient.from('users').upsert([{ device_id: deviceCode, is_subscribed: false, trial_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
+          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح!`, "success");
+        }
+      } catch (err) { showAlert("❌ خطأ في الاتصال.", "error"); }
+      trialBtn.disabled = false;
+    }
+
+    async function processSubscription() {
+      document.getElementById('statusAlert').classList.add('hidden');
+      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();
+      const transactionId = document.getElementById('transactionId').value.trim();
+      const subBtn = document.getElementById('subBtn');
+
+      if (!deviceCode || !transactionId) { showAlert("❌ يرجى ملء البيانات.", "error"); return; }
+
+      subBtn.disabled = true;
+      subBtn.innerText = "جاري التحقق...";
+
+      try {
+        const { data: existingPayment } = await supabaseClient.from('payments').select('*').eq('transaction_id', transactionId).maybeSingle();
+        if (existingPayment) {
+          const attempts = await handleFailedAttempt(deviceCode);
+          showAlert(`⚠️ تم استخدام رقم التحويل هذا! (محاولة ${attempts} من 5)`, "warning");
+          subBtn.disabled = false; subBtn.innerText = "تأكيد التفعيل"; return;
+        }
+
+        const { data, error: rpcError } = await supabaseClient.rpc('verify_paymob_transaction', { transaction_id: String(transactionId).trim() });
+        if (rpcError || !data || (data.success !== true && data.success !== 'true')) {
+          const attempts = await handleFailedAttempt(deviceCode);
+          showAlert(`❌ فشل التحقق (محاولة ${attempts} من 5)`, "error");
+          subBtn.disabled = false; subBtn.innerText = "تأكيد التفعيل"; return;
+        }
+
+        const paidAmount = Math.round(data.amount);
+        if (paidAmount !== 250 && paidAmount !== 2000) { showAlert("⚠️ المبلغ غير مطابق.", "warning"); subBtn.disabled = false; return; }
+
+        const { error: insertError } = await supabaseClient.from('payments').insert([{ transaction_id: String(transactionId), device_fingerprint: deviceCode, amount: paidAmount }]);
+        if (insertError) { showAlert("⚠️ فشل حفظ المعاملة.", "error"); subBtn.disabled = false; return; }
+
+        const addDays = (paidAmount === 2000) ? 365 : 30;
+        const expiryDate = new Date(); expiryDate.setDate(expiryDate.getDate() + addDays);
+        await supabaseClient.from('users').upsert([{ device_id: deviceCode, is_subscribed: true, subscription_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
+        
+        showAlert(`🎉 تم تفعيل الاشتراك بنجاح!`, "success");
+      } catch (err) { showAlert("❌ خطأ غير متوقع.", "error"); }
+      subBtn.disabled = false; subBtn.innerText = "تأكيد التفعيل";
+    }
+
+    async function handleFailedAttempt(deviceCode) {
+      try {
+        const { data: dev } = await supabaseClient
+          .from('users')
+          .select('failed_attempts')
+          .eq('device_id', deviceCode)
+          .maybeSingle();
+
+        let currentAttempts = ((dev && dev.failed_attempts) ? dev.failed_attempts : 0) + 1;
+
+        await supabaseClient.from('users').upsert([
+          { 
+            device_id: deviceCode, 
+            failed_attempts: currentAttempts 
+          }
+        ], { onConflict: 'device_id' });
+
+        if (currentAttempts >= 5) {
+          await supabaseClient.from('blacklisted_devices').upsert([
+            { 
+              device_fingerprint: deviceCode, 
+              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة" 
+            }
+          ], { onConflict: 'device_fingerprint' });
+        }
+
+        return currentAttempts;
+      } catch (e) {
+        console.error("خطأ في العداد:", e);
+        return 1;
+      }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('userQuery');
+      if (!input.value.trim()) return;
+      input.value = '';
+    }
+  </script>
+</body>
+</html>
