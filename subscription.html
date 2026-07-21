@@ -73,7 +73,7 @@
           </a>
         </div>
 
-        <!-- الاشتراك السنوي (تم تصحيح الرابط الأصلي) -->
+        <!-- الاشتراك السنوي (الرابط الصحيح) -->
         <div class="border border-amber-500/30 bg-amber-500/5 p-4 rounded-xl flex justify-between items-center relative overflow-hidden">
           <span class="absolute -left-6 top-2 bg-amber-500 text-slate-950 font-bold text-[9px] px-6 py-0.5 -rotate-45">الأوفر</span>
           <div>
@@ -102,7 +102,7 @@
       </div>
     </section>
 
-    <!-- Section 3: AI Chat (المساعد الذكي المعدل بالكامل) -->
+    <!-- Section 3: AI Chat -->
     <section class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-5 shadow-xl backdrop-blur flex flex-col h-[520px]">
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2 text-cyan-400 font-semibold">
@@ -113,21 +113,19 @@
       </div>
 
       <!-- الأسئلة الشائعة السريعة -->
-      <div id="quickQuestions" class="flex gap-2 overflow-x-auto pb-2 mb-2 chat-scroll text-xs">
-        <!-- سيتم توليد الأسئلة أوتوماتيكياً بواسطة JS -->
-      </div>
+      <div id="quickQuestions" class="flex gap-2 overflow-x-auto pb-2 mb-2 chat-scroll text-xs"></div>
 
       <!-- صندوق الشات -->
       <div id="chatBox" class="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-y-auto space-y-3 chat-scroll text-sm">
         <div class="bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
-          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك اليوم؟ اضغط على أحد الأسئلة السريعة أعلاه أو اكتب استفسارك مباشرة! 🚀
+          مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك اليوم؟ اختر سؤالاً سريعاً أو اكتب سؤالك بالأسفل! 🚀
         </div>
       </div>
 
       <!-- خانة الإدخال -->
       <div class="flex gap-2 mt-3">
-        <input type="text" id="userQuery" onkeypress="if(event.key==='Enter') sendChatMessage()" placeholder="اسأل عن كيفية الاستخدام، الحسابات، أو التفعيل..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1">
-        <button onclick="sendChatMessage()" id="chatBtn" class="bg-cyan-600 hover:bg-cyan-500 text-white px-4 py-2 rounded-xl transition">
+        <input type="text" id="userQuery" placeholder="اسأل عن كيفية الاستخدام، الحسابات، أو التفعيل..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1 text-white">
+        <button id="chatBtn" type="button" class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-xl transition font-bold">
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>
@@ -144,7 +142,35 @@
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // قراءة كود الجهاز تلقائياً من رابط الصفحة عند فتحها
+    // قاعدة بيانات إجابات المساعد الذكي
+    const assistantKnowledgeBase = [
+      {
+        q: "كيف يتم تفعيل الحساب؟",
+        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة", "شرح"],
+        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري."
+      },
+      {
+        q: "كيف تحسب الأداة المقايسة؟",
+        keywords: ["مقايسة", "تحسب", "حساب", "معادلة", "طريقة الحساب"],
+        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل."
+      },
+      {
+        q: "كيف أضيف بنوداً مخصصة؟",
+        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص", "بنود"],
+        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم."
+      },
+      {
+        q: "ما فائدة نسبة الطوارئ والهدر؟",
+        keywords: ["طوارئ", "هدر", "نسبة", "ربح", "فائدة"],
+        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية."
+      },
+      {
+        q: "كيف أحصل على رقم Transaction ID؟",
+        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال", "تحويل"],
+        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'."
+      }
+    ];
+
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const device = urlParams.get('device');
@@ -157,7 +183,24 @@
         if (subInput) subInput.value = device;
       }
 
+      // تشغيل المساعد الذكي وإعداد أحداث الإرسال
       initSmartAssistant();
+
+      const chatBtn = document.getElementById('chatBtn');
+      const userQuery = document.getElementById('userQuery');
+
+      if (chatBtn) {
+        chatBtn.addEventListener('click', sendChatMessage);
+      }
+
+      if (userQuery) {
+        userQuery.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            sendChatMessage();
+          }
+        });
+      }
     });
 
     function showAlert(msg, type = 'info') {
@@ -263,35 +306,8 @@
     }
 
     // ==========================================
-    // 🤖 محرك المساعد الذكي والأسئلة الشائعة
+    // 🤖 محرك المساعد الذكي
     // ==========================================
-    const assistantKnowledgeBase = [
-      {
-        q: "كيف يتم تفعيل الحساب؟",
-        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة"],
-        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري."
-      },
-      {
-        q: "كيف تحسب الأداة المقايسة؟",
-        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل."
-      },
-      {
-        q: "كيف أضيف بنوداً مخصصة؟",
-        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص"],
-        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم."
-      },
-      {
-        q: "ما فائدة نسبة الطوارئ والهدر؟",
-        keywords: ["طوارئ", "هدر", "نسبة", "ربح"],
-        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية."
-      },
-      {
-        q: "كيف أحصل على رقم Transaction ID؟",
-        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال"],
-        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'."
-      }
-    ];
-
     function initSmartAssistant() {
       const container = document.getElementById('quickQuestions');
       if (!container) return;
@@ -299,7 +315,8 @@
 
       assistantKnowledgeBase.forEach((item, index) => {
         const btn = document.createElement('button');
-        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0";
+        btn.type = "button";
+        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0 cursor-pointer";
         btn.innerText = "💡 " + item.q;
         btn.onclick = () => askQuestionDirectly(index);
         container.appendChild(btn);
@@ -311,18 +328,19 @@
       appendUserMessage(item.q);
       setTimeout(() => {
         appendBotMessage(item.a);
-      }, 300);
+      }, 250);
     }
 
     function sendChatMessage() {
       const input = document.getElementById('userQuery');
+      if (!input) return;
+
       const text = input.value.trim();
       if (!text) return;
 
       appendUserMessage(text);
       input.value = '';
 
-      // البحث عن أفضل إجابة مطابقة
       setTimeout(() => {
         let matchedAnswer = null;
         const lowerText = text.toLowerCase();
@@ -335,17 +353,17 @@
         }
 
         if (!matchedAnswer) {
-          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة من الأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب عبر الزر بالعلَى! 💬";
+          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة بالأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب! 💬";
         }
 
         appendBotMessage(matchedAnswer);
-      }, 400);
+      }, 350);
     }
 
     function appendUserMessage(msg) {
       const chatBox = document.getElementById('chatBox');
       const userDiv = document.createElement('div');
-      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed text-left font-medium shadow";
+      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed font-medium shadow text-left";
       userDiv.innerText = msg;
       chatBox.appendChild(userDiv);
       chatBox.scrollTop = chatBox.scrollHeight;
