@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تم الدفع بنجاح | Smart Contractor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+  <div class="bg-slate-800 border border-slate-700/80 rounded-2xl p-6 max-w-md w-full text-center shadow-2xl space-y-5">
+    
+    <div class="w-16 h-16 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto text-3xl">
+      <i class="fas fa-check-circle"></i>
+    </div>
+
+    <div>
+      <h1 class="text-xl font-bold text-white">تمت عملية الدفع بنجاح!</h1>
+      <p class="text-xs text-slate-400 mt-1">يرجى نسخ رقم عملية التحويل بالأسفل لإكمال التفعيل</p>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex items-center justify-between gap-2">
+      <span id="txIdDisplay" class="font-mono text-lg font-bold text-amber-400 tracking-wider">جاري الجلب...</span>
+      <button onclick="copyTxId()" id="copyBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center gap-1.5 shrink-0">
+        <i class="fas fa-copy"></i>
+        <span>نسخ الرقم</span>
+      </button>
+    </div>
+
+    <div class="bg-amber-500/10 border border-amber-500/20 text-amber-300 p-3 rounded-xl text-xs text-right leading-relaxed">
+      <i class="fas fa-info-circle ml-1"></i>
+      قم بنسخ الرقم أعلاه، ثم اضغط على زر العودة بالأسفل ولصقه في خانة <strong>"رقم عملية التحويل"</strong> لتفعيل أداة المقاول الذكي فوراً.
+    </div>
+
+    <button onclick="goToSubscriptionPage()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm">
+      <span>الانتقال لصفحة التفعيل والتأكيد</span>
+      <i class="fas fa-arrow-left"></i>
+    </button>
+
+  </div>
+
+  <script>
+    let currentTxId = "";
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      currentTxId = urlParams.get('id') || urlParams.get('transaction_id') || urlParams.get('order') || "غير متوفر";
+
+      document.getElementById('txIdDisplay').innerText = currentTxId;
+    });
+
+    function copyTxId() {
+      if (!currentTxId || currentTxId === "غير متوفر") return;
+      
+      navigator.clipboard.writeText(currentTxId).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.innerHTML = `<i class="fas fa-check"></i> <span>تم النسخ!</span>`;
+        btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+        
+        setTimeout(() => {
+          btn.innerHTML = `<i class="fas fa-copy"></i> <span>نسخ الرقم</span>`;
+          btn.classList.replace('bg-emerald-600', 'bg-indigo-600');
+        }, 2000);
+      });
+    }
+
+    function goToSubscriptionPage() {
+      window.location.href = "subscription.html";
+    }
+  </script>
+</body>
+</html>
