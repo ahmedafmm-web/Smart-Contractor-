@@ -127,11 +127,10 @@
   <script>
     const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
-    const GEMINI_API_KEY = "AQ.Ab8RN6LluolJFa9xuw93wRdHRMOF3y89PeeyA7kItoZprIGgAA";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // قراءة كود الجهاز تلقائياً من الرابط عند فتح الصفحة
+    // قراءة كود الجهاز تلقائياً من رابط الصفحة عند فتحها
     window.addEventListener('DOMContentLoaded', () => {
       const urlParams = new URLSearchParams(window.location.search);
       const device = urlParams.get('device');
@@ -255,3 +254,4 @@
   </script>
 </body>
 </html>
+ 
