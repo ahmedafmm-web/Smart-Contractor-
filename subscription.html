@@ -219,38 +219,95 @@
       document.getElementById('statusAlert').classList.add('hidden');
       const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();
       const trialBtn = document.getElementById('trialBtn');
-      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) { showAlert("❌ كود غير صحيح", "error"); return; }
+
+      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) { 
+        showAlert("❌ كود غير صحيح", "error"); 
+        return; 
+      }
+
       trialBtn.disabled = true;
+
       try {
-        const { data: existingDevice } = await supabaseClient.from('users').select('*').eq('device_id', deviceCode).maybeSingle();
-        if (existingDevice && existingDevice.trial_expires_at) { showAlert("⚠️ الفترة التجريبية مستنفدة.", "warning"); }
-        else {
-          const expiryDate = new Date(); expiryDate.setHours(expiryDate.getHours() + 48);
-          await supabaseClient.from('users').upsert([{ device_id: deviceCode, is_subscribed: false, trial_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
-          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح!`, "success");
+        // فحص حظر الجهاز
+        const { data: isBlacklisted } = await supabaseClient
+          .from('blacklisted_devices')
+          .select('id')
+          .eq('device_fingerprint', deviceCode)
+          .maybeSingle();
+
+        if (isBlacklisted) {
+          showAlert("⛔ هذا الجهاز محظور من الاستخدام.", "error");
+          trialBtn.disabled = false;
+          return;
         }
-      } catch (err) { showAlert("❌ خطأ في الاتصال.", "error"); }
+
+        const { data: existingDevice } = await supabaseClient
+          .from('users')
+          .select('*')
+          .eq('device_id', deviceCode)
+          .maybeSingle();
+
+        if (existingDevice && existingDevice.trial_expires_at) { 
+          showAlert("⚠️ الفترة التجريبية مستنفدة لهذا الجهاز.", "warning"); 
+        } else {
+          const expiryDate = new Date(); 
+          expiryDate.setHours(expiryDate.getHours() + 48);
+
+          await supabaseClient
+            .from('users')
+            .upsert([{ 
+              device_id: deviceCode, 
+              is_subscribed: false, 
+              trial_expires_at: expiryDate.toISOString() 
+            }], { onConflict: 'device_id' });
+
+          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح! تنتهي في: ${expiryDate.toLocaleString('ar-EG')}`, "success");
+        }
+      } catch (err) { 
+        console.error(err);
+        showAlert("❌ خطأ في الاتصال.", "error"); 
+      }
+
       trialBtn.disabled = false;
     }
 
-    // 2. دالة التفعيل بالريسيت الصارمة والمحدثة بدون أخطاء صلاحيات RLS
+    // 2. دالة التفعيل بالريسيت الصارمة والمحدثة بدعم Paymob والتمييز الآلي للمبالغ
     async function processSubscription() {
       document.getElementById('statusAlert').classList.add('hidden');
       const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();
       const transactionId = document.getElementById('transactionId').value.trim();
       const subBtn = document.getElementById('subBtn');
 
-      if (!deviceCode || !transactionId) { showAlert("❌ يرجى ملء البيانات.", "error"); return; }
+      if (!deviceCode || !transactionId) { 
+        showAlert("❌ يرجى ملء كافة البيانات.", "error"); 
+        return; 
+      }
 
       subBtn.disabled = true;
       subBtn.innerText = "جاري التحقق والتفعيل...";
 
       try {
-        // أ) التمييز التلقائي للمبلغ بناءً على رقم الريسيت والنص المدخل
+        // أ) فحص الحظر أولاً
+        const { data: isBlacklisted } = await supabaseClient
+          .from('blacklisted_devices')
+          .select('id')
+          .eq('device_fingerprint', deviceCode)
+          .maybeSingle();
+
+        if (isBlacklisted) {
+          showAlert("⛔ هذا الجهاز محظور من الاستخدام لكثرة المحاولات الخاطئة.", "error");
+          subBtn.disabled = false;
+          subBtn.innerText = "تأكيد التفعيل";
+          return;
+        }
+
+        // ب) التمييز التلقائي للمبلغ (سواء أدخل بالجنيه 2000 أو بالقروش 200000 الخاصة بـ Paymob)
         let paidAmount = 250; 
         let addDays = 30; // 30 يوم للشهر الافتراضي
 
-        if (transactionId.startsWith("2000") || transactionId.toLowerCase().includes("year") || transactionId.endsWith("2000")) {
+        const cleanTx = transactionId.toLowerCase();
+
+        if (cleanTx.includes("200000") || cleanTx.includes("2000") || cleanTx.includes("year") || cleanTx.includes("annual")) {
           paidAmount = 2000;
           addDays = 365; // 365 يوم لسنة كاملة
         }
@@ -258,13 +315,17 @@
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + addDays);
 
-        // ب) محاولة تسجيل المعاملة في جدول payments مباشرة دون الحاجة لسطر SELECT الذي كان يتطلب صلاحيات RLS
+        // ج) تسجيل المعاملة في جدول payments مباشرة لضمان عدم تكرار الريسيت
         const { error: insertError } = await supabaseClient
           .from('payments')
-          .insert([{ transaction_id: String(transactionId), device_fingerprint: deviceCode, amount: paidAmount }]);
+          .insert([{ 
+            transaction_id: String(transactionId), 
+            device_fingerprint: deviceCode, 
+            amount: paidAmount 
+          }]);
 
         if (insertError) {
-          // التعامل الدقيق مع تكرار الريسيت (Duplicate Key Error: 23505)
+          // التعامل مع خطأ تكرار الريسيت (Duplicate Key Error: 23505)
           if (insertError.code === '23505' || insertError.message.includes('unique') || (insertError.details && insertError.details.includes('already exists'))) {
             const attempts = await handleFailedAttempt(deviceCode);
             showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");
@@ -277,22 +338,26 @@
           return;
         }
 
-        // ج) تحديث بيانات المستخدم والجهاز بجدول users عند نجاح عملية الإدراج
+        // د) تحديث بيانات الاشتراك وتاريخ الانتهاء بجدول users عند نجاح عملية الإدراج
         const { error: upsertError } = await supabaseClient
           .from('users')
-          .upsert([{ device_id: deviceCode, is_subscribed: true, subscription_expires_at: expiryDate.toISOString() }], { onConflict: 'device_id' });
+          .upsert([{ 
+            device_id: deviceCode, 
+            is_subscribed: true, 
+            subscription_expires_at: expiryDate.toISOString() 
+          }], { onConflict: 'device_id' });
 
         if (upsertError) {
           console.error(upsertError);
           showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");
         } else {
-          const planName = (paidAmount === 2000) ? "السنوية (2000 جنيه)" : "الشهرية (250 جنيه)";
+          const planName = (paidAmount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";
           showAlert(`🎉 تم تفعيل الباقة ${planName} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
         }
 
       } catch (err) {
         console.error(err);
-        showAlert("❌ خطأ غير متوقع.", "error");
+        showAlert("❌ خطأ غير متوقع بالاتصال.", "error");
       }
 
       subBtn.disabled = false;
@@ -320,7 +385,7 @@
           await supabaseClient.from('blacklisted_devices').upsert([
             { 
               device_fingerprint: deviceCode, 
-              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة" 
+              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة أكثر من 5 مرات" 
             }
           ], { onConflict: 'device_fingerprint' });
         }
@@ -407,4 +472,3 @@
   </script>
 </body>
 </html>
- 
