@@ -170,176 +170,198 @@
   </footer>
 
   <script>
-    // 1. توحيد السيرفر والمشروع مع التطبيق الرئيسي
-    const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";[span_3](start_span)[span_3](end_span)
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";[span_4](start_span)[span_4](end_span)
-
-    // رابط الـ Cloudflare Worker للتحقق المباشر
+    const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";[span_0](start_span)[span_0](end_span)
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";[span_1](start_span)[span_1](end_span)
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev/";
 
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);[span_5](start_span)[span_5](end_span)
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);[span_2](start_span)[span_2](end_span)
+    let currentVerifiedReceipt = null;[span_3](start_span)[span_3](end_span)
 
-    // متغير لتخزين بيانات المعاملة التي تم فحصها مؤقتاً
-    let currentVerifiedReceipt = null;[span_6](start_span)[span_6](end_span)
-
-    // قاعدة بيانات إجابات المساعد الذكي
-    const assistantKnowledgeBase = [[span_7](start_span)[span_7](end_span)
+    const assistantKnowledgeBase = [[span_4](start_span)[span_4](end_span)
       {
-        q: "كيف يتم تفعيل الحساب؟",[span_8](start_span)[span_8](end_span)
-        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة", "شرح"],[span_9](start_span)[span_9](end_span)
-        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري.[span_10](start_span)"[span_10](end_span)
+        q: "كيف يتم تفعيل الحساب؟",[span_5](start_span)[span_5](end_span)
+        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة", "شرح"],[span_6](start_span)[span_6](end_span)
+        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري.[span_7](start_span)"[span_7](end_span)
       },
       {
-        q: "كيف تحسب الأداة المقايسة؟",[span_11](start_span)[span_11](end_span)
-        keywords: ["مقايسة", "تحسب", "حساب", "معادلة", "طريقة الحساب"],[span_12](start_span)[span_12](end_span)
-        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل.[span_13](start_span)"[span_13](end_span)
+        q: "كيف تحسب الأداة المقايسة؟",[span_8](start_span)[span_8](end_span)
+        keywords: ["مقايسة", "تحسب", "حساب", "معادلة", "طريقة الحساب"],[span_9](start_span)[span_9](end_span)
+        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل.[span_10](start_span)"[span_10](end_span)
       },
       {
-        q: "كيف أضيف بنوداً مخصصة؟",[span_14](start_span)[span_14](end_span)
-        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص", "بنود"],[span_15](start_span)[span_15](end_span)
-        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم.[span_16](start_span)"[span_16](end_span)
+        q: "كيف أضيف بنوداً مخصصة؟",[span_11](start_span)[span_11](end_span)
+        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص", "بنود"],[span_12](start_span)[span_12](end_span)
+        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم.[span_13](start_span)"[span_13](end_span)
       },
       {
-        q: "ما فائدة نسبة الطوارئ والهدر؟",[span_17](start_span)[span_17](end_span)
-        keywords: ["طوارئ", "هدر", "نسبة", "ربح", "فائدة"],[span_18](start_span)[span_18](end_span)
-        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية.[span_19](start_span)"[span_19](end_span)
+        q: "ما فائدة نسبة الطوارئ والهدر؟",[span_14](start_span)[span_14](end_span)
+        keywords: ["طوارئ", "هدر", "نسبة", "ربح", "فائدة"],[span_15](start_span)[span_15](end_span)
+        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية.[span_16](start_span)"[span_16](end_span)
       },
       {
-        q: "كيف أحصل على رقم Transaction ID؟",[span_20](start_span)[span_20](end_span)
-        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال", "تحويل"],[span_21](start_span)[span_21](end_span)
-        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'.[span_22](start_span)"[span_22](end_span)
+        q: "كيف أحصل على رقم Transaction ID؟",[span_17](start_span)[span_17](end_span)
+        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال", "تحويل"],[span_18](start_span)[span_18](end_span)
+        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'.[span_19](start_span)"[span_19](end_span)
       }
     ];
 
-    window.addEventListener('DOMContentLoaded', () => {[span_23](start_span)[span_23](end_span)
-      const urlParams = new URLSearchParams(window.location.search);[span_24](start_span)[span_24](end_span)
-      const device = urlParams.get('device');[span_25](start_span)[span_25](end_span)
+    window.addEventListener('DOMContentLoaded', () => {[span_20](start_span)[span_20](end_span)
+      const urlParams = new URLSearchParams(window.location.search);[span_21](start_span)[span_21](end_span)
+      const device = urlParams.get('device');[span_22](start_span)[span_22](end_span)
       
-      if (device) {[span_26](start_span)[span_26](end_span)
-        const trialInput = document.getElementById('trialDeviceCode');[span_27](start_span)[span_27](end_span)
-        const subInput = document.getElementById('subDeviceCode');[span_28](start_span)[span_28](end_span)
+      if (device) {[span_23](start_span)[span_23](end_span)
+        const trialInput = document.getElementById('trialDeviceCode');[span_24](start_span)[span_24](end_span)
+        const subInput = document.getElementById('subDeviceCode');[span_25](start_span)[span_25](end_span)
         
-        if (trialInput) trialInput.value = device;[span_29](start_span)[span_29](end_span)
-        if (subInput) subInput.value = device;[span_30](start_span)[span_30](end_span)
+        if (trialInput) trialInput.value = device;[span_26](start_span)[span_26](end_span)
+        if (subInput) subInput.value = device;[span_27](start_span)[span_27](end_span)
       }
 
-      initSmartAssistant();[span_31](start_span)[span_31](end_span)
+      initSmartAssistant();[span_28](start_span)[span_28](end_span)
 
-      const chatBtn = document.getElementById('chatBtn');[span_32](start_span)[span_32](end_span)
-      const userQuery = document.getElementById('userQuery');[span_33](start_span)[span_33](end_span)
+      const chatBtn = document.getElementById('chatBtn');[span_29](start_span)[span_29](end_span)
+      const userQuery = document.getElementById('userQuery');[span_30](start_span)[span_30](end_span)
 
-      if (chatBtn) chatBtn.addEventListener('click', sendChatMessage);[span_34](start_span)[span_34](end_span)
-      if (userQuery) {[span_35](start_span)[span_35](end_span)
-        userQuery.addEventListener('keypress', (e) => {[span_36](start_span)[span_36](end_span)
-          if (e.key === 'Enter') {[span_37](start_span)[span_37](end_span)
-            e.preventDefault();[span_38](start_span)[span_38](end_span)
-            sendChatMessage();[span_39](start_span)[span_39](end_span)
+      if (chatBtn) chatBtn.addEventListener('click', sendChatMessage);[span_31](start_span)[span_31](end_span)
+      if (userQuery) {[span_32](start_span)[span_32](end_span)
+        userQuery.addEventListener('keypress', (e) => {[span_33](start_span)[span_33](end_span)
+          if (e.key === 'Enter') {[span_34](start_span)[span_34](end_span)
+            e.preventDefault();[span_35](start_span)[span_35](end_span)
+            sendChatMessage();[span_36](start_span)[span_36](end_span)
           }
         });
       }
     });
 
-    function showAlert(msg, type = 'info') {[span_40](start_span)[span_40](end_span)
-      const alert = document.getElementById('statusAlert');[span_41](start_span)[span_41](end_span)
-      alert.className = "p-4 rounded-xl border text-sm font-medium transition-all";[span_42](start_span)[span_42](end_span)
-      if (type === 'success') alert.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');[span_43](start_span)[span_43](end_span)
-      else if (type === 'error') alert.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');[span_44](start_span)[span_44](end_span)
-      else alert.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');[span_45](start_span)[span_45](end_span)
-      alert.innerHTML = msg;[span_46](start_span)[span_46](end_span)
-      alert.classList.remove('hidden');[span_47](start_span)[span_47](end_span)
-      alert.scrollIntoView({ behavior: 'smooth' });[span_48](start_span)[span_48](end_span)
+    function showAlert(msg, type = 'info') {[span_37](start_span)[span_37](end_span)
+      const alert = document.getElementById('statusAlert');[span_38](start_span)[span_38](end_span)
+      alert.className = "p-4 rounded-xl border text-sm font-medium transition-all";[span_39](start_span)[span_39](end_span)
+      if (type === 'success') alert.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');[span_40](start_span)[span_40](end_span)
+      else if (type === 'error') alert.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');[span_41](start_span)[span_41](end_span)
+      else alert.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');[span_42](start_span)[span_42](end_span)
+      alert.innerHTML = msg;[span_43](start_span)[span_43](end_span)
+      alert.classList.remove('hidden');[span_44](start_span)[span_44](end_span)
+      alert.scrollIntoView({ behavior: 'smooth' });[span_45](start_span)[span_45](end_span)
     }
 
-    async function activateTrial() {[span_49](start_span)[span_49](end_span)
-      document.getElementById('statusAlert').classList.add('hidden');[span_50](start_span)[span_50](end_span)
-      const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();[span_51](start_span)[span_51](end_span)
-      const trialBtn = document.getElementById('trialBtn');[span_52](start_span)[span_52](end_span)
+    async function activateTrial() {[span_46](start_span)[span_46](end_span)
+      document.getElementById('statusAlert').classList.add('hidden');[span_47](start_span)[span_47](end_span)
+      const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();[span_48](start_span)[span_48](end_span)
+      const trialBtn = document.getElementById('trialBtn');[span_49](start_span)[span_49](end_span)
 
-      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) {[span_53](start_span)[span_53](end_span)
-        showAlert("❌ كود غير صحيح", "error");[span_54](start_span)[span_54](end_span)
-        return;[span_55](start_span)[span_55](end_span)
+      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) {[span_50](start_span)[span_50](end_span)
+        showAlert("❌ كود غير صحيح", "error");[span_51](start_span)[span_51](end_span)
+        return;[span_52](start_span)[span_52](end_span)
       }
 
-      trialBtn.disabled = true;[span_56](start_span)[span_56](end_span)
+      trialBtn.disabled = true;[span_53](start_span)[span_53](end_span)
 
       try {
-        const { data: isBlacklisted } = await supabaseClient[span_57](start_span)[span_57](end_span)
-          .from('blacklisted_devices')[span_58](start_span)[span_58](end_span)
-          .select('id')[span_59](start_span)[span_59](end_span)
-          .eq('device_fingerprint', deviceCode)[span_60](start_span)[span_60](end_span)
-          .maybeSingle();[span_61](start_span)[span_61](end_span)
+        const { data: isBlacklisted } = await supabaseClient[span_54](start_span)[span_54](end_span)
+          .from('blacklisted_devices')[span_55](start_span)[span_55](end_span)
+          .select('id')[span_56](start_span)[span_56](end_span)
+          .eq('device_fingerprint', deviceCode)[span_57](start_span)[span_57](end_span)
+          .maybeSingle();[span_58](start_span)[span_58](end_span)
 
-        if (isBlacklisted) {[span_62](start_span)[span_62](end_span)
-          showAlert("⛔ هذا الجهاز محظور من الاستخدام.", "error");[span_63](start_span)[span_63](end_span)
-          trialBtn.disabled = false;[span_64](start_span)[span_64](end_span)
-          return;[span_65](start_span)[span_65](end_span)
+        if (isBlacklisted) {[span_59](start_span)[span_59](end_span)
+          showAlert("⛔ هذا الجهاز محظور من الاستخدام.", "error");[span_60](start_span)[span_60](end_span)
+          trialBtn.disabled = false;[span_61](start_span)[span_61](end_span)
+          return;[span_62](start_span)[span_62](end_span)
         }
 
-        const { data: existingDevice } = await supabaseClient[span_66](start_span)[span_66](end_span)
-          .from('users')[span_67](start_span)[span_67](end_span)
-          .select('*')[span_68](start_span)[span_68](end_span)
-          .eq('device_id', deviceCode)[span_69](start_span)[span_69](end_span)
-          .maybeSingle();[span_70](start_span)[span_70](end_span)
+        const { data: existingDevice } = await supabaseClient[span_63](start_span)[span_63](end_span)
+          .from('users')[span_64](start_span)[span_64](end_span)
+          .select('*')[span_65](start_span)[span_65](end_span)
+          .eq('device_id', deviceCode)[span_66](start_span)[span_66](end_span)
+          .maybeSingle();[span_67](start_span)[span_67](end_span)
 
-        if (existingDevice && existingDevice.trial_expires_at) {[span_71](start_span)[span_71](end_span)
-          showAlert("⚠️ الفترة التجريبية مستنفدة لهذا الجهاز.", "warning");[span_72](start_span)[span_72](end_span)
+        if (existingDevice && existingDevice.trial_expires_at) {[span_68](start_span)[span_68](end_span)
+          showAlert("⚠️ الفترة التجريبية مستنفدة لهذا الجهاز.", "warning");[span_69](start_span)[span_69](end_span)
         } else {
-          const expiryDate = new Date();[span_73](start_span)[span_73](end_span)
-          expiryDate.setHours(expiryDate.getHours() + 48);[span_74](start_span)[span_74](end_span)
+          const expiryDate = new Date();[span_70](start_span)[span_70](end_span)
+          expiryDate.setHours(expiryDate.getHours() + 48);[span_71](start_span)[span_71](end_span)
 
-          await supabaseClient[span_75](start_span)[span_75](end_span)
-            .from('users')[span_76](start_span)[span_76](end_span)
-            .upsert([{[span_77](start_span)[span_77](end_span)
-              device_id: deviceCode,[span_78](start_span)[span_78](end_span)
-              is_subscribed: false,[span_79](start_span)[span_79](end_span)
-              trial_expires_at: expiryDate.toISOString()[span_80](start_span)[span_80](end_span)
-            }], { onConflict: 'device_id' });[span_81](start_span)[span_81](end_span)
+          await supabaseClient[span_72](start_span)[span_72](end_span)
+            .from('users')[span_73](start_span)[span_73](end_span)
+            .upsert([{[span_74](start_span)[span_74](end_span)
+              device_id: deviceCode,[span_75](start_span)[span_75](end_span)
+              is_subscribed: false,[span_76](start_span)[span_76](end_span)
+              trial_expires_at: expiryDate.toISOString()[span_77](start_span)[span_77](end_span)
+            }], { onConflict: 'device_id' });[span_78](start_span)[span_78](end_span)
 
-          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح! تنتهي في: ${expiryDate.toLocaleString('ar-EG')}`, "success");[span_82](start_span)[span_82](end_span)
+          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح! تنتهي في: ${expiryDate.toLocaleString('ar-EG')}`, "success");[span_79](start_span)[span_79](end_span)
         }
-      } catch (err) {[span_83](start_span)[span_83](end_span)
-        console.error(err);[span_84](start_span)[span_84](end_span)
-        showAlert("❌ خطأ في الاتصال.", "error");[span_85](start_span)[span_85](end_span)
+      } catch (err) {[span_80](start_span)[span_80](end_span)
+        console.error(err);[span_81](start_span)[span_81](end_span)
+        showAlert("❌ خطأ في الاتصال.", "error");[span_82](start_span)[span_82](end_span)
       }
 
-      trialBtn.disabled = false;[span_86](start_span)[span_86](end_span)
+      trialBtn.disabled = false;[span_83](start_span)[span_83](end_span)
     }
 
-    // ==========================================
-    // 💳 الخطوة 1: فحص بيانات الريسيت وعرضها للعميل عبر الـ Worker
-    // ==========================================
-    async function checkReceipt() {
-      document.getElementById('statusAlert').classList.add('hidden');[span_87](start_span)[span_87](end_span)
-      const receiptCard = document.getElementById('receiptCard');[span_88](start_span)[span_88](end_span)
-      const checkBtn = document.getElementById('checkBtn');[span_89](start_span)[span_89](end_span)
-      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();[span_90](start_span)[span_90](end_span)
-      const transactionId = document.getElementById('transactionId').value.trim();[span_91](start_span)[span_91](end_span)
-
-      if (!deviceCode || !transactionId) {[span_92](start_span)[span_92](end_span)
-        showAlert("❌ يرجى كتابة كود الجهاز ورقم الريسيت أولاً.", "error");[span_93](start_span)[span_93](end_span)
-        return;[span_94](start_span)[span_94](end_span)
-      }
-
-      checkBtn.disabled = true;[span_95](start_span)[span_95](end_span)
-      checkBtn.innerHTML = `<span>جاري فحص Paymob...</span> <i class="fas fa-spinner fa-spin"></i>`;[span_96](start_span)[span_96](end_span)
-      receiptCard.classList.add('hidden');[span_97](start_span)[span_97](end_span)
-
+    async function handleFailedAttempt(deviceCode) {[span_84](start_span)[span_84](end_span)
       try {
-        // فحص حظر الجهاز أولاً
-        const { data: isBlacklisted } = await supabaseClient[span_98](start_span)[span_98](end_span)
-          .from('blacklisted_devices')[span_99](start_span)[span_99](end_span)
-          .select('id')[span_100](start_span)[span_100](end_span)
-          .eq('device_fingerprint', deviceCode)[span_101](start_span)[span_101](end_span)
-          .maybeSingle();[span_102](start_span)[span_102](end_span)
+        const { data: dev } = await supabaseClient[span_85](start_span)[span_85](end_span)
+          .from('users')[span_86](start_span)[span_86](end_span)
+          .select('failed_attempts')[span_87](start_span)[span_87](end_span)
+          .eq('device_id', deviceCode)[span_88](start_span)[span_88](end_span)
+          .maybeSingle();[span_89](start_span)[span_89](end_span)
 
-        if (isBlacklisted) {[span_103](start_span)[span_103](end_span)
-          showAlert("⛔ هذا الجهاز محظور من الاستخدام لكثرة المحاولات الخاطئة.", "error");[span_104](start_span)[span_104](end_span)
-          checkBtn.disabled = false;[span_105](start_span)[span_105](end_span)
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_106](start_span)[span_106](end_span)
-          return;[span_107](start_span)[span_107](end_span)[span_108](start_span)[span_108](end_span)
+        let currentAttempts = ((dev && dev.failed_attempts) ? dev.failed_attempts : 0) + 1;[span_90](start_span)[span_90](end_span)
+
+        await supabaseClient.from('users').upsert([[span_91](start_span)[span_91](end_span)
+          { 
+            device_id: deviceCode,[span_92](start_span)[span_92](end_span)
+            failed_attempts: currentAttempts[span_93](start_span)[span_93](end_span)
+          }
+        ], { onConflict: 'device_id' });[span_94](start_span)[span_94](end_span)
+
+        if (currentAttempts >= 5) {[span_95](start_span)[span_95](end_span)
+          await supabaseClient.from('blacklisted_devices').upsert([[span_96](start_span)[span_96](end_span)
+            { 
+              device_fingerprint: deviceCode,[span_97](start_span)[span_97](end_span)
+              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة أكثر من 5 مرات[span_98](start_span)"[span_98](end_span)
+            }
+          ], { onConflict: 'device_fingerprint' });[span_99](start_span)[span_99](end_span)
         }
 
-        // الاتصال المباشر بالـ Cloudflare Worker الجديد
+        return currentAttempts;[span_100](start_span)[span_100](end_span)
+      } catch (e) {
+        console.error("خطأ في العداد:", e);[span_101](start_span)[span_101](end_span)
+        return 1;[span_102](start_span)[span_102](end_span)
+      }
+    }
+
+    async function checkReceipt() {
+      document.getElementById('statusAlert').classList.add('hidden');[span_103](start_span)[span_103](end_span)
+      const receiptCard = document.getElementById('receiptCard');[span_104](start_span)[span_104](end_span)
+      const checkBtn = document.getElementById('checkBtn');[span_105](start_span)[span_105](end_span)
+      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();[span_106](start_span)[span_106](end_span)
+      const transactionId = document.getElementById('transactionId').value.trim();[span_107](start_span)[span_107](end_span)
+
+      if (!deviceCode || !transactionId) {[span_108](start_span)[span_108](end_span)
+        showAlert("❌ يرجى كتابة كود الجهاز ورقم الريسيت أولاً.", "error");[span_109](start_span)[span_109](end_span)
+        return;[span_110](start_span)[span_110](end_span)
+      }
+
+      checkBtn.disabled = true;[span_111](start_span)[span_111](end_span)
+      checkBtn.innerHTML = `<span>جاري فحص Paymob...</span> <i class="fas fa-spinner fa-spin"></i>`;[span_112](start_span)[span_112](end_span)
+      receiptCard.classList.add('hidden');[span_113](start_span)[span_113](end_span)
+
+      try {
+        const { data: isBlacklisted } = await supabaseClient[span_114](start_span)[span_114](end_span)
+          .from('blacklisted_devices')[span_115](start_span)[span_115](end_span)
+          .select('id')[span_116](start_span)[span_116](end_span)
+          .eq('device_fingerprint', deviceCode)[span_117](start_span)[span_117](end_span)
+          .maybeSingle();[span_118](start_span)[span_118](end_span)
+
+        if (isBlacklisted) {[span_119](start_span)[span_119](end_span)
+          showAlert("⛔ هذا الجهاز محظور من الاستخدام لكثرة المحاولات الخاطئة.", "error");[span_120](start_span)[span_120](end_span)
+          checkBtn.disabled = false;[span_121](start_span)[span_121](end_span)
+          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_122](start_span)[span_122](end_span)
+          return;[span_123](start_span)[span_123](end_span)
+        }
+
         const response = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -348,271 +370,225 @@
 
         const receiptData = await response.json();
 
-        // 1. إذا كان الريسيت مستخدماً من قبل في قاعدة البيانات
         if (receiptData.already_used) {
-          const attempts = await handleFailedAttempt(deviceCode);[span_109](start_span)[span_109](end_span)
+          const attempts = await handleFailedAttempt(deviceCode);[span_124](start_span)[span_124](end_span)
           showAlert(`⚠️ ${receiptData.message || "هذا الريسيت تم استخدامه مسبقاً!"} (محاولة ${attempts} من 5)`, "warning");
-          checkBtn.disabled = false;[span_110](start_span)[span_110](end_span)
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_111](start_span)[span_111](end_span)
+          checkBtn.disabled = false;[span_125](start_span)[span_125](end_span)
+          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_126](start_span)[span_126](end_span)
           return;
         }
 
-        // 2. إذا كانت العملية غير معثور عليها أو فاشلة في Paymob
         if (!receiptData.success) {
-          const attempts = await handleFailedAttempt(deviceCode);[span_112](start_span)[span_112](end_span)
+          const attempts = await handleFailedAttempt(deviceCode);[span_127](start_span)[span_127](end_span)
           showAlert(`❌ ${receiptData.message || "لم يتم العثور على المعاملة أو غير مكتملة."} (محاولة ${attempts} من 5)`, "error");
-          checkBtn.disabled = false;[span_113](start_span)[span_113](end_span)[span_114](start_span)[span_114](end_span)
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_115](start_span)[span_115](end_span)
+          checkBtn.disabled = false;[span_128](start_span)[span_128](end_span)
+          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_129](start_span)[span_129](end_span)
           return;
         }
 
-        // 3. نجاح الفحص
-        currentVerifiedReceipt = {[span_116](start_span)[span_116](end_span)
-          txId: transactionId,[span_117](start_span)[span_117](end_span)
-          deviceCode: deviceCode,[span_118](start_span)[span_118](end_span)
-          amount: receiptData.amount, // المبلغ بالجنيه المسترجع من الـ Worker
-          isSuccess: receiptData.success[span_119](start_span)[span_119](end_span)
+        currentVerifiedReceipt = {[span_130](start_span)[span_130](end_span)
+          txId: transactionId,[span_131](start_span)[span_131](end_span)
+          deviceCode: deviceCode,[span_132](start_span)[span_132](end_span)
+          amount: receiptData.amount,[span_133](start_span)[span_133](end_span)
+          isSuccess: receiptData.success[span_134](start_span)[span_134](end_span)
         };
 
-        renderReceiptCard(currentVerifiedReceipt);[span_120](start_span)[span_120](end_span)
+        renderReceiptCard(currentVerifiedReceipt);[span_135](start_span)[span_135](end_span)
 
       } catch (err) {
         console.error("Check Receipt Error:", err);
-        showAlert("❌ حدث خطأ أثناء الاتصال بسيرفر التحقق.", "error");[span_121](start_span)[span_121](end_span)
+        showAlert("❌ حدث خطأ أثناء الاتصال بسيرفر التحقق.", "error");[span_136](start_span)[span_136](end_span)
       }
 
-      checkBtn.disabled = false;[span_122](start_span)[span_122](end_span)
-      checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_123](start_span)[span_123](end_span)
+      checkBtn.disabled = false;[span_137](start_span)[span_137](end_span)
+      checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;[span_138](start_span)[span_138](end_span)
     }
 
-    // عرض بيانات الريسيت المسترجعة في الكارت الشفاف
-    function renderReceiptCard(receipt) {[span_124](start_span)[span_124](end_span)
-      const card = document.getElementById('receiptCard');[span_125](start_span)[span_125](end_span)
-      const badge = document.getElementById('receiptStatusBadge');[span_126](start_span)[span_126](end_span)
-      const warning = document.getElementById('receiptWarning');[span_127](start_span)[span_127](end_span)
-      const confirmBtn = document.getElementById('confirmSubBtn');[span_128](start_span)[span_128](end_span)
-      const btnText = document.getElementById('confirmBtnText');[span_129](start_span)[span_129](end_span)
+    function renderReceiptCard(receipt) {[span_139](start_span)[span_139](end_span)
+      const card = document.getElementById('receiptCard');[span_140](start_span)[span_140](end_span)
+      const badge = document.getElementById('receiptStatusBadge');[span_141](start_span)[span_141](end_span)
+      const warning = document.getElementById('receiptWarning');[span_142](start_span)[span_142](end_span)
+      const confirmBtn = document.getElementById('confirmSubBtn');[span_143](start_span)[span_143](end_span)
+      const btnText = document.getElementById('confirmBtnText');[span_144](start_span)[span_144](end_span)
 
-      document.getElementById('cardTxId').innerText = receipt.txId;[span_130](start_span)[span_130](end_span)
-      document.getElementById('cardAmount').innerText = `${receipt.amount} جنيه مصري`;[span_131](start_span)[span_131](end_span)
+      document.getElementById('cardTxId').innerText = receipt.txId;[span_145](start_span)[span_145](end_span)
+      document.getElementById('cardAmount').innerText = `${receipt.amount} جنيه مصري`;[span_146](start_span)[span_146](end_span)
 
-      warning.classList.add('hidden');[span_132](start_span)[span_132](end_span)
-      card.className = "border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300";[span_133](start_span)[span_133](end_span)
+      warning.classList.add('hidden');[span_147](start_span)[span_147](end_span)
+      card.className = "border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300";[span_148](start_span)[span_148](end_span)
 
-      if (!receipt.isSuccess) {[span_134](start_span)[span_134](end_span)
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";[span_135](start_span)[span_135](end_span)
-        badge.innerText = "عملية غير ناجحة ❌";[span_136](start_span)[span_136](end_span)
-        document.getElementById('cardPlanName').innerText = "غير متاح";[span_137](start_span)[span_137](end_span)
-        warning.innerText = "❌ هذه المعاملة مرفوضة أو غير مكتملة في Paymob.";[span_138](start_span)[span_138](end_span)
-        warning.classList.remove('hidden');[span_139](start_span)[span_139](end_span)
-        confirmBtn.disabled = true;[span_140](start_span)[span_140](end_span)
-        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";[span_141](start_span)[span_141](end_span)
+      if (!receipt.isSuccess) {[span_149](start_span)[span_149](end_span)
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";[span_150](start_span)[span_150](end_span)
+        badge.innerText = "عملية غير ناجحة ❌";[span_151](start_span)[span_151](end_span)
+        document.getElementById('cardPlanName').innerText = "غير متاح";[span_152](start_span)[span_152](end_span)
+        warning.innerText = "❌ هذه المعاملة مرفوضة أو غير مكتملة في Paymob.";[span_153](start_span)[span_153](end_span)
+        warning.classList.remove('hidden');[span_154](start_span)[span_154](end_span)
+        confirmBtn.disabled = true;[span_155](start_span)[span_155](end_span)
+        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";[span_156](start_span)[span_156](end_span)
       } 
-      else if (receipt.amount === 2000) {[span_142](start_span)[span_142](end_span)
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";[span_143](start_span)[span_143](end_span)
-        badge.innerText = "دفع مكتمل ✅";[span_144](start_span)[span_144](end_span)
-        document.getElementById('cardPlanName').innerText = "الاشتراك السنوي (365 يوم)";[span_145](start_span)[span_145](end_span)
-        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك السنوي (2000 ج)";[span_146](start_span)[span_146](end_span)
-        confirmBtn.disabled = false;[span_147](start_span)[span_147](end_span)
-        confirmBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20";[span_148](start_span)[span_148](end_span)
-        card.classList.add('border-amber-500/50');[span_149](start_span)[span_149](end_span)
+      else if (receipt.amount === 2000) {[span_157](start_span)[span_157](end_span)
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";[span_158](start_span)[span_158](end_span)
+        badge.innerText = "دفع مكتمل ✅";[span_159](start_span)[span_159](end_span)
+        document.getElementById('cardPlanName').innerText = "الاشتراك السنوي (365 يوم)";[span_160](start_span)[span_160](end_span)
+        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك السنوي (2000 ج)";[span_161](start_span)[span_161](end_span)
+        confirmBtn.disabled = false;[span_162](start_span)[span_162](end_span)
+        confirmBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20";[span_163](start_span)[span_163](end_span)
+        card.classList.add('border-amber-500/50');[span_164](start_span)[span_164](end_span)
       } 
-      else if (receipt.amount === 250) {[span_150](start_span)[span_150](end_span)
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";[span_151](start_span)[span_151](end_span)
-        badge.innerText = "دفع مكتمل ✅";[span_152](start_span)[span_152](end_span)
-        document.getElementById('cardPlanName').innerText = "الاشتراك الشهري (30 يوم)";[span_153](start_span)[span_153](end_span)
-        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك الشهري (250 ج)";[span_154](start_span)[span_154](end_span)
-        confirmBtn.disabled = false;[span_155](start_span)[span_155](end_span)
-        confirmBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20";[span_156](start_span)[span_156](end_span)
-        card.classList.add('border-indigo-500/50');[span_157](start_span)[span_157](end_span)
+      else if (receipt.amount === 250) {[span_165](start_span)[span_165](end_span)
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";[span_166](start_span)[span_166](end_span)
+        badge.innerText = "دفع مكتمل ✅";[span_167](start_span)[span_167](end_span)
+        document.getElementById('cardPlanName').innerText = "الاشتراك الشهري (30 يوم)";[span_168](start_span)[span_168](end_span)
+        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك الشهري (250 ج)";[span_169](start_span)[span_169](end_span)
+        confirmBtn.disabled = false;[span_170](start_span)[span_170](end_span)
+        confirmBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20";[span_171](start_span)[span_171](end_span)
+        card.classList.add('border-indigo-500/50');[span_172](start_span)[span_172](end_span)
       } 
       else {
-        // قيمة غير مطابقة لأي باقة
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";[span_158](start_span)[span_158](end_span)
-        badge.innerText = "قيمة غير مطابقة ⚠️";[span_159](start_span)[span_159](end_span)
-        document.getElementById('cardPlanName').innerText = "غير معروفة";[span_160](start_span)[span_160](end_span)
-        warning.innerText = `⚠️ قيمة المعاملة (${receipt.amount} جنيه) خاطئة ولا تطابق أي من الباقات المتاحة (250ج أو 2000ج).`;[span_161](start_span)[span_161](end_span)
-        warning.classList.remove('hidden');[span_162](start_span)[span_162](end_span)
-        confirmBtn.disabled = true;[span_163](start_span)[span_163](end_span)
-        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";[span_164](start_span)[span_164](end_span)
-        card.classList.add('border-rose-500/50');[span_165](start_span)[span_165](end_span)
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";[span_173](start_span)[span_173](end_span)
+        badge.innerText = "قيمة غير مطابقة ⚠️";[span_174](start_span)[span_174](end_span)
+        document.getElementById('cardPlanName').innerText = "غير معروفة";[span_175](start_span)[span_175](end_span)
+        warning.innerText = `⚠️ قيمة المعاملة (${receipt.amount} جنيه) خاطئة ولا تطابق أي من الباقات المتاحة (250ج أو 2000ج).`;[span_176](start_span)[span_176](end_span)
+        warning.classList.remove('hidden');[span_177](start_span)[span_177](end_span)
+        confirmBtn.disabled = true;[span_178](start_span)[span_178](end_span)
+        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";[span_179](start_span)[span_179](end_span)
+        card.classList.add('border-rose-500/50');[span_180](start_span)[span_180](end_span)
       }
 
-      card.classList.remove('hidden');[span_166](start_span)[span_166](end_span)
-      card.scrollIntoView({ behavior: 'smooth' });[span_167](start_span)[span_167](end_span)
+      card.classList.remove('hidden');[span_181](start_span)[span_181](end_span)
+      card.scrollIntoView({ behavior: 'smooth' });[span_182](start_span)[span_182](end_span)
     }
 
-    // ==========================================
-    // 💳 الخطوة 2: تأكيد الاشتراك بعد رؤية البيانات
-    // ==========================================
-    async function confirmSubscription() {[span_168](start_span)[span_168](end_span)
-      if (!currentVerifiedReceipt) return;[span_169](start_span)[span_169](end_span)
+    async function confirmSubscription() {[span_183](start_span)[span_183](end_span)
+      if (!currentVerifiedReceipt) return;[span_184](start_span)[span_184](end_span)
 
-      const confirmBtn = document.getElementById('confirmSubBtn');[span_170](start_span)[span_170](end_span)
-      const btnText = document.getElementById('confirmBtnText');[span_171](start_span)[span_171](end_span)
-      const { deviceCode, txId, amount } = currentVerifiedReceipt;[span_172](start_span)[span_172](end_span)
+      const confirmBtn = document.getElementById('confirmSubBtn');[span_185](start_span)[span_185](end_span)
+      const btnText = document.getElementById('confirmBtnText');[span_186](start_span)[span_186](end_span)
+      const { deviceCode, txId, amount } = currentVerifiedReceipt;[span_187](start_span)[span_187](end_span)
 
-      confirmBtn.disabled = true;[span_173](start_span)[span_173](end_span)
-      btnText.innerText = "جاري الحفظ والتفعيل...";[span_174](start_span)[span_174](end_span)
+      confirmBtn.disabled = true;[span_188](start_span)[span_188](end_span)
+      btnText.innerText = "جاري الحفظ والتفعيل...";[span_189](start_span)[span_189](end_span)
 
       try {
-        let addDays = (amount === 2000) ? 365 : 30;[span_175](start_span)[span_175](end_span)
-        const expiryDate = new Date();[span_176](start_span)[span_176](end_span)
-        expiryDate.setDate(expiryDate.getDate() + addDays);[span_177](start_span)[span_177](end_span)
+        let addDays = (amount === 2000) ? 365 : 30;[span_190](start_span)[span_190](end_span)
+        const expiryDate = new Date();[span_191](start_span)[span_191](end_span)
+        expiryDate.setDate(expiryDate.getDate() + addDays);[span_192](start_span)[span_192](end_span)
 
-        // تسجيل المعاملة في جدول payments
-        const { error: insertError } = await supabaseClient[span_178](start_span)[span_178](end_span)
-          .from('payments')[span_179](start_span)[span_179](end_span)
-          .insert([{[span_180](start_span)[span_180](end_span)
-            transaction_id: String(txId),[span_181](start_span)[span_181](end_span)
-            device_fingerprint: deviceCode,[span_182](start_span)[span_182](end_span)
-            amount: amount[span_183](start_span)[span_183](end_span)
+        const { error: insertError } = await supabaseClient[span_193](start_span)[span_193](end_span)
+          .from('payments')[span_194](start_span)[span_194](end_span)
+          .insert([{[span_195](start_span)[span_195](end_span)
+            transaction_id: String(txId),[span_196](start_span)[span_196](end_span)
+            device_fingerprint: deviceCode,[span_197](start_span)[span_197](end_span)
+            amount: amount[span_198](start_span)[span_198](end_span)
           }]);
 
-        if (insertError) {[span_184](start_span)[span_184](end_span)
-          if (insertError.code === '23505' || insertError.message.includes('unique') || (insertError.details && insertError.details.includes('already exists'))) {[span_185](start_span)[span_185](end_span)
-            const attempts = await handleFailedAttempt(deviceCode);[span_186](start_span)[span_186](end_span)
-            showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");[span_187](start_span)[span_187](end_span)
+        if (insertError) {[span_199](start_span)[span_199](end_span)
+          if (insertError.code === '23505' || insertError.message.includes('unique') || (insertError.details && insertError.details.includes('already exists'))) {[span_200](start_span)[span_200](end_span)
+            const attempts = await handleFailedAttempt(deviceCode);[span_201](start_span)[span_201](end_span)
+            showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");[span_202](start_span)[span_202](end_span)[span_203](start_span)[span_203](end_span)
           } else {
-            console.error(insertError);[span_188](start_span)[span_188](end_span)
-            showAlert("❌ خطأ أثناء تسجيل المعاملة، برجاء مراجعة البيانات.", "error");[span_189](start_span)[span_189](end_span)
+            console.error(insertError);[span_204](start_span)[span_204](end_span)
+            showAlert("❌ خطأ أثناء تسجيل المعاملة، برجاء مراجعة البيانات.", "error");[span_205](start_span)[span_205](end_span)
           }
-          confirmBtn.disabled = false;[span_190](start_span)[span_190](end_span)
-          btnText.innerText = "تأكيد التفعيل";[span_191](start_span)[span_191](end_span)
-          return;[span_192](start_span)[span_192](end_span)
+          confirmBtn.disabled = false;[span_206](start_span)[span_206](end_span)
+          btnText.innerText = "تأكيد التفعيل";[span_207](start_span)[span_207](end_span)
+          return;[span_208](start_span)[span_208](end_span)
         }
 
-        // تحديث بيانات المستخدم وتاريخ الانتهاء
-        const { error: upsertError } = await supabaseClient[span_193](start_span)[span_193](end_span)
-          .from('users')[span_194](start_span)[span_194](end_span)
-          .upsert([{[span_195](start_span)[span_195](end_span)
-            device_id: deviceCode,[span_196](start_span)[span_196](end_span)
-            is_subscribed: true,[span_197](start_span)[span_197](end_span)
-            subscription_expires_at: expiryDate.toISOString()[span_198](start_span)[span_198](end_span)
-          }], { onConflict: 'device_id' });[span_199](start_span)[span_199](end_span)
+        const { error: upsertError } = await supabaseClient[span_209](start_span)[span_209](end_span)
+          .from('users')[span_210](start_span)[span_210](end_span)
+          .upsert([{[span_211](start_span)[span_211](end_span)
+            device_id: deviceCode,[span_212](start_span)[span_212](end_span)
+            is_subscribed: true,[span_213](start_span)[span_213](end_span)
+            subscription_expires_at: expiryDate.toISOString()[span_214](start_span)[span_214](end_span)
+          }], { onConflict: 'device_id' });[span_215](start_span)[span_215](end_span)
 
-        if (upsertError) {[span_200](start_span)[span_200](end_span)
-          console.error(upsertError);[span_201](start_span)[span_201](end_span)
-          showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");[span_202](start_span)[span_202](end_span)
+        if (upsertError) {[span_216](start_span)[span_216](end_span)
+          console.error(upsertError);[span_217](start_span)[span_217](end_span)
+          showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");[span_218](start_span)[span_218](end_span)
         } else {
-          const planTitle = (amount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";[span_203](start_span)[span_203](end_span)
-          showAlert(`🎉 تم تفعيل الباقة ${planTitle} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");[span_204](start_span)[span_204](end_span)
-          document.getElementById('receiptCard').classList.add('hidden');[span_205](start_span)[span_205](end_span)
+          const planTitle = (amount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";[span_219](start_span)[span_219](end_span)
+          showAlert(`🎉 تم تفعيل الباقة ${planTitle} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");[span_220](start_span)[span_220](end_span)
+          document.getElementById('receiptCard').classList.add('hidden');[span_221](start_span)[span_221](end_span)
         }
 
-      } catch (err) {[span_206](start_span)[span_206](end_span)
-        console.error(err);[span_207](start_span)[span_207](end_span)
-        showAlert("❌ خطأ غير متوقع بالاتصال.", "error");[span_208](start_span)[span_208](end_span)
+      } catch (err) {[span_222](start_span)[span_222](end_span)
+        console.error(err);[span_223](start_span)[span_223](end_span)
+        showAlert("❌ خطأ غير متوقع بالاتصال.", "error");[span_224](start_span)[span_224](end_span)
       }
 
-      confirmBtn.disabled = false;[span_209](start_span)[span_209](end_span)
-      btnText.innerText = "تأكيد الموافقة والتفعيل";[span_210](start_span)[span_210](end_span)
+      confirmBtn.disabled = false;[span_225](start_span)[span_225](end_span)
+      btnText.innerText = "تأكيد الموافقة والتفعيل";[span_226](start_span)[span_226](end_span)
     }
 
-    async function handleFailedAttempt(deviceCode) {[span_211](start_span)[span_211](end_span)
-      try {
-        const { data: dev } = await supabaseClient[span_212](start_span)[span_212](end_span)
-          .from('users')[span_213](start_span)[span_213](end_span)
-          .select('failed_attempts')[span_214](start_span)[span_214](end_span)
-          .eq('device_id', deviceCode)[span_215](start_span)[span_215](end_span)
-          .maybeSingle();[span_216](start_span)[span_216](end_span)
+    function initSmartAssistant() {[span_227](start_span)[span_227](end_span)
+      const container = document.getElementById('quickQuestions');[span_228](start_span)[span_228](end_span)
+      if (!container) return;[span_229](start_span)[span_229](end_span)
+      container.innerHTML = '';[span_230](start_span)[span_230](end_span)
 
-        let currentAttempts = ((dev && dev.failed_attempts) ? dev.failed_attempts : 0) + 1;[span_217](start_span)[span_217](end_span)
-
-        await supabaseClient.from('users').upsert([[span_218](start_span)[span_218](end_span)
-          { 
-            device_id: deviceCode,[span_219](start_span)[span_219](end_span)
-            failed_attempts: currentAttempts[span_220](start_span)[span_220](end_span)
-          }
-        ], { onConflict: 'device_id' });[span_221](start_span)[span_221](end_span)
-
-        if (currentAttempts >= 5) {[span_222](start_span)[span_222](end_span)
-          await supabaseClient.from('blacklisted_devices').upsert([[span_223](start_span)[span_223](end_span)
-            { 
-              device_fingerprint: deviceCode,[span_224](start_span)[span_224](end_span)
-              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة أكثر من 5 مرات[span_225](start_span)"[span_225](end_span)
-            }
-          ], { onConflict: 'device_fingerprint' });[span_226](start_span)[span_226](end_span)
-        }
-
-        return currentAttempts;[span_227](start_span)[span_227](end_span)
-      } catch (e) {
-        console.error("خطأ في العداد:", e);[span_228](start_span)[span_228](end_span)
-        return 1;[span_229](start_span)[span_229](end_span)
-      }
-    }
-
-    // ==========================================
-    // 🤖 محرك المساعد الذكي
-    // ==========================================
-    function initSmartAssistant() {[span_230](start_span)[span_230](end_span)
-      const container = document.getElementById('quickQuestions');[span_231](start_span)[span_231](end_span)
-      if (!container) return;[span_232](start_span)[span_232](end_span)
-      container.innerHTML = '';[span_233](start_span)[span_233](end_span)
-
-      assistantKnowledgeBase.forEach((item, index) => {[span_234](start_span)[span_234](end_span)
-        const btn = document.createElement('button');[span_235](start_span)[span_235](end_span)
-        btn.type = "button";[span_236](start_span)[span_236](end_span)
-        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0 cursor-pointer";[span_237](start_span)[span_237](end_span)
-        btn.innerText = "💡 " + item.q;[span_238](start_span)[span_238](end_span)
-        btn.onclick = () => askQuestionDirectly(index);[span_239](start_span)[span_239](end_span)
-        container.appendChild(btn);[span_240](start_span)[span_240](end_span)
+      assistantKnowledgeBase.forEach((item, index) => {[span_231](start_span)[span_231](end_span)
+        const btn = document.createElement('button');[span_232](start_span)[span_232](end_span)
+        btn.type = "button";[span_233](start_span)[span_233](end_span)
+        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0 cursor-pointer";[span_234](start_span)[span_234](end_span)
+        btn.innerText = "💡 " + item.q;[span_235](start_span)[span_235](end_span)
+        btn.onclick = () => askQuestionDirectly(index);[span_236](start_span)[span_236](end_span)
+        container.appendChild(btn);[span_237](start_span)[span_237](end_span)
       });
     }
 
-    function askQuestionDirectly(index) {[span_241](start_span)[span_241](end_span)
-      const item = assistantKnowledgeBase[index];[span_242](start_span)[span_242](end_span)[span_243](start_span)[span_243](end_span)
-      appendUserMessage(item.q);[span_244](start_span)[span_244](end_span)
-      setTimeout(() => {[span_245](start_span)[span_245](end_span)
-        appendBotMessage(item.a);[span_246](start_span)[span_246](end_span)
+    function askQuestionDirectly(index) {[span_238](start_span)[span_238](end_span)
+      const item = assistantKnowledgeBase[index];[span_239](start_span)[span_239](end_span)
+      appendUserMessage(item.q);[span_240](start_span)[span_240](end_span)
+      setTimeout(() => {[span_241](start_span)[span_241](end_span)
+        appendBotMessage(item.a);[span_242](start_span)[span_242](end_span)
       }, 250);
     }
 
-    function sendChatMessage() {[span_247](start_span)[span_247](end_span)
-      const input = document.getElementById('userQuery');[span_248](start_span)[span_248](end_span)
-      if (!input) return;[span_249](start_span)[span_249](end_span)
+    function sendChatMessage() {[span_243](start_span)[span_243](end_span)
+      const input = document.getElementById('userQuery');[span_244](start_span)[span_244](end_span)
+      if (!input) return;[span_245](start_span)[span_245](end_span)
 
-      const text = input.value.trim();[span_250](start_span)[span_250](end_span)
-      if (!text) return;[span_251](start_span)[span_251](end_span)
+      const text = input.value.trim();[span_246](start_span)[span_246](end_span)
+      if (!text) return;[span_247](start_span)[span_247](end_span)
 
-      appendUserMessage(text);[span_252](start_span)[span_252](end_span)
-      input.value = '';[span_253](start_span)[span_253](end_span)
+      appendUserMessage(text);[span_248](start_span)[span_248](end_span)
+      input.value = '';[span_249](start_span)[span_249](end_span)
 
-      setTimeout(() => {[span_254](start_span)[span_254](end_span)
-        let matchedAnswer = null;[span_255](start_span)[span_255](end_span)
-        const lowerText = text.toLowerCase();[span_256](start_span)[span_256](end_span)
+      setTimeout(() => {[span_250](start_span)[span_250](end_span)
+        let matchedAnswer = null;[span_251](start_span)[span_251](end_span)
+        const lowerText = text.toLowerCase();[span_252](start_span)[span_252](end_span)
 
-        for (const item of assistantKnowledgeBase) {[span_257](start_span)[span_257](end_span)
-          if (item.keywords && item.keywords.some(kw => lowerText.includes(kw))) {[span_258](start_span)[span_258](end_span)
-            matchedAnswer = item.a;[span_259](start_span)[span_259](end_span)
-            break;[span_260](start_span)[span_260](end_span)
+        for (const item of assistantKnowledgeBase) {[span_253](start_span)[span_253](end_span)
+          if (item.keywords && item.keywords.some(kw => lowerText.includes(kw))) {[span_254](start_span)[span_254](end_span)
+            matchedAnswer = item.a;[span_255](start_span)[span_255](end_span)
+            break;[span_256](start_span)[span_256](end_span)
           }
         }
 
-        if (!matchedAnswer) {[span_261](start_span)[span_261](end_span)
-          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة بالأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب! 💬";[span_262](start_span)[span_262](end_span)
+        if (!matchedAnswer) {[span_257](start_span)[span_257](end_span)
+          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة بالأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب! 💬";[span_258](start_span)[span_258](end_span)
         }
 
-        appendBotMessage(matchedAnswer);[span_263](start_span)[span_263](end_span)
+        appendBotMessage(matchedAnswer);[span_259](start_span)[span_259](end_span)
       }, 350);
     }
 
-    function appendUserMessage(msg) {[span_264](start_span)[span_264](end_span)
-      const chatBox = document.getElementById('chatBox');[span_265](start_span)[span_265](end_span)
-      const userDiv = document.createElement('div');[span_266](start_span)[span_266](end_span)
-      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed font-medium shadow text-left";[span_267](start_span)[span_267](end_span)
-      userDiv.innerText = msg;[span_268](start_span)[span_268](end_span)
-      chatBox.appendChild(userDiv);[span_269](start_span)[span_269](end_span)
-      chatBox.scrollTop = chatBox.scrollHeight;[span_270](start_span)[span_270](end_span)
+    function appendUserMessage(msg) {[span_260](start_span)[span_260](end_span)
+      const chatBox = document.getElementById('chatBox');[span_261](start_span)[span_261](end_span)
+      const userDiv = document.createElement('div');[span_262](start_span)[span_262](end_span)
+      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed font-medium shadow text-left";[span_263](start_span)[span_263](end_span)
+      userDiv.innerText = msg;[span_264](start_span)[span_264](end_span)
+      chatBox.appendChild(userDiv);[span_265](start_span)[span_265](end_span)
+      chatBox.scrollTop = chatBox.scrollHeight;[span_266](start_span)[span_266](end_span)
     }
 
-    function appendBotMessage(msg) {[span_271](start_span)[span_271](end_span)
-      const chatBox = document.getElementById('chatBox');[span_272](start_span)[span_272](end_span)
-      const botDiv = document.createElement('div');[span_273](start_span)[span_273](end_span)
-      botDiv.className = "bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed shadow";[span_274](start_span)[span_274](end_span)
-      botDiv.innerText = msg;[span_275](start_span)[span_275](end_span)
-      chatBox.appendChild(botDiv);[span_276](start_span)[span_276](end_span)
-      chatBox.scrollTop = chatBox.scrollHeight;[span_277](start_span)[span_277](end_span)
+    function appendBotMessage(msg) {[span_267](start_span)[span_267](end_span)
+      const chatBox = document.getElementById('chatBox');[span_268](start_span)[span_268](end_span)
+      const botDiv = document.createElement('div');[span_269](start_span)[span_269](end_span)
+      botDiv.className = "bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed shadow";[span_270](start_span)[span_270](end_span)
+      botDiv.innerText = msg;[span_271](start_span)[span_271](end_span)
+      chatBox.appendChild(botDiv);[span_272](start_span)[span_272](end_span)
+      chatBox.scrollTop = chatBox.scrollHeight;[span_273](start_span)[span_273](end_span)
     }
   </script>
 </body>
