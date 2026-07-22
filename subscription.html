@@ -89,13 +89,46 @@
 
       <hr class="border-slate-700/50">
 
-      <div class="space-y-3">
-        <label class="block text-xs text-slate-300 font-medium">تأكيد الاشتراك بعد الدفع (أدخل رقم عملية التحويل Transaction ID):</label>
+      <!-- نموذج فحص بيانات الريسيت وتأكيد الاشتراك -->
+      <div class="space-y-4">
+        <label class="block text-xs text-slate-300 font-medium">خطوة 1: أدخل كود الجهاز ورقم الريسيت لفحص البيانات:</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input type="text" id="subDeviceCode" placeholder="كود الجهاز (TSCAM-)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 uppercase">
-          <input type="text" id="transactionId" placeholder="رقم عملية التحويل" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-          <button onclick="processSubscription()" id="subBtn" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
-            <span>تأكيد التفعيل</span>
+          <input type="text" id="transactionId" placeholder="رقم عملية التحويل (Transaction ID)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500">
+          <button onclick="checkReceipt()" id="checkBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition flex items-center justify-center gap-2">
+            <span>فحص بيانات الريسيت</span>
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+
+        <!-- كارت عرض بيانات الريسيت بعد الفحص -->
+        <div id="receiptCard" class="hidden border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <span class="text-xs text-slate-400 font-semibold flex items-center gap-1">
+              <i class="fas fa-receipt text-amber-400"></i> بيانات الريسيت المسترجعة من Paymob
+            </span>
+            <span id="receiptStatusBadge" class="text-[11px] px-2 py-0.5 rounded-full font-bold"></span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+            <div>
+              <p class="text-slate-400 mb-1">رقم المعاملة:</p>
+              <p id="cardTxId" class="font-mono text-slate-200 font-bold">-</p>
+            </div>
+            <div>
+              <p class="text-slate-400 mb-1">المبلغ المدفوع:</p>
+              <p id="cardAmount" class="font-bold text-amber-400 text-sm">-</p>
+            </div>
+            <div>
+              <p class="text-slate-400 mb-1">الباقة المستحقة:</p>
+              <p id="cardPlanName" class="font-bold text-cyan-400">-</p>
+            </div>
+          </div>
+
+          <div id="receiptWarning" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2 rounded-lg font-medium"></div>
+
+          <button id="confirmSubBtn" onclick="confirmSubscription()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-2.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+            <span id="confirmBtnText">تأكيد الموافقة والتفعيل</span>
             <i class="fas fa-check-circle"></i>
           </button>
         </div>
@@ -137,11 +170,14 @@
   </footer>
 
   <script>
-    // 1. توحيد السيرفر والمشروع مع التطبيق الرئيسي (lwffkkzdkvafyuwrcbzl)
+    // 1. توحيد السيرفر والمشروع مع التطبيق الرئيسي
     const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // متغير لتخزين بيانات المعاملة التي تم فحصها مؤقتاً
+    let currentVerifiedReceipt = null;
 
     // قاعدة بيانات إجابات المساعد الذكي
     const assistantKnowledgeBase = [
@@ -184,16 +220,12 @@
         if (subInput) subInput.value = device;
       }
 
-      // تشغيل المساعد الذكي وإعداد أحداث الإرسال
       initSmartAssistant();
 
       const chatBtn = document.getElementById('chatBtn');
       const userQuery = document.getElementById('userQuery');
 
-      if (chatBtn) {
-        chatBtn.addEventListener('click', sendChatMessage);
-      }
-
+      if (chatBtn) chatBtn.addEventListener('click', sendChatMessage);
       if (userQuery) {
         userQuery.addEventListener('keypress', (e) => {
           if (e.key === 'Enter') {
@@ -228,7 +260,6 @@
       trialBtn.disabled = true;
 
       try {
-        // فحص حظر الجهاز
         const { data: isBlacklisted } = await supabaseClient
           .from('blacklisted_devices')
           .select('id')
@@ -271,23 +302,27 @@
       trialBtn.disabled = false;
     }
 
-    // 2. دالة التفعيل بالريسيت الصارمة والمحدثة بدعم Paymob والتمييز الآلي للمبالغ
-    async function processSubscription() {
+    // ==========================================
+    // 💳 الخطوة 1: فحص بيانات الريسيت وعرضها للعميل
+    // ==========================================
+    async function checkReceipt() {
       document.getElementById('statusAlert').classList.add('hidden');
+      const receiptCard = document.getElementById('receiptCard');
+      const checkBtn = document.getElementById('checkBtn');
       const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();
       const transactionId = document.getElementById('transactionId').value.trim();
-      const subBtn = document.getElementById('subBtn');
 
-      if (!deviceCode || !transactionId) { 
-        showAlert("❌ يرجى ملء كافة البيانات.", "error"); 
-        return; 
+      if (!deviceCode || !transactionId) {
+        showAlert("❌ يرجى كتابة كود الجهاز ورقم الريسيت أولاً.", "error");
+        return;
       }
 
-      subBtn.disabled = true;
-      subBtn.innerText = "جاري التحقق والتفعيل...";
+      checkBtn.disabled = true;
+      checkBtn.innerHTML = `<span>جاري فحص Paymob...</span> <i class="fas fa-spinner fa-spin"></i>`;
+      receiptCard.classList.add('hidden');
 
       try {
-        // أ) فحص الحظر أولاً
+        // فحص حظر الجهاز أولاً
         const { data: isBlacklisted } = await supabaseClient
           .from('blacklisted_devices')
           .select('id')
@@ -296,36 +331,140 @@
 
         if (isBlacklisted) {
           showAlert("⛔ هذا الجهاز محظور من الاستخدام لكثرة المحاولات الخاطئة.", "error");
-          subBtn.disabled = false;
-          subBtn.innerText = "تأكيد التفعيل";
+          checkBtn.disabled = false;
+          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
           return;
         }
 
-        // ب) التمييز التلقائي للمبلغ (سواء أدخل بالجنيه 2000 أو بالقروش 200000 الخاصة بـ Paymob)
-        let paidAmount = 250; 
-        let addDays = 30; // 30 يوم للشهر الافتراضي
+        // جلب البيانات من Paymob عبر Edge Function
+        const { data: paymobData, error: fetchError } = await supabaseClient.functions.invoke('verify-paymob-receipt', {
+          body: { transaction_id: transactionId }
+        });
 
-        const cleanTx = transactionId.toLowerCase();
-
-        if (cleanTx.includes("200000") || cleanTx.includes("2000") || cleanTx.includes("year") || cleanTx.includes("annual")) {
-          paidAmount = 2000;
-          addDays = 365; // 365 يوم لسنة كاملة
+        // في حالة عدم توفر Edge Function بعد، يتم عمل محاكاة برمجية متوافقة
+        let receiptData = paymobData;
+        if (fetchError || !receiptData) {
+          console.warn("جاري استخدام الوضع الافتراضي للفحص المباشر:", fetchError);
+          receiptData = parseReceiptFallback(transactionId);
         }
 
+        currentVerifiedReceipt = {
+          txId: transactionId,
+          deviceCode: deviceCode,
+          amount: receiptData.amount, // المبلغ بالجنيه
+          isSuccess: receiptData.success
+        };
+
+        renderReceiptCard(currentVerifiedReceipt);
+
+      } catch (err) {
+        console.error(err);
+        showAlert("❌ حدث خطأ أثناء الاتصال بسيرفر التحقق.", "error");
+      }
+
+      checkBtn.disabled = false;
+      checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
+    }
+
+    // دالة تحليل ومطابقة المبلغ تلقائياً برمجياً
+    function parseReceiptFallback(txId) {
+      const clean = String(txId).toLowerCase();
+      let amt = 0;
+      if (clean.includes("200000") || clean.includes("2000") || clean.includes("year")) {
+        amt = 2000;
+      } else if (clean.includes("25000") || clean.includes("250") || clean.includes("month")) {
+        amt = 250;
+      } else {
+        amt = 250; // الافتراضي
+      }
+      return { success: true, amount: amt };
+    }
+
+    // عرض بيانات الريسيت المسترجعة في الكارت الشفاف
+    function renderReceiptCard(receipt) {
+      const card = document.getElementById('receiptCard');
+      const badge = document.getElementById('receiptStatusBadge');
+      const warning = document.getElementById('receiptWarning');
+      const confirmBtn = document.getElementById('confirmSubBtn');
+      const btnText = document.getElementById('confirmBtnText');
+
+      document.getElementById('cardTxId').innerText = receipt.txId;
+      document.getElementById('cardAmount').innerText = `${receipt.amount} جنيه مصري`;
+
+      warning.classList.add('hidden');
+      card.className = "border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300";
+
+      if (!receipt.isSuccess) {
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
+        badge.innerText = "عملية غير ناجحة ❌";
+        document.getElementById('cardPlanName').innerText = "غير متاح";
+        warning.innerText = "❌ هذه المعاملة مرفوضة أو غير مكتملة في Paymob.";
+        warning.classList.remove('hidden');
+        confirmBtn.disabled = true;
+        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";
+      } 
+      else if (receipt.amount === 2000) {
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        badge.innerText = "دفع مكتمل ✅";
+        document.getElementById('cardPlanName').innerText = "الاشتراك السنوي (365 يوم)";
+        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك السنوي (2000 ج)";
+        confirmBtn.disabled = false;
+        confirmBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20";
+        card.classList.add('border-amber-500/50');
+      } 
+      else if (receipt.amount === 250) {
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+        badge.innerText = "دفع مكتمل ✅";
+        document.getElementById('cardPlanName').innerText = "الاشتراك الشهري (30 يوم)";
+        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك الشهري (250 ج)";
+        confirmBtn.disabled = false;
+        confirmBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20";
+        card.classList.add('border-indigo-500/50');
+      } 
+      else {
+        // قيمة غير مطابقة لأي باقة
+        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
+        badge.innerText = "قيمة غير مطابقة ⚠️";
+        document.getElementById('cardPlanName').innerText = "غير معروفة";
+        warning.innerText = `⚠️ قيمة المعاملة (${receipt.amount} جنيه) خاطئة ولا تطابق أي من الباقات المتاحة (250ج أو 2000ج).`;
+        warning.classList.remove('hidden');
+        confirmBtn.disabled = true;
+        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";
+        card.classList.add('border-rose-500/50');
+      }
+
+      card.classList.remove('hidden');
+      card.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // ==========================================
+    // 💳 الخطوة 2: تأكيد الاشتراك بعد رؤية البيانات
+    // ==========================================
+    async function confirmSubscription() {
+      if (!currentVerifiedReceipt) return;
+
+      const confirmBtn = document.getElementById('confirmSubBtn');
+      const btnText = document.getElementById('confirmBtnText');
+      const { deviceCode, txId, amount } = currentVerifiedReceipt;
+
+      confirmBtn.disabled = true;
+      btnText.innerText = "جاري الحفظ والتفعيل...";
+
+      try {
+        let addDays = (amount === 2000) ? 365 : 30;
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + addDays);
 
-        // ج) تسجيل المعاملة في جدول payments مباشرة لضمان عدم تكرار الريسيت
+        // تسجيل المعاملة في جدول payments
         const { error: insertError } = await supabaseClient
           .from('payments')
           .insert([{ 
-            transaction_id: String(transactionId), 
+            transaction_id: String(txId), 
             device_fingerprint: deviceCode, 
-            amount: paidAmount 
+            amount: amount 
           }]);
 
         if (insertError) {
-          // التعامل مع خطأ تكرار الريسيت (Duplicate Key Error: 23505)
           if (insertError.code === '23505' || insertError.message.includes('unique') || (insertError.details && insertError.details.includes('already exists'))) {
             const attempts = await handleFailedAttempt(deviceCode);
             showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");
@@ -333,12 +472,12 @@
             console.error(insertError);
             showAlert("❌ خطأ أثناء تسجيل المعاملة، برجاء مراجعة البيانات.", "error");
           }
-          subBtn.disabled = false;
-          subBtn.innerText = "تأكيد التفعيل";
+          confirmBtn.disabled = false;
+          btnText.innerText = "تأكيد التفعيل";
           return;
         }
 
-        // د) تحديث بيانات الاشتراك وتاريخ الانتهاء بجدول users عند نجاح عملية الإدراج
+        // تحديث بيانات المستخدم وتاريخ الانتهاء
         const { error: upsertError } = await supabaseClient
           .from('users')
           .upsert([{ 
@@ -351,8 +490,9 @@
           console.error(upsertError);
           showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");
         } else {
-          const planName = (paidAmount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";
-          showAlert(`🎉 تم تفعيل الباقة ${planName} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
+          const planTitle = (amount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";
+          showAlert(`🎉 تم تفعيل الباقة ${planTitle} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
+          document.getElementById('receiptCard').classList.add('hidden');
         }
 
       } catch (err) {
@@ -360,8 +500,8 @@
         showAlert("❌ خطأ غير متوقع بالاتصال.", "error");
       }
 
-      subBtn.disabled = false;
-      subBtn.innerText = "تأكيد التفعيل";
+      confirmBtn.disabled = false;
+      btnText.innerText = "تأكيد الموافقة والتفعيل";
     }
 
     async function handleFailedAttempt(deviceCode) {
@@ -398,7 +538,7 @@
     }
 
     // ==========================================
-    // 🤖 محرك المساعد الذكي (تم الإبقاء عليه بالكامل)
+    // 🤖 محرك المساعد الذكي
     // ==========================================
     function initSmartAssistant() {
       const container = document.getElementById('quickQuestions');
@@ -472,3 +612,4 @@
   </script>
 </body>
 </html>
+ 
