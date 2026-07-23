@@ -156,31 +156,13 @@ async function checkActivation() {
     }
 }
 
-// دالة إظهار شاشة القفل مع التوجيه لبوابة الاشتراكات (بدون تخريب ألوانك)
+// 🔒 دالة إظهار شاشة القفل (تم تنظيفها تماماً وحذف إنشاء الزرار الديناميكي)
 function showLockScreen(msg) {
-    document.getElementById('activation-screen').classList.remove('hidden');
-    document.getElementById('lock-message').innerText = msg;
-
-    let redirectSection = document.getElementById('redirect-portal-section');
-    if (!redirectSection) {
-        const container = document.getElementById('activation-screen').firstElementChild;
-        redirectSection = document.createElement('div');
-        redirectSection.id = 'redirect-portal-section';
-        redirectSection.className = 'mt-4 border-t border-gray-100 pt-3';
-        container.appendChild(redirectSection);
-    }
-
-    const fingerprint = getDeviceID();
-    redirectSection.innerHTML = `
-        <div class="bg-gray-900 text-white p-3.5 rounded-xl shadow-md text-center mt-2">
-            <p class="text-xs text-gray-300 font-bold mb-2">
-                💡 لتفعيل الفترة التجريبية أو الاشتراك بالباقات، اذهب إلى بوابة التفعيل:
-            </p>
-            <button onclick="goToSubscriptionPortal('${fingerprint}')" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-4 rounded-lg text-xs transition">
-                🚀 الانتقال لصفحة التفعيل والدعم
-            </button>
-        </div>
-    `;
+    const activationScreen = document.getElementById('activation-screen');
+    const lockMessage = document.getElementById('lock-message');
+    
+    if (activationScreen) activationScreen.classList.remove('hidden');
+    if (lockMessage) lockMessage.innerText = msg;
 }
 
 // دالة التحويل المباشر مع تمرير كود الجهاز
