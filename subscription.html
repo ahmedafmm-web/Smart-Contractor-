@@ -123,7 +123,7 @@
 
   <!-- JS Logic -->
   <script>
-    // ✅ تم إضافة رابط Cloudflare Worker الخاص بك هنا
+    // رابط الـ Cloudflare Worker المباشر الخاص بك
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
 
     function showAlert(msg, type = "info") {
@@ -144,17 +144,17 @@
     }
 
     // مزامنة الأكواد بين الحقول
-    document.getElementById('trialDeviceCode').addEventListener('input', (e) => {
-      document.getElementById('subDeviceCode').value = e.target.value.toUpperCase();
+    document.getElementById('trialDeviceCode')?.addEventListener('input', (e) => {
+      if(document.getElementById('subDeviceCode')) document.getElementById('subDeviceCode').value = e.target.value.toUpperCase();
     });
-    document.getElementById('subDeviceCode').addEventListener('input', (e) => {
-      document.getElementById('trialDeviceCode').value = e.target.value.toUpperCase();
+    document.getElementById('subDeviceCode')?.addEventListener('input', (e) => {
+      if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = e.target.value.toUpperCase();
     });
 
     // دالة الدفع الديناميكي
     async function startDynamicPayment(planType) {
-      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase() || 
-                         document.getElementById('trialDeviceCode').value.trim().toUpperCase();
+      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
+                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       
       if (!deviceCode) {
         showAlert("⚠️ يرجى إدخال كود جهازك أولاً لتتمكن من الدفع والتفعيل الفوري.", "error");
@@ -174,6 +174,13 @@
           })
         });
 
+        // 🛡️ فحص نوع الرد قبل القراءة لتجنب خطأ JSON Not Valid
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          showAlert(`❌ السيرفر أرجع خطأ (${response.status}). تأكد أن الـ Worker مفعّل ومرفوع على Cloudflare بشكل صحيح.`, "error");
+          return;
+        }
+
         const data = await response.json();
 
         if (data.success && data.payment_url) {
@@ -187,11 +194,11 @@
       }
     }
 
-    // دالة التفعيل اليدوي
+    // دالة الفحص اليدوي
     async function verifyTransaction() {
-      const txId = document.getElementById('manualTxId').value.trim();
-      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase() || 
-                         document.getElementById('trialDeviceCode').value.trim().toUpperCase();
+      const txId = document.getElementById('manualTxId')?.value.trim();
+      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
+                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
 
       if (!txId || !deviceCode) {
         showAlert("⚠️ يرجى إدخال كود الجهاز ورقم العملية بشكل صحيح.", "error");
@@ -211,6 +218,12 @@
           })
         });
 
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          showAlert(`❌ تعذر الفحص. السيرفر أرجع خطأ (${response.status}).`, "error");
+          return;
+        }
+
         const data = await response.json();
 
         if (data.success) {
@@ -226,7 +239,7 @@
 
     // دالة التجربة المجانية
     function activateTrial() {
-      const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();
+      const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
         showAlert("⚠️ يرجى إدخال كود الجهاز للتفعيل التجريبي.", "error");
         return;
