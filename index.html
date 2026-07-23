@@ -1,63 +1,248 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Contractor | تطبيق حصر الكميات وحساب التكاليف</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    body { font-family: system-ui, -apple-system, sans-serif; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Smart Contractor By Ahmed Mohamed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-  <!-- Header -->
-  <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 p-4">
-    <div class="max-w-4xl mx-auto flex justify-between items-center">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/30">SC</div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight text-white">Smart Contractor</h1>
-          <p class="text-xs text-slate-400">التطبيق الذكي لحصر ومقاولات البناء</p>
+    <!-- 🔒 شاشة التفعيل المطورة بالواجهة الجديدة المحافظة على جميع عناصر القفل -->
+    <div id="activation-screen" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
+            
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-4 shadow-lg shadow-indigo-500/10">
+                <i class="fas fa-lock text-2xl"></i>
+            </div>
+
+            <h2 id="lock-title" class="text-2xl font-black text-white mb-1">تنبيه النظام | System Notice</h2>
+            <p class="text-xs text-slate-400 mb-4 font-mono tracking-wider">Smart Contractor By Ahmed Mohamed</p>
+            <hr class="border-slate-800 mb-4">
+            
+            <!-- رسالة النظام الأساسية -->
+            <p id="lock-message" class="text-sm font-medium text-slate-300 mb-4 px-2 leading-relaxed"></p>
+            
+            <!-- مربع عرض تاريخ الانتهاء الجذاب -->
+            <div id="expiry-display-box" class="hidden bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-sm font-bold mb-4 flex items-center justify-center gap-2 animate-pulse">
+                <i class="fas fa-calendar-alt"></i> <span id="expiry-date-text"></span>
+            </div>
+
+            <!-- زرار التحقق اليدوي المودرن -->
+            <button id="manual-verify-btn" onclick="checkSubscriptionManually()" class="w-full mb-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 text-sm">
+                <span id="verify-btn-icon"><i class="fas fa-sync-alt"></i></span>
+                <span id="verify-btn-text">اضغط هنا للتحقق وتفعيل الأداة الآن</span>
+            </button>
+
+            <p class="text-xs font-bold text-slate-400 mb-2 flex items-center justify-center gap-1">
+                <i class="fas fa-fingerprint text-indigo-400"></i> بصمة جهازك الذكية المقترنة بحسابك:
+            </p>
+            <div id="device-id-box" class="bg-slate-950 p-3 rounded-xl font-mono text-xs select-all border border-slate-800 mb-5 break-all font-bold text-cyan-400 tracking-tight"></div>
+            
+            <div class="relative flex py-2 items-center my-2">
+                <div class="flex-grow border-t border-slate-800"></div>
+                <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold">باقات الاشتراك السريع</span>
+                <div class="flex-grow border-t border-slate-800"></div>
+            </div>
+
+            <!-- أزرار الدفع الديناميكية مع توجيه بوابة الدفع -->
+            <div class="grid grid-cols-1 gap-3 mt-2">
+                <button onclick="startPaymobPayment('monthly')" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-credit-card text-indigo-400"></i> تفعيل الاشتراك الشهري (250 ج.م)
+                </button>
+                <button onclick="startPaymobPayment('yearly')" class="w-full bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-300 font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fas fa-crown text-amber-400"></i> تفعيل الاشتراك السنوي (2000 ج.م)
+                </button>
+            </div>
+            
+            <a href="subscription.html" class="inline-block mt-4 text-xs text-indigo-400 hover:underline">أو انتقل إلى صفحة الدعم والاشتراكات التفصيلية &larr;</a>
         </div>
-      </div>
-      <a href="subscription.html" class="text-xs md:text-sm bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition font-semibold flex items-center gap-2">
-        <i class="fas fa-crown"></i>
-        <span>الاشتراكات والتفعيل</span>
-      </a>
-    </div>
-  </header>
-
-  <!-- Hero / Main Section -->
-  <main class="max-w-3xl mx-auto w-full p-6 text-center my-auto space-y-6">
-    <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-indigo-400 text-xs font-semibold">
-      <i class="fas fa-rocket"></i>
-      <span>منظومة المقاول الذكي - الإيجاز والدقة</span>
     </div>
 
-    <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight">
-      إدارة وحصر تكاليف مشاريعك <br>
-      <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">بكل سهولة وبدون إنترنت</span>
-    </h2>
-
-    <p class="text-slate-400 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-      احسب كميات الخرسانة، الحديد، ومواد البناء، واستخرج تقارير PDF احترافية فوراً مع إمكانية التفعيل والاشتراك اللحظي.
-    </p>
-
-    <!-- Main Action Button -->
-    <div class="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
-      <a href="subscription.html" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl shadow-indigo-600/25 transition flex items-center justify-center gap-3">
-        <span>انتقل إلى بوابة التفعيل والاشتراك</span>
-        <i class="fas fa-arrow-left"></i>
-      </a>
+    <!-- الإعدادات والشاشة الرئيسية بنفس عناصرك الأصلية كاملة -->
+    <div id="setup-screen" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h2 id="setup-title" class="text-2xl font-bold text-indigo-400 mb-4 text-center"></h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-name"></label>
+                    <input type="text" id="setup-company-name" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-phone"></label>
+                    <input type="text" id="setup-company-phone" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-address"></label>
+                    <input type="text" id="setup-company-address" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-logo"></label>
+                    <input type="file" id="setup-company-logo" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600/20 file:text-indigo-400">
+                </div>
+                <button id="save-setup-btn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4"></button>
+            </div>
+        </div>
     </div>
-  </main>
 
-  <!-- Footer -->
-  <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/80">
-    جميع الحقوق محفوظة &copy; Smart Contractor 2026
-  </footer>
+    <!-- Main App Interface (المعتمدة في الصورة) -->
+    <div class="max-w-4xl mx-auto p-4 pb-8 w-full">
+        <header class="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl text-white shadow-lg shadow-indigo-500/30">SC</div>
+                <div>
+                    <h1 id="app-main-title" class="text-lg font-bold text-white">Smart Contractor</h1>
+                    <p class="text-xs text-slate-400">By Ahmed Mohamed</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="subscription.html" class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fas fa-crown"></i>
+                    <span>الاشتراكات والتفعيل</span>
+                </a>
+                <button id="lang-toggle-btn" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs rounded-xl font-bold transition"></button>
+                <button id="settings-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-xl text-xs transition">⚙️</button>
+            </div>
+        </header>
 
+        <!-- Hero Card (الواجهة الأنيقة من الصورة) -->
+        <main class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-10 text-center my-6 space-y-6 backdrop-blur">
+            <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-indigo-400 text-xs font-semibold">
+                <i class="fas fa-rocket"></i>
+                <span>منظومة المقاول الذكي - الإيجاز والدقة</span>
+            </div>
+
+            <h2 class="text-3xl sm:text-5xl font-black text-white leading-tight">
+                إدارة وحصر تكاليف مشاريعك <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">بكل سهولة وبدون إنترنت</span>
+            </h2>
+
+            <p class="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
+                احسب كميات الخرسانة، الحديد، ومواد البناء، واستخرج تقارير PDF احترافية فوراً مع إمكانية التفعيل والاشتراك اللحظي.
+            </p>
+
+            <div class="pt-2">
+                <a href="subscription.html" class="inline-flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl shadow-indigo-600/20 transition text-sm">
+                    <span>انتقل إلى بوابة التفعيل والاشتراك</span>
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            </div>
+        </main>
+
+        <!-- Sections & Elements (الموجودة بالأصل في app.js) -->
+        <section class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm mb-6 space-y-4">
+            <h3 id="sec-client-info" class="font-bold text-base text-slate-200 mb-2 border-b border-slate-800 pb-2"></h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label id="lbl-customer-name" class="block text-xs font-semibold mb-1 text-slate-400"></label>
+                    <input type="text" id="client-name" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-customer-phone" class="block text-xs font-semibold mb-1 text-slate-400"></label>
+                    <input type="text" id="client-phone" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 pt-2 border-t border-slate-800">
+                <div>
+                    <label id="lbl-markup" class="block text-[10px] md:text-xs font-semibold mb-1 text-slate-400"></label>
+                    <input type="number" id="markup-rate" value="15" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-contingency" class="block text-[10px] md:text-xs font-semibold mb-1 text-slate-400"></label>
+                    <input type="number" id="contingency-rate" value="5" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-waste" class="block text-[10px] md:text-xs font-semibold mb-1 text-slate-400"></label>
+                    <input type="number" id="waste-rate" value="5" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-xl text-center font-bold text-slate-100">
+                </div>
+            </div>
+        </section>
+
+        <section class="space-y-4 mb-8" id="items-container">
+            <h3 id="sec-items" class="font-bold text-base text-slate-200 mb-2"></h3>
+            <div id="dynamic-items-list" class="space-y-3"></div>
+        </section>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md flex gap-4 mt-6">
+            <button id="add-new-item-btn" class="bg-slate-800 text-slate-200 font-semibold px-4 py-3 rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-1 shrink-0 text-sm">
+                <span>➕</span> <span id="btn-text-add"></span>
+            </button>
+            <button id="generate-pdf-btn" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 text-sm">
+                <span>📄</span> <span id="btn-text-pdf"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal إضافة بند -->
+    <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full">
+            <h3 id="modal-add-title" class="font-bold text-lg mb-4 text-slate-100"></h3>
+            <div class="space-y-3">
+                <div>
+                    <label id="lbl-new-name" class="block text-xs font-semibold text-slate-400 mb-1"></label>
+                    <input type="text" id="new-item-name" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-new-mat" class="block text-xs font-semibold text-slate-400 mb-1"></label>
+                    <input type="number" id="new-item-mat-cost" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-new-lab" class="block text-xs font-semibold text-slate-400 mb-1"></label>
+                    <input type="number" id="new-item-lab-cost" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button id="close-modal-btn" class="flex-1 bg-slate-800 text-slate-300 font-semibold py-2 rounded-lg">إلغاء</button>
+                    <button id="save-new-item-btn" class="flex-1 bg-indigo-600 text-white font-semibold py-2 rounded-lg">حفظ البند</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-900">
+        جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
+    </footer>
+
+    <script src="app.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./sw.js");
+        }
+
+        // دالة إنشاء جلسة دفع من شاشة القفل مباشرة
+        async function startPaymobPayment(planType) {
+            const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev/";
+            const deviceBox = document.getElementById('device-id-box');
+            const deviceId = deviceBox ? deviceBox.innerText.trim() : "UNKNOWN";
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "create_payment_intent",
+                        plan_type: planType,
+                        device_id: deviceId
+                    })
+                });
+                const data = await response.json();
+                if (data.success && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else {
+                    window.location.href = "subscription.html";
+                }
+            } catch (err) {
+                window.location.href = "subscription.html";
+            }
+        }
+    </script>
 </body>
 </html>
