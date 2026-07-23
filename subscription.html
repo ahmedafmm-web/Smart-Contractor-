@@ -269,7 +269,7 @@
       }
     }
 
-    // ✅ دالة التفعيل التجريبي الحقيقية المربوطة بالسحابة
+    // ✅ دالة التفعيل التجريبي المعدلة الحقيقية المربوطة بالسحابة بدون أي Fallback وهمي
     async function activateTrial() {
       const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
@@ -287,20 +287,18 @@
         });
 
         const data = await response.json();
-        if (data.success) {
-          if (data.trial_expires_at) {
-            localStorage.setItem('contractor_subscription_expiry_cache', data.trial_expires_at);
+
+        if (response.ok && data.success) {
+          if (data.trial_expires_at || data.expires_at) {
+            localStorage.setItem('contractor_subscription_expiry_cache', data.trial_expires_at || data.expires_at);
           }
           showAlert(`✅ ${data.message || `تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`}`, "success");
         } else {
-          showAlert(`❌ ${data.message || "فشل التفعيل التجريبي من السحابة."}`, "error");
+          const detailsStr = data.details ? ` (${JSON.stringify(data.details)})` : '';
+          showAlert(`❌ ${data.error || data.message || "فشل التفعيل التجريبي من السحابة."}${detailsStr}`, "error");
         }
       } catch (err) {
-        // Fallback التفعيل اليدوي في حالة البطء
-        const now = new Date();
-        now.setHours(now.getHours() + 48);
-        localStorage.setItem('contractor_subscription_expiry_cache', now.toISOString());
-        showAlert(`✅ تم تفعيل التجربة المجانية بنجاح محلياً لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
+        showAlert(`❌ تعذر الاتصال بسيرفر التفعيل: ${err.message}`, "error");
       }
     }
 
