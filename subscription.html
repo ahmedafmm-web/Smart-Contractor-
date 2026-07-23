@@ -67,10 +67,10 @@
             <h3 class="font-bold text-slate-200">الاشتراك الشهري</h3>
             <p class="text-2xl font-black text-indigo-400 mt-1">250 <span class="text-xs text-slate-400 font-normal">جنيه/شهرياً</span></p>
           </div>
-          <a href="https://paymob.link/FssME" target="_blank" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-1">
+          <button onclick="startDynamicPayment('monthly')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2.5 rounded-lg font-bold transition flex items-center gap-1">
             <span>دفع الآن</span>
-            <i class="fas fa-external-link-alt text-[10px]"></i>
-          </a>
+            <i class="fas fa-bolt text-[10px]"></i>
+          </button>
         </div>
 
         <!-- الاشتراك السنوي -->
@@ -80,18 +80,18 @@
             <h3 class="font-bold text-amber-200">الاشتراك السنوي</h3>
             <p class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs text-slate-400 font-normal">جنيه/سنوياً</span></p>
           </div>
-          <a href="https://paymob.link/Hgw6W" target="_blank" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
+          <button onclick="startDynamicPayment('yearly')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-lg transition shadow-lg shadow-amber-500/20 flex items-center gap-1">
             <span>دفع الآن</span>
-            <i class="fas fa-external-link-alt text-[10px]"></i>
-          </a>
+            <i class="fas fa-bolt text-[10px]"></i>
+          </button>
         </div>
       </div>
 
       <hr class="border-slate-700/50">
 
-      <!-- نموذج فحص بيانات الريسيت وتأكيد الاشتراك -->
+      <!-- نموذج فحص بيانات الريسيت وتأكيد الاشتراك يدوياً -->
       <div class="space-y-4">
-        <label class="block text-xs text-slate-300 font-medium">خطوة 1: أدخل كود الجهاز ورقم الريسيت لفحص البيانات:</label>
+        <label class="block text-xs text-slate-300 font-medium">خطوة تأكيدية: أدخل كود الجهاز ورقم الريسيت للفحص والتفعيل اليدوي في أي وقت:</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <input type="text" id="subDeviceCode" placeholder="كود الجهاز (TSCAM-)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500 uppercase">
           <input type="text" id="transactionId" placeholder="رقم عملية التحويل (Transaction ID)" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-500">
@@ -101,7 +101,7 @@
           </button>
         </div>
 
-        <!-- كارت عرض بيانات الريسيت بعد الفحص -->
+        <!-- كارت عرض بيانات الريسيت -->
         <div id="receiptCard" class="hidden border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300">
           <div class="flex items-center justify-between border-b border-slate-800 pb-2">
             <span class="text-xs text-slate-400 font-semibold flex items-center gap-1">
@@ -145,17 +145,14 @@
         <span class="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded-full">شغال 24/7</span>
       </div>
 
-      <!-- الأسئلة الشائعة السريعة -->
       <div id="quickQuestions" class="flex gap-2 overflow-x-auto pb-2 mb-2 chat-scroll text-xs"></div>
 
-      <!-- صندوق الشات -->
       <div id="chatBox" class="flex-1 bg-slate-900/80 border border-slate-700/50 rounded-xl p-4 overflow-y-auto space-y-3 chat-scroll text-sm">
         <div class="bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed">
           مرحباً بك! أنا المساعد الذكي لبرنامج **Smart Contractor**. كيف يمكنني مساعدتك اليوم؟ اختر سؤالاً سريعاً أو اكتب سؤالك بالأسفل! 🚀
         </div>
       </div>
 
-      <!-- خانة الإدخال -->
       <div class="flex gap-2 mt-3">
         <input type="text" id="userQuery" placeholder="اسأل عن كيفية الاستخدام، الحسابات، أو التفعيل..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-cyan-500 flex-1 text-white">
         <button id="chatBtn" type="button" class="bg-cyan-600 hover:bg-cyan-500 text-white px-5 py-2 rounded-xl transition font-bold">
@@ -166,454 +163,60 @@
   </main>
 
   <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/80">
-    جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
+    جميع الحقوق محفوظة &copy; Smart Contractor 2026
   </footer>
 
   <script>
-    // 1. توحيد السيرفر والمشروع مع التطبيق الرئيسي
     const SUPABASE_URL = "https://lwffkkzdkvafyuwrcbzl.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
-
-    // رابط الـ Cloudflare Worker للتحقق من Paymob مباشرة
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1wrcbzlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQzODQ5NzUsImV4cCI6MjA5OTk2MDk3NX0.hD7SWLaZ1c1tNfSNuKYHceaqCqS1riqTb1BxfM3_2uA";
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev/";
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // متغير لتخزين بيانات المعاملة التي تم فحصها مؤقتاً
-    let currentVerifiedReceipt = null;
-
-    // قاعدة بيانات إجابات المساعد الذكي
-    const assistantKnowledgeBase = [
-      {
-        q: "كيف يتم تفعيل الحساب؟",
-        keywords: ["تفعيل", "افعل", "كود", "جهاز", "تجريبي", "طريقة", "شرح"],
-        a: "لتفعيل الحساب: 1️⃣ انسخ كود جهازك الظاهر بالبرنامج (TSCAM-...). 2️⃣ ضع الكود في خانة التفعيل التجريبي بالعلَى واضغط تفعيل، أو ادفع قيمة الاشتراك ثم أدخل رقم عملية Paymob للتفعيل الفوري."
-      },
-      {
-        q: "كيف تحسب الأداة المقايسة؟",
-        keywords: ["مقايسة", "تحسب", "حساب", "معادلة", "طريقة الحساب"],
-        a: "تقوم الأداة بحساب: (المساحة × (تكلفة المواد × (1 + نسبة الهدر) + تكلفة المصنعية)) ثم إضافة نسبتي الربح والطوارئ للوصول للمبلغ النهائي الموجه للعميل."
-      },
-      {
-        q: "كيف أضيف بنوداً مخصصة؟",
-        keywords: ["بند", "اضافة", "جديد", "سيراميك", "مخصص", "بنود"],
-        a: "داخل البرنامج الرئيسي، اضغط على زر 'بند جديد'، أدخل اسم البند وتكلفة الخامة والمصنعية للمتر، وسيحفظ النظام البند للاستخدام الدائم."
-      },
-      {
-        q: "ما فائدة نسبة الطوارئ والهدر؟",
-        keywords: ["طوارئ", "هدر", "نسبة", "ربح", "فائدة"],
-        a: "نسبة الهدر تغطي الفقد الطبيعي للمواد أثناء التركيب والنقل، أما نسبة الطوارئ فتكفل لك تغطية تذبذبات وأسعار السوق الفجائية."
-      },
-      {
-        q: "كيف أحصل على رقم Transaction ID؟",
-        keywords: ["رقم", "معاملة", "عملية", "transaction", "paymob", "إيصال", "تحويل"],
-        a: "بعد إتمام عملية الدفع عبر Paymob، يظهر لك رقم العملية (Transaction ID) في صفحة تأكيد الدفع فوراً أو في الإيميل المرسل لك من Paymob. انسخه وضعه في خانة 'تأكيد الاشتراك'."
-      }
-    ];
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const device = urlParams.get('device');
+    function showAlert(msg, type = "info") {
+      const alertBox = document.getElementById("statusAlert");
+      alertBox.classList.remove("hidden", "bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400", "bg-rose-500/10", "border-rose-500/30", "text-rose-400", "bg-indigo-500/10", "border-indigo-500/30", "text-indigo-400");
       
-      if (device) {
-        const trialInput = document.getElementById('trialDeviceCode');
-        const subInput = document.getElementById('subDeviceCode');
-        
-        if (trialInput) trialInput.value = device;
-        if (subInput) subInput.value = device;
+      if (type === "success") {
+        alertBox.classList.add("bg-emerald-500/10", "border-emerald-500/30", "text-emerald-400");
+      } else if (type === "error") {
+        alertBox.classList.add("bg-rose-500/10", "border-rose-500/30", "text-rose-400");
+      } else {
+        alertBox.classList.add("bg-indigo-500/10", "border-indigo-500/30", "text-indigo-400");
       }
-
-      initSmartAssistant();
-
-      const chatBtn = document.getElementById('chatBtn');
-      const userQuery = document.getElementById('userQuery');
-
-      if (chatBtn) chatBtn.addEventListener('click', sendChatMessage);
-      if (userQuery) {
-        userQuery.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            sendChatMessage();
-          }
-        });
-      }
-    });
-
-    function showAlert(msg, type = 'info') {
-      const alert = document.getElementById('statusAlert');
-      alert.className = "p-4 rounded-xl border text-sm font-medium transition-all";
-      if (type === 'success') alert.classList.add('bg-emerald-500/10', 'border-emerald-500/30', 'text-emerald-400');
-      else if (type === 'error') alert.classList.add('bg-rose-500/10', 'border-rose-500/30', 'text-rose-400');
-      else alert.classList.add('bg-amber-500/10', 'border-amber-500/30', 'text-amber-400');
-      alert.innerHTML = msg;
-      alert.classList.remove('hidden');
-      alert.scrollIntoView({ behavior: 'smooth' });
+      
+      alertBox.innerHTML = msg;
     }
 
-    async function activateTrial() {
-      document.getElementById('statusAlert').classList.add('hidden');
-      const deviceCode = document.getElementById('trialDeviceCode').value.trim().toUpperCase();
-      const trialBtn = document.getElementById('trialBtn');
-
-      if (!deviceCode || !deviceCode.startsWith("TSCAM-")) {
-        showAlert("❌ كود غير صحيح", "error");
-        return;
-      }
-
-      trialBtn.disabled = true;
+    // 🆕 دالة إنشاء جلسة دفع ديناميكية
+    async function startDynamicPayment(planType) {
+      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase() || document.getElementById('trialDeviceCode').value.trim().toUpperCase();
+      
+      showAlert("⏳ جاري تحضير بوابة الدفع الآمنة...", "info");
 
       try {
-        const { data: isBlacklisted } = await supabaseClient
-          .from('blacklisted_devices')
-          .select('id')
-          .eq('device_fingerprint', deviceCode)
-          .maybeSingle();
-
-        if (isBlacklisted) {
-          showAlert("⛔ هذا الجهاز محظور من الاستخدام.", "error");
-          trialBtn.disabled = false;
-          return;
-        }
-
-        const { data: existingDevice } = await supabaseClient
-          .from('users')
-          .select('*')
-          .eq('device_id', deviceCode)
-          .maybeSingle();
-
-        if (existingDevice && existingDevice.trial_expires_at) {
-          showAlert("⚠️ الفترة التجريبية مستنفدة لهذا الجهاز.", "warning");
-        } else {
-          const expiryDate = new Date();
-          expiryDate.setHours(expiryDate.getHours() + 48);
-
-          await supabaseClient
-            .from('users')
-            .upsert([{
-              device_id: deviceCode,
-              is_subscribed: false,
-              trial_expires_at: expiryDate.toISOString()
-            }], { onConflict: 'device_id' });
-
-          showAlert(`🎉 تم تفعيل الفترة التجريبية بنجاح! تنتهي في: ${expiryDate.toLocaleString('ar-EG')}`, "success");
-        }
-      } catch (err) {
-        console.error(err);
-        showAlert("❌ خطأ في الاتصال.", "error");
-      }
-
-      trialBtn.disabled = false;
-    }
-
-    // ==========================================
-    // 💳 الخطوة 1: فحص بيانات الريسيت المباشر عبر الـ Cloudflare Worker
-    // ==========================================
-    async function checkReceipt() {
-      document.getElementById('statusAlert').classList.add('hidden');
-      const receiptCard = document.getElementById('receiptCard');
-      const checkBtn = document.getElementById('checkBtn');
-      const deviceCode = document.getElementById('subDeviceCode').value.trim().toUpperCase();
-      const transactionId = document.getElementById('transactionId').value.trim();
-
-      if (!deviceCode || !transactionId) {
-        showAlert("❌ يرجى كتابة كود الجهاز ورقم الريسيت أولاً.", "error");
-        return;
-      }
-
-      checkBtn.disabled = true;
-      checkBtn.innerHTML = `<span>جاري فحص Paymob...</span> <i class="fas fa-spinner fa-spin"></i>`;
-      receiptCard.classList.add('hidden');
-
-      try {
-        // فحص حظر الجهاز أولاً من Supabase
-        const { data: isBlacklisted } = await supabaseClient
-          .from('blacklisted_devices')
-          .select('id')
-          .eq('device_fingerprint', deviceCode)
-          .maybeSingle();
-
-        if (isBlacklisted) {
-          showAlert("⛔ هذا الجهاز محظور من الاستخدام لكثرة المحاولات الخاطئة.", "error");
-          checkBtn.disabled = false;
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
-          return;
-        }
-
-        // الاتصال المباشر بالـ Cloudflare Worker المحدث
         const response = await fetch(WORKER_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ transaction_id: transactionId })
+          body: JSON.stringify({
+            action: "create_payment_intent",
+            plan_type: planType,
+            device_id: deviceCode || "UNKNOWN_DEVICE"
+          })
         });
 
-        const receiptData = await response.json();
-
-        // 1. إذا كان الريسيت مستخدماً من قبل
-        if (receiptData.already_used) {
-          const attempts = await handleFailedAttempt(deviceCode);
-          showAlert(`⚠️ ${receiptData.message || "هذا الريسيت تم استخدامه مسبقاً!"} (محاولة ${attempts} من 5)`, "warning");
-          checkBtn.disabled = false;
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
-          return;
-        }
-
-        // 2. إذا كانت العملية غير معثور عليها أو غير مكتملة
-        if (!receiptData.success) {
-          const attempts = await handleFailedAttempt(deviceCode);
-          showAlert(`❌ ${receiptData.message || "لم يتم العثور على المعاملة أو غير مكتملة."} (محاولة ${attempts} من 5)`, "error");
-          checkBtn.disabled = false;
-          checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
-          return;
-        }
-
-        // 3. نجاح الفحص واسترجاع البيانات الحقيقية من Paymob
-        currentVerifiedReceipt = {
-          txId: transactionId,
-          deviceCode: deviceCode,
-          amount: receiptData.amount, // المبلغ الحقيقي بالجنيه
-          isSuccess: receiptData.success
-        };
-
-        renderReceiptCard(currentVerifiedReceipt);
-
-      } catch (err) {
-        console.error("Check Receipt Error:", err);
-        showAlert("❌ حدث خطأ أثناء الاتصال بسيرفر التحقق.", "error");
-      }
-
-      checkBtn.disabled = false;
-      checkBtn.innerHTML = `<span>فحص بيانات الريسيت</span> <i class="fas fa-search"></i>`;
-    }
-
-    // عرض بيانات الريسيت المسترجعة في الكارت الشفاف
-    function renderReceiptCard(receipt) {
-      const card = document.getElementById('receiptCard');
-      const badge = document.getElementById('receiptStatusBadge');
-      const warning = document.getElementById('receiptWarning');
-      const confirmBtn = document.getElementById('confirmSubBtn');
-      const btnText = document.getElementById('confirmBtnText');
-
-      document.getElementById('cardTxId').innerText = receipt.txId;
-      document.getElementById('cardAmount').innerText = `${receipt.amount} جنيه مصري`;
-
-      warning.classList.add('hidden');
-      card.className = "border rounded-xl p-4 bg-slate-900/90 space-y-3 transition-all duration-300";
-
-      if (!receipt.isSuccess) {
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-rose-500/20 text-rose-400 border border-rose-500/30";
-        badge.innerText = "عملية غير ناجحة ❌";
-        document.getElementById('cardPlanName').innerText = "غير متاح";
-        warning.innerText = "❌ هذه المعاملة مرفوضة أو غير مكتملة في Paymob.";
-        warning.classList.remove('hidden');
-        confirmBtn.disabled = true;
-        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";
-      } 
-      else if (receipt.amount === 2000) {
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-        badge.innerText = "دفع مكتمل ✅";
-        document.getElementById('cardPlanName').innerText = "الاشتراك السنوي (365 يوم)";
-        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك السنوي (2000 ج)";
-        confirmBtn.disabled = false;
-        confirmBtn.className = "w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-amber-500/20";
-        card.classList.add('border-amber-500/50');
-      } 
-      else if (receipt.amount === 250) {
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
-        badge.innerText = "دفع مكتمل ✅";
-        document.getElementById('cardPlanName').innerText = "الاشتراك الشهري (30 يوم)";
-        btnText.innerText = "موافقة وتأكيد تفعيل الاشتراك الشهري (250 ج)";
-        confirmBtn.disabled = false;
-        confirmBtn.className = "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/20";
-        card.classList.add('border-indigo-500/50');
-      } 
-      else {
-        // قيمة غير مطابقة لأي باقة
-        badge.className = "text-[11px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30";
-        badge.innerText = "قيمة غير مطابقة ⚠️";
-        document.getElementById('cardPlanName').innerText = "غير معروفة";
-        warning.innerText = `⚠️ قيمة المعاملة (${receipt.amount} جنيه) خاطئة ولا تطابق أي من الباقات المتاحة (250ج أو 2000ج).`;
-        warning.classList.remove('hidden');
-        confirmBtn.disabled = true;
-        confirmBtn.className = "w-full bg-slate-800 text-slate-500 font-bold text-sm py-2.5 rounded-xl cursor-not-allowed";
-        card.classList.add('border-rose-500/50');
-      }
-
-      card.classList.remove('hidden');
-      card.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // ==========================================
-    // 💳 الخطوة 2: تأكيد الاشتراك بعد رؤية البيانات
-    // ==========================================
-    async function confirmSubscription() {
-      if (!currentVerifiedReceipt) return;
-
-      const confirmBtn = document.getElementById('confirmSubBtn');
-      const btnText = document.getElementById('confirmBtnText');
-      const { deviceCode, txId, amount } = currentVerifiedReceipt;
-
-      confirmBtn.disabled = true;
-      btnText.innerText = "جاري الحفظ والتفعيل...";
-
-      try {
-        let addDays = (amount === 2000) ? 365 : 30;
-        const expiryDate = new Date();
-        expiryDate.setDate(expiryDate.getDate() + addDays);
-
-        // تسجيل المعاملة في جدول payments
-        const { error: insertError } = await supabaseClient
-          .from('payments')
-          .insert([{
-            transaction_id: String(txId),
-            device_fingerprint: deviceCode,
-            amount: amount
-          }]);
-
-        if (insertError) {
-          if (insertError.code === '23505' || insertError.message.includes('unique') || (insertError.details && insertError.details.includes('already exists'))) {
-            const attempts = await handleFailedAttempt(deviceCode);
-            showAlert(`⚠️ تم استخدام رقم التحويل هذا مسبقاً! (محاولة ${attempts} من 5)`, "warning");
-          } else {
-            console.error(insertError);
-            showAlert("❌ خطأ أثناء تسجيل المعاملة، برجاء مراجعة البيانات.", "error");
-          }
-          confirmBtn.disabled = false;
-          btnText.innerText = "تأكيد التفعيل";
-          return;
-        }
-
-        // تحديث بيانات المستخدم وتاريخ الانتهاء
-        const { error: upsertError } = await supabaseClient
-          .from('users')
-          .upsert([{
-            device_id: deviceCode,
-            is_subscribed: true,
-            subscription_expires_at: expiryDate.toISOString()
-          }], { onConflict: 'device_id' });
-
-        if (upsertError) {
-          console.error(upsertError);
-          showAlert("⚠️ حدث خطأ في تحديث الاشتراك السحابي.", "error");
+        const data = await response.json();
+        if (data.success && data.payment_url) {
+          window.location.href = data.payment_url;
         } else {
-          const planTitle = (amount === 2000) ? "السنوية (2000 جنيه - سنة)" : "الشهرية (250 جنيه - شهر)";
-          showAlert(`🎉 تم تفعيل الباقة ${planTitle} بنجاح لهذا الجهاز حتى: ${expiryDate.toLocaleDateString('ar-EG')}`, "success");
-          document.getElementById('receiptCard').classList.add('hidden');
+          showAlert("⚠️ تعذر فتح بوابة الدفع الفورية، يمكنك الدفع واستخدام الفحص اليدوي بالأسفل.", "error");
         }
-
       } catch (err) {
         console.error(err);
-        showAlert("❌ خطأ غير متوقع بالاتصال.", "error");
+        showAlert("❌ خطأ في الاتصال بسيرفر الدفع.", "error");
       }
-
-      confirmBtn.disabled = false;
-      btnText.innerText = "تأكيد الموافقة والتفعيل";
-    }
-
-    async function handleFailedAttempt(deviceCode) {
-      try {
-        const { data: dev } = await supabaseClient
-          .from('users')
-          .select('failed_attempts')
-          .eq('device_id', deviceCode)
-          .maybeSingle();
-
-        let currentAttempts = ((dev && dev.failed_attempts) ? dev.failed_attempts : 0) + 1;
-
-        await supabaseClient.from('users').upsert([
-          { 
-            device_id: deviceCode,
-            failed_attempts: currentAttempts
-          }
-        ], { onConflict: 'device_id' });
-
-        if (currentAttempts >= 5) {
-          await supabaseClient.from('blacklisted_devices').upsert([
-            { 
-              device_fingerprint: deviceCode,
-              reason: "تكرار إدخال أرقام عملية خاطئة أو مستخدمة أكثر من 5 مرات"
-            }
-          ], { onConflict: 'device_fingerprint' });
-        }
-
-        return currentAttempts;
-      } catch (e) {
-        console.error("خطأ في العداد:", e);
-        return 1;
-      }
-    }
-
-    // ==========================================
-    // 🤖 محرك المساعد الذكي
-    // ==========================================
-    function initSmartAssistant() {
-      const container = document.getElementById('quickQuestions');
-      if (!container) return;
-      container.innerHTML = '';
-
-      assistantKnowledgeBase.forEach((item, index) => {
-        const btn = document.createElement('button');
-        btn.type = "button";
-        btn.className = "bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg px-3 py-1.5 whitespace-nowrap transition flex-shrink-0 cursor-pointer";
-        btn.innerText = "💡 " + item.q;
-        btn.onclick = () => askQuestionDirectly(index);
-        container.appendChild(btn);
-      });
-    }
-
-    function askQuestionDirectly(index) {
-      const item = assistantKnowledgeBase[index];
-      appendUserMessage(item.q);
-      setTimeout(() => {
-        appendBotMessage(item.a);
-      }, 250);
-    }
-
-    function sendChatMessage() {
-      const input = document.getElementById('userQuery');
-      if (!input) return;
-
-      const text = input.value.trim();
-      if (!text) return;
-
-      appendUserMessage(text);
-      input.value = '';
-
-      setTimeout(() => {
-        let matchedAnswer = null;
-        const lowerText = text.toLowerCase();
-
-        for (const item of assistantKnowledgeBase) {
-          if (item.keywords && item.keywords.some(kw => lowerText.includes(kw))) {
-            matchedAnswer = item.a;
-            break;
-          }
-        }
-
-        if (!matchedAnswer) {
-          matchedAnswer = "لم أفهم استفسارك بدقة. يمكنك اختيار أحد الأسئلة السريعة بالأعلى أو التواصل مباشرة مع الدعم الفني عبر الواتساب! 💬";
-        }
-
-        appendBotMessage(matchedAnswer);
-      }, 350);
-    }
-
-    function appendUserMessage(msg) {
-      const chatBox = document.getElementById('chatBox');
-      const userDiv = document.createElement('div');
-      userDiv.className = "bg-indigo-600 text-white p-3 rounded-2xl rounded-tl-none max-w-[85%] mr-auto leading-relaxed font-medium shadow text-left";
-      userDiv.innerText = msg;
-      chatBox.appendChild(userDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    function appendBotMessage(msg) {
-      const chatBox = document.getElementById('chatBox');
-      const botDiv = document.createElement('div');
-      botDiv.className = "bg-slate-800 border border-slate-700/80 text-slate-200 p-3 rounded-2xl rounded-tr-none max-w-[85%] leading-relaxed shadow";
-      botDiv.innerText = msg;
-      chatBox.appendChild(botDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
   </script>
 </body>
 </html>
+ 
