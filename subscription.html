@@ -123,7 +123,7 @@
 
   <!-- JS Logic -->
   <script>
-    // رابط الـ Cloudflare Worker المباشر الخاص بك
+    // رابط الـ Cloudflare Worker الخاص بك
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
 
     function showAlert(msg, type = "info") {
@@ -166,7 +166,10 @@
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json' 
+          },
           body: JSON.stringify({
             action: "create_payment_intent",
             plan_type: planType,
@@ -174,10 +177,9 @@
           })
         });
 
-        // 🛡️ فحص نوع الرد قبل القراءة لتجنب خطأ JSON Not Valid
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
-          showAlert(`❌ السيرفر أرجع خطأ (${response.status}). تأكد أن الـ Worker مفعّل ومرفوع على Cloudflare بشكل صحيح.`, "error");
+          showAlert(`❌ استجابة غير صالحة من السيرفر (رمز الخطأ: ${response.status}). تأكد من إعداد المتغيرات على Cloudflare.`, "error");
           return;
         }
 
@@ -190,7 +192,7 @@
         }
       } catch (err) {
         console.error(err);
-        showAlert("❌ حدث خطأ في الاتصال بسيرفر الدفع.", "error");
+        showAlert(`❌ خطأ في الاتصال: ${err.message}`, "error");
       }
     }
 
@@ -210,7 +212,10 @@
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Accept': 'application/json',
+            'Content-Type': 'application/json' 
+          },
           body: JSON.stringify({
             action: "verify_payment",
             transaction_id: txId,
