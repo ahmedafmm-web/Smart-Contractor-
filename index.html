@@ -12,11 +12,32 @@
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Cairo', sans-serif; }
+        
+        /* ضمان وضوح الخطوط أثناء الكتابة والطباعة */
+        input, select, textarea {
+            color: #f8fafc !important;
+            background-color: #020617 !important;
+        }
+        
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            input, select, textarea {
+                color: #000000 !important;
+                background-color: #ffffff !important;
+                border: 1px solid #ccc !important;
+            }
+            #activation-screen, #setup-screen, header, button, .no-print {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- 🔒 شاشة التفعيل المطورة بالواجهة الجديدة المحافظة على جميع عناصر القفل -->
+    <!-- 🔒 شاشة التفعيل المطورة المحافظة على جميع عناصر القفل -->
     <div id="activation-screen" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             
@@ -36,7 +57,7 @@
                 <i class="fas fa-calendar-alt"></i> <span id="expiry-date-text"></span>
             </div>
 
-            <!-- زرار التحقق اليدوي المودرن -->
+            <!-- زر التحقق اليدوي -->
             <button id="manual-verify-btn" onclick="checkSubscriptionManually()" class="w-full mb-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 text-sm">
                 <span id="verify-btn-icon"><i class="fas fa-sync-alt"></i></span>
                 <span id="verify-btn-text">اضغط هنا للتحقق وتفعيل الأداة الآن</span>
@@ -49,40 +70,35 @@
             
             <div class="relative flex py-2 items-center my-2">
                 <div class="flex-grow border-t border-slate-800"></div>
-                <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold">باقات الاشتراك السريع</span>
+                <span class="flex-shrink mx-4 text-slate-400 text-xs font-bold">الاشتراكات والتفعيل</span>
                 <div class="flex-grow border-t border-slate-800"></div>
             </div>
 
-            <!-- أزرار الدفع الديناميكية مع توجيه بوابة الدفع -->
-            <div class="grid grid-cols-1 gap-3 mt-2">
-                <button onclick="startPaymobPayment('monthly')" class="w-full bg-slate-800 border border-slate-700 hover:bg-slate-700 text-white font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm">
-                    <i class="fas fa-credit-card text-indigo-400"></i> تفعيل الاشتراك الشهري (250 ج.م)
-                </button>
-                <button onclick="startPaymobPayment('yearly')" class="w-full bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 text-amber-300 font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm">
-                    <i class="fas fa-crown text-amber-400"></i> تفعيل الاشتراك السنوي (2000 ج.م)
-                </button>
-            </div>
-            
-            <a href="subscription.html" class="inline-block mt-4 text-xs text-indigo-400 hover:underline">أو انتقل إلى صفحة الدعم والاشتراكات التفصيلية &larr;</a>
+            <!-- زرار الانتقال المباشر لصفحة الاشتراكات متضمناً كود الجهاز تلقائياً -->
+            <button onclick="goToSubscriptionPage()" class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3.5 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 text-sm">
+                <i class="fas fa-crown text-base"></i>
+                <span>الانتقال لصفحة الاشتراكات والتفعيل</span>
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
         </div>
     </div>
 
-    <!-- الإعدادات والشاشة الرئيسية بنفس عناصرك الأصلية كاملة -->
+    <!-- شاشة الإعدادات الشاملة -->
     <div id="setup-screen" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
             <h2 id="setup-title" class="text-2xl font-bold text-indigo-400 mb-4 text-center"></h2>
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-name"></label>
-                    <input type="text" id="setup-company-name" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                    <input type="text" id="setup-company-name" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-white">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-phone"></label>
-                    <input type="text" id="setup-company-phone" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                    <input type="text" id="setup-company-phone" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-white">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-address"></label>
-                    <input type="text" id="setup-company-address" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500">
+                    <input type="text" id="setup-company-address" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-white">
                 </div>
                 <div>
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-logo"></label>
@@ -93,7 +109,7 @@
         </div>
     </div>
 
-    <!-- Main App Interface (المعتمدة في الصورة) -->
+    <!-- Main App Interface -->
     <div class="max-w-4xl mx-auto p-4 pb-8 w-full">
         <header class="flex justify-between items-center bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm mb-6">
             <div class="flex items-center gap-3">
@@ -104,16 +120,16 @@
                 </div>
             </div>
             <div class="flex gap-2">
-                <a href="subscription.html" class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-1.5">
-                    <i class="fas fa-crown"></i>
+                <button onclick="goToSubscriptionPage()" class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-1.5">
+                    <i class="fas fa-crown text-amber-400"></i>
                     <span>الاشتراكات والتفعيل</span>
-                </a>
+                </button>
                 <button id="lang-toggle-btn" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs rounded-xl font-bold transition"></button>
                 <button id="settings-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-xl text-xs transition">⚙️</button>
             </div>
         </header>
 
-        <!-- Hero Card (الواجهة الأنيقة من الصورة) -->
+        <!-- Hero Card -->
         <main class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-10 text-center my-6 space-y-6 backdrop-blur">
             <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-indigo-400 text-xs font-semibold">
                 <i class="fas fa-rocket"></i>
@@ -130,14 +146,14 @@
             </p>
 
             <div class="pt-2">
-                <a href="subscription.html" class="inline-flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl shadow-indigo-600/20 transition text-sm">
+                <button onclick="goToSubscriptionPage()" class="inline-flex items-center justify-center gap-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-xl shadow-indigo-600/20 transition text-sm">
                     <span>انتقل إلى بوابة التفعيل والاشتراك</span>
                     <i class="fas fa-arrow-left"></i>
-                </a>
+                </button>
             </div>
         </main>
 
-        <!-- Sections & Elements (الموجودة بالأصل في app.js) -->
+        <!-- Sections & Inputs -->
         <section class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm mb-6 space-y-4">
             <h3 id="sec-client-info" class="font-bold text-base text-slate-200 mb-2 border-b border-slate-800 pb-2"></h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -217,29 +233,14 @@
             navigator.serviceWorker.register("./sw.js");
         }
 
-        // دالة إنشاء جلسة دفع من شاشة القفل مباشرة
-        async function startPaymobPayment(planType) {
-            const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev/";
+        // دالة التوجيه لصفحة الاشتراك ونقل كود الجهاز تلقائياً
+        function goToSubscriptionPage() {
             const deviceBox = document.getElementById('device-id-box');
-            const deviceId = deviceBox ? deviceBox.innerText.trim() : "UNKNOWN";
-
-            try {
-                const response = await fetch(WORKER_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: "create_payment_intent",
-                        plan_type: planType,
-                        device_id: deviceId
-                    })
-                });
-                const data = await response.json();
-                if (data.success && data.payment_url) {
-                    window.location.href = data.payment_url;
-                } else {
-                    window.location.href = "subscription.html";
-                }
-            } catch (err) {
+            const deviceId = deviceBox ? deviceBox.innerText.trim() : localStorage.getItem('sc_device_code') || '';
+            if (deviceId) {
+                localStorage.setItem('sc_device_code', deviceId);
+                window.location.href = `subscription.html?device_id=${encodeURIComponent(deviceId)}`;
+            } else {
                 window.location.href = "subscription.html";
             }
         }
