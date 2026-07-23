@@ -519,6 +519,7 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
+// 🔒 دالة فحص واستعلام التفعيل اليدوي (Read-Only فقط بدون أي تفعيل تلقائي)
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -545,15 +546,15 @@ async function checkSubscriptionManually() {
         });
         const data = await response.json();
 
-        if (data.length === 0) {
-            await registerNewTrialUser(fingerprint);
-            btnText.innerText = "تم تفعيل الـ 48 ساعة التجريبية!";
-            btnIcon.innerText = "🎁";
-            btn.style.background = "#10b981";
-            
-            setTimeout(() => {
-                window.location.reload(); 
-            }, 1500);
+        // ❌ إذا لم يجد الجهاز في Supabase لا يفعّل شيء ويرفض الدخول مباشرة
+        if (!data || data.length === 0) {
+            lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو لم يتم تفعيله بعد. يرجى الانتقال لصفحة الاشتراكات.";
+            if (expiryBox) expiryBox.classList.add('hidden');
+            btnText.innerText = "فشل التحقق (غير مفعل)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
             return;
         }
 
