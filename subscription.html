@@ -210,10 +210,10 @@
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // كتابة كود الجهاز تلقائياً من الـ URL أو الـ LocalStorage أو الـ Native App
+    // كتابة كود الجهاز تلقائياً من الـ URL أو الـ LocalStorage
     function autoDetectDeviceCode() {
       const params = new URLSearchParams(window.location.search);
-      const codeFromUrl = params.get('device_id') || params.get('code') || params.get('deviceCode') || params.get('id');
+      const codeFromUrl = params.get('device_id') || params.get('device') || params.get('code') || params.get('deviceCode') || params.get('id');
       const codeFromStorage = localStorage.getItem('sc_device_code');
       
       const finalCode = (codeFromUrl || codeFromStorage || "").trim().toUpperCase();
@@ -239,6 +239,7 @@
       if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = val;
     });
 
+    // بدء الدفع الديناميكي عبر الـ Worker
     async function startDynamicPayment(planType) {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
@@ -261,24 +262,61 @@
         if (data.success && data.payment_url) {
           window.location.href = data.payment_url;
         } else {
-          showAlert(`⚠️ ${data.message || "تعذر فتح بوابة الدفع الفورية."}`, "error");
+          showAlert(`⚠️ ${data.message || "تعذر فتح بوابة الدفع الفورية، يرجى المحاولة لاحقاً."}`, "error");
         }
       } catch (err) {
-        showAlert(`❌ خطأ في الاتصال: ${err.message}`, "error");
+        showAlert(`❌ خطأ في الاتصال بسيرفر الدفع: ${err.message}`, "error");
       }
     }
 
+    // ✅ دالة التفعيل التجريبي الحقيقية المربوطة بالسحابة
+    async function activateTrial() {
+      const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
+      if (!deviceCode) {
+        showAlert("⚠️ يرجى إدخال كود الجهاز للتفعيل التجريبي.", "error");
+        return;
+      }
+
+      showAlert("⏳ جاري التسجيل والتفعيل في السحابة...", "info");
+
+      try {
+        const response = await fetch(WORKER_URL, {
+          method: 'POST',
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "activate_trial", device_id: deviceCode })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          if (data.trial_expires_at) {
+            localStorage.setItem('contractor_subscription_expiry_cache', data.trial_expires_at);
+          }
+          showAlert(`✅ ${data.message || `تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`}`, "success");
+        } else {
+          showAlert(`❌ ${data.message || "فشل التفعيل التجريبي من السحابة."}`, "error");
+        }
+      } catch (err) {
+        // Fallback التفعيل اليدوي في حالة البطء
+        const now = new Date();
+        now.setHours(now.getHours() + 48);
+        localStorage.setItem('contractor_subscription_expiry_cache', now.toISOString());
+        showAlert(`✅ تم تفعيل التجربة المجانية بنجاح محلياً لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
+      }
+    }
+
+    // ✅ دالة الفحص اليدوي المحدثة لإيصالات الدفع
     async function verifyTransaction() {
-      const txId = document.getElementById('manualTxId')?.value.trim();
+      const rawTxId = document.getElementById('manualTxId')?.value || "";
+      const txId = rawTxId.replace(/\D/g, '').trim(); // استخراج الأرقام فقط من الإيصال
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
 
       if (!txId || !deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود الجهاز ورقم العملية بشكل صحيح.", "error");
+        showAlert("⚠️ يرجى إدخال كود الجهاز ورقم العملية الصحيح المكون من أرقام.", "error");
         return;
       }
 
-      showAlert("⏳ جاري التحقق من العملية والتفعيل...", "info");
+      showAlert("⏳ جاري مطابقة بيانات الإيصال مع السيرفر والتفعيل...", "info");
 
       try {
         const response = await fetch(WORKER_URL, {
@@ -289,22 +327,16 @@
 
         const data = await response.json();
         if (data.success) {
-          showAlert(`✅ ${data.message}`, "success");
+          if (data.expires_at) {
+            localStorage.setItem('contractor_subscription_expiry_cache', data.expires_at);
+          }
+          showAlert(`✅ ${data.message || "تم التحقق من العملية وتفعيل الحساب بنجاح!"}`, "success");
         } else {
-          showAlert(`❌ ${data.message}`, "error");
+          showAlert(`❌ ${data.message || "لم يتم العثور على الإيصال أو العملية قيد الانتظار."}`, "error");
         }
       } catch (err) {
-        showAlert("❌ تعذر الاتصال بسيرفر الفحص.", "error");
+        showAlert("❌ تعذر الاتصال بسيرفر الفحص، يرجى المحاولة لاحقاً.", "error");
       }
-    }
-
-    function activateTrial() {
-      const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
-      if (!deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود الجهاز للتفعيل التجريبي.", "error");
-        return;
-      }
-      showAlert(`✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
     }
 
     // منطق المساعد الذكي
