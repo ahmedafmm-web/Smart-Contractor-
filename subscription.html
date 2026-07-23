@@ -18,17 +18,18 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     
-    /* عزل تنسيقات خطوط المساعد الذكي لعدم التأثير على باقي الأداة أو الطباعة */
+    /* عزل خطوط وألوان المساعد الذكي */
     #aiAssistantWidget {
       color: #f3f4f6;
     }
-    #aiAssistantWidget input, #aiAssistantWidget button {
-      color: #ffffff;
+    #aiAssistantWidget input {
+      color: #ffffff !important;
+      background-color: rgba(30, 41, 59, 0.8) !important;
     }
     .ai-message-bot {
-      background: rgba(30, 41, 59, 0.9);
-      color: #e2e8f0;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(30, 41, 59, 0.95);
+      color: #f3f4f6;
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .ai-message-user {
       background: #2563eb;
@@ -73,7 +74,7 @@
       </div>
       <p class="text-sm text-gray-400">أدخل كود جهازك الظاهر داخل البرنامج لمرة واحدة لتفعيل التجربة الفورية.</p>
       <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="trialDeviceCode" placeholder="أدخل كود الجهاز (مثال: TSCAM-41017E94)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-blue-500">
+        <input type="text" id="trialDeviceCode" placeholder="أدخل كود الجهاز (مثال: TSCAM-41017E94)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-blue-500 text-white">
         <button onclick="activateTrial()" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2">
           <span>تفعيل 48 ساعة</span>
           <i class="fas fa-arrow-left text-xs"></i>
@@ -90,7 +91,7 @@
 
       <div class="space-y-2">
         <label class="text-xs text-gray-400">كود الجهاز المراد تفعيل الاشتراك له:</label>
-        <input type="text" id="subDeviceCode" placeholder="كود الجهاز الخاص بك" class="w-full bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-amber-500">
+        <input type="text" id="subDeviceCode" placeholder="كود الجهاز الخاص بك" class="w-full bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-amber-500 text-white">
       </div>
 
       <!-- Pricing Grid -->
@@ -130,7 +131,7 @@
       </div>
       <p class="text-xs text-gray-400">إذا قمت بالدفع بالفعل، قم بإدخال رقم العملية (Transaction ID) هنا للتفعيل الفوري.</p>
       <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="manualTxId" placeholder="رقم العملية (Transaction ID)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center font-mono text-sm focus:outline-none focus:border-blue-500">
+        <input type="text" id="manualTxId" placeholder="رقم العملية (Transaction ID)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center font-mono text-sm focus:outline-none focus:border-blue-500 text-white">
         <button onclick="verifyTransaction()" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 font-semibold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2">
           <i class="fas fa-check-circle"></i>
           <span>تحقق وتفعيل</span>
@@ -140,16 +141,13 @@
 
   </main>
 
-  <!-- المساعد الذكي (Smart Assistant Widget) -->
+  <!-- المساعد الذكي المطور مع الأسئلة السريعة -->
   <div id="aiAssistantWidget" class="fixed bottom-5 left-5 z-50">
-    <!-- AI Toggle Button -->
     <button id="aiToggleBtn" onclick="toggleAIChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105 border border-blue-400/30">
       <i class="fas fa-robot text-2xl"></i>
     </button>
 
-    <!-- AI Chat Box -->
-    <div id="aiChatBox" class="hidden w-80 sm:w-96 glass-card rounded-2xl shadow-2xl overflow-hidden border border-gray-700 flex flex-col h-[450px] transition-all duration-300">
-      <!-- Chat Header -->
+    <div id="aiChatBox" class="hidden w-80 sm:w-96 glass-card rounded-2xl shadow-2xl overflow-hidden border border-gray-700 flex flex-col h-[480px] transition-all duration-300">
       <div class="bg-blue-600/30 border-b border-gray-700 p-3.5 flex justify-between items-center">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-bold shadow">
@@ -159,7 +157,7 @@
             <h4 class="font-bold text-sm leading-none text-white">المساعد الذكي</h4>
             <span class="text-[10px] text-emerald-400 flex items-center gap-1 mt-0.5">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-              متصل وجاهز للمساعدة
+              جاهز للمساعدة
             </span>
           </div>
         </div>
@@ -168,14 +166,19 @@
         </button>
       </div>
 
-      <!-- Chat Messages -->
-      <div id="aiChatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
-        <!-- Messages loaded dynamically -->
+      <!-- Messages Area -->
+      <div id="aiChatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs"></div>
+
+      <!-- Quick Questions Area -->
+      <div id="aiQuickQuestions" class="p-2 border-t border-gray-800 bg-gray-900/60 flex flex-wrap gap-1.5">
+        <button onclick="askQuickQuestion('كيف أجد كود جهازي؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">❓ أين كود جهازي؟</button>
+        <button onclick="askQuickQuestion('كيف أفعّل الفترة التجريبية؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">⚡ التجربة المجانية</button>
+        <button onclick="askQuickQuestion('كيف أتحقق من عملية الدفع؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">🧾 فحص الدفع</button>
       </div>
 
-      <!-- Chat Input -->
+      <!-- Input Area -->
       <div class="p-2.5 border-t border-gray-800 bg-gray-900/90 flex gap-2">
-        <input type="text" id="aiUserInput" onkeypress="handleAIKeyPress(event)" placeholder="اسأل المساعد الذكي عن التفعيل..." class="flex-1 bg-gray-800/80 border border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500 text-white">
+        <input type="text" id="aiUserInput" onkeypress="handleAIKeyPress(event)" placeholder="اسأل المساعد الذكي..." class="flex-1 border border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500">
         <button onclick="sendAIMessage()" class="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-xl text-xs transition">
           <i class="fas fa-paper-plane"></i>
         </button>
@@ -187,9 +190,7 @@
     جميع الحقوق محفوظة &copy; Smart Contractor 2026
   </footer>
 
-  <!-- JS Logic -->
   <script>
-    // رابط الـ Cloudflare Worker الخاص بك
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
 
     function showAlert(msg, type = "info") {
@@ -209,7 +210,26 @@
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // مزامنة الأكواد بين الحقول
+    // كتابة كود الجهاز تلقائياً من الـ URL أو الـ LocalStorage أو الـ Native App
+    function autoDetectDeviceCode() {
+      const params = new URLSearchParams(window.location.search);
+      const codeFromUrl = params.get('device_id') || params.get('code') || params.get('deviceCode') || params.get('id');
+      const codeFromStorage = localStorage.getItem('sc_device_code');
+      
+      const finalCode = (codeFromUrl || codeFromStorage || "").trim().toUpperCase();
+
+      if (finalCode) {
+        const trialInput = document.getElementById('trialDeviceCode');
+        const subInput = document.getElementById('subDeviceCode');
+        if (trialInput) trialInput.value = finalCode;
+        if (subInput) subInput.value = finalCode;
+        localStorage.setItem('sc_device_code', finalCode);
+        return finalCode;
+      }
+      return null;
+    }
+
+    // مزامنة الأكواد
     document.getElementById('trialDeviceCode')?.addEventListener('input', (e) => {
       const val = e.target.value.toUpperCase();
       if(document.getElementById('subDeviceCode')) document.getElementById('subDeviceCode').value = val;
@@ -219,7 +239,6 @@
       if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = val;
     });
 
-    // دالة الدفع الديناميكي
     async function startDynamicPayment(planType) {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
@@ -234,37 +253,21 @@
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            action: "create_payment_intent",
-            plan_type: planType,
-            device_id: deviceCode
-          })
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "create_payment_intent", plan_type: planType, device_id: deviceCode })
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          showAlert(`❌ استجابة غير صالحة من السيرفر (رمز الخطأ: ${response.status}). تأكد من إعداد المتغيرات على Cloudflare.`, "error");
-          return;
-        }
-
         const data = await response.json();
-
         if (data.success && data.payment_url) {
           window.location.href = data.payment_url;
         } else {
           showAlert(`⚠️ ${data.message || "تعذر فتح بوابة الدفع الفورية."}`, "error");
         }
       } catch (err) {
-        console.error(err);
         showAlert(`❌ خطأ في الاتصال: ${err.message}`, "error");
       }
     }
 
-    // دالة الفحص اليدوي
     async function verifyTransaction() {
       const txId = document.getElementById('manualTxId')?.value.trim();
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
@@ -280,37 +283,21 @@
       try {
         const response = await fetch(WORKER_URL, {
           method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            action: "verify_payment",
-            transaction_id: txId,
-            device_id: deviceCode
-          })
+          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: "verify_payment", transaction_id: txId, device_id: deviceCode })
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          showAlert(`❌ تعذر الفحص. السيرفر أرجع خطأ (${response.status}).`, "error");
-          return;
-        }
-
         const data = await response.json();
-
         if (data.success) {
           showAlert(`✅ ${data.message}`, "success");
         } else {
           showAlert(`❌ ${data.message}`, "error");
         }
       } catch (err) {
-        console.error(err);
         showAlert("❌ تعذر الاتصال بسيرفر الفحص.", "error");
       }
     }
 
-    // دالة التجربة المجانية
     function activateTrial() {
       const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
@@ -320,43 +307,13 @@
       showAlert(`✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
     }
 
-    /* -------------------------------------------------------------
-       المنطق المباشر للمساعد الذكي والكتابة التلقائية لكود الجهاز
-    ------------------------------------------------------------- */
-    
-    // جلب كود الجهاز تلقائياً وكتابته فوراً في الحقول
-    function detectAndFillDeviceCode() {
-      const urlParams = new URLSearchParams(window.location.search);
-      const codeFromUrl = urlParams.get('device_id') || urlParams.get('code') || urlParams.get('deviceCode');
-      const codeFromStorage = localStorage.getItem('sc_device_code');
-      
-      const detectedCode = (codeFromUrl || codeFromStorage || "").trim().toUpperCase();
-
-      if (detectedCode) {
-        const trialInput = document.getElementById('trialDeviceCode');
-        const subInput = document.getElementById('subDeviceCode');
-        
-        if (trialInput) trialInput.value = detectedCode;
-        if (subInput) subInput.value = detectedCode;
-        
-        localStorage.setItem('sc_device_code', detectedCode);
-        return detectedCode;
-      }
-      return null;
-    }
-
+    // منطق المساعد الذكي
     function toggleAIChat() {
       const chatBox = document.getElementById('aiChatBox');
       const toggleBtn = document.getElementById('aiToggleBtn');
-      
-      if (chatBox.classList.contains('hidden')) {
-        chatBox.classList.remove('hidden');
-        toggleBtn.classList.add('hidden');
-        scrollAIChatToBottom();
-      } else {
-        chatBox.classList.add('hidden');
-        toggleBtn.classList.remove('hidden');
-      }
+      chatBox.classList.toggle('hidden');
+      toggleBtn.classList.toggle('hidden');
+      scrollAIChatToBottom();
     }
 
     function appendAIMessage(sender, text) {
@@ -366,18 +323,12 @@
 
       if (sender === 'bot') {
         msgDiv.innerHTML = `
-          <div class="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white text-[10px] shrink-0 mt-0.5">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div class="ai-message-bot p-2.5 rounded-xl max-w-[85%] leading-relaxed">
-            ${text}
-          </div>
+          <div class="w-6 h-6 rounded bg-blue-600 flex items-center justify-center text-white text-[10px] shrink-0 mt-0.5"><i class="fas fa-robot"></i></div>
+          <div class="ai-message-bot p-2.5 rounded-xl max-w-[85%] leading-relaxed">${text}</div>
         `;
       } else {
         msgDiv.innerHTML = `
-          <div class="ai-message-user p-2.5 rounded-xl max-w-[85%] leading-relaxed font-medium">
-            ${text}
-          </div>
+          <div class="ai-message-user p-2.5 rounded-xl max-w-[85%] leading-relaxed font-medium">${text}</div>
         `;
       }
 
@@ -388,6 +339,11 @@
     function scrollAIChatToBottom() {
       const container = document.getElementById('aiChatMessages');
       if (container) container.scrollTop = container.scrollHeight;
+    }
+
+    function askQuickQuestion(qText) {
+      appendAIMessage('user', qText);
+      processAIResponse(qText);
     }
 
     function handleAIKeyPress(e) {
@@ -401,225 +357,38 @@
 
       appendAIMessage('user', text);
       input.value = '';
+      processAIResponse(text);
+    }
 
-      // ردود المساعد الذكي الآلية الموجهة
+    function processAIResponse(userText) {
       setTimeout(() => {
-        const lower = text.toLowerCase();
+        const lower = userText.toLowerCase();
         const currentCode = document.getElementById('subDeviceCode')?.value.trim();
 
-        if (lower.includes('كود') || lower.includes('جهاز') || lower.includes('device')) {
+        if (lower.includes('كود') || lower.includes('جهاز') || lower.includes('أين')) {
           if (currentCode) {
-            appendAIMessage('bot', `تم التلخيص والكتابة التلقائية لكود جهازك بنجاح: <b class="text-amber-400">${currentCode}</b>. يمكنك اختيار خطة الاشتراك أو التفعيل المجاني الآن.`);
+            appendAIMessage('bot', `تم التعرف على كود جهازك وتمت كتابته تلقائياً: <b class="text-amber-400">${currentCode}</b>.`);
           } else {
-            appendAIMessage('bot', 'لم أتمكن من التعرف على كود الجهاز تلقائياً. يمكنك كتابته في خانة "كود الجهاز" وسأقوم بربطه لك مباشرة.');
+            appendAIMessage('bot', 'كود الجهاز ينتهي عادةً برمز مثل (TSCAM-...). يمكنك نسخه من القائمة الرئيسية للبرنامج ولصقه في خانة كود الجهاز.');
           }
-        } else if (lower.includes('تفعيل') || lower.includes('تجريب') || lower.includes('مجاني')) {
-          appendAIMessage('bot', 'يمكنك الضغط على زر "تفعيل 48 ساعة" في القسم الأول بالأعلى لبدء الفترة التجريبية فوراً.');
-        } else if (lower.includes('دفع') || lower.includes('اشتراك') || lower.includes('سعر')) {
-          appendAIMessage('bot', 'اختر الاشتراك الشهري (250 ج) أو السنوي (2000 ج) ثم اضغط "دفع الآن" للانتقال لبوابة Paymob الفورية.');
+        } else if (lower.includes('تجريب') || lower.includes('48') || lower.includes('مجاني')) {
+          appendAIMessage('bot', 'لتفعيل التجربة المجانية: أدخل كود جهازك في الخانة الأولى بالأعلى واضغط زر "تفعيل 48 ساعة".');
+        } else if (lower.includes('فحص') || lower.includes('عملية') || lower.includes('تحقق') || lower.includes('دفع')) {
+          appendAIMessage('bot', 'بعد الدفع، أدخل رقم العملية (Transaction ID) المكون من أرقام في قسم الفحص اليدوي واضغط "تحقق وتفعيل".');
         } else {
-          appendAIMessage('bot', 'أنا هنا لمساعدتك في تفعيل برنامج Smart Contractor. يمكنك إدخال كود جهازك للبدء أو اختيار خطة الاشتراك المناسبة لك.');
+          appendAIMessage('bot', 'أنا هنا لمساعدتك في تفعيل البرنامج. يمكنك اختيار أحد الأسئلة السريعة أو إدخال كود جهازك للبدء.');
         }
-      }, 500);
+      }, 400);
     }
 
-    // تشغيل التحديد المباشر لكود الجهاز والمساعد الذكي عند تحميل الصفحة
     window.addEventListener('DOMContentLoaded', () => {
-      const detectedCode = detectAndFillDeviceCode();
-      
-      // الترحيب بالمستخدم في المساعد الذكي
-      if (detectedCode) {
-        appendAIMessage('bot', `مرحباً بك! 👋 تم التعرف على كود جهازك تلقائياً وكتابته: <b class="text-amber-300 font-mono">${detectedCode}</b>.<br>كيف يمكنني مساعدتك في التفعيل اليوم؟`);
+      const code = autoDetectDeviceCode();
+      if (code) {
+        appendAIMessage('bot', `أهلاً بك! 👋 تم كتابة كود جهازك تلقائياً: <b class="text-amber-300 font-mono">${code}</b>. اختر الخطة المناسبة وابدأ التفعيل.`);
       } else {
-        appendAIMessage('bot', 'مرحباً بك في منظومة Smart Contractor الذكية! 👋 يرجى إدخال كود الجهاز للبدء في التفعيل أو الاشتراك.');
+        appendAIMessage('bot', 'مرحباً بك! 👋 أدخل كود الجهاز للبدء، أو اضغط على الأسئلة السريعة للمساعدة.');
       }
     });
-  </script>
-</body>
-</html>
-      </div>
-
-      <!-- Pricing Grid -->
-      <div class="grid md:grid-cols-2 gap-4">
-        <!-- Monthly -->
-        <div class="border border-gray-800 bg-gray-900/40 p-5 rounded-xl flex justify-between items-center hover:border-gray-700 transition">
-          <div>
-            <h3 class="font-bold text-gray-200">الاشتراك الشهري</h3>
-            <div class="text-2xl font-black text-blue-400 mt-1">250 <span class="text-xs font-normal text-gray-400">جنيه/شهرياً</span></div>
-          </div>
-          <button onclick="startDynamicPayment('monthly')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
-            <i class="fas fa-bolt"></i>
-            <span>دفع الآن</span>
-          </button>
-        </div>
-
-        <!-- Yearly -->
-        <div class="border border-amber-500/30 bg-amber-500/5 p-5 rounded-xl flex justify-between items-center relative overflow-hidden">
-          <div class="absolute -left-8 -top-8 bg-amber-500 text-black text-[10px] font-bold py-1 px-8 rotate-[-45deg]">الأوفر</div>
-          <div>
-            <h3 class="font-bold text-amber-300">الاشتراك السنوي</h3>
-            <div class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs font-normal text-gray-400">جنيه/سنوياً</span></div>
-          </div>
-          <button onclick="startDynamicPayment('yearly')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
-            <i class="fas fa-bolt"></i>
-            <span>دفع الآن</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Manual Verification Section -->
-    <section class="glass-card p-6 rounded-2xl space-y-4">
-      <div class="flex items-center gap-2 text-gray-300 font-semibold text-base">
-        <i class="fas fa-receipt"></i>
-        <h3>الفحص اليدوي وتفعيل الاشتراك</h3>
-      </div>
-      <p class="text-xs text-gray-400">إذا قمت بالدفع بالفعل، قم بإدخال رقم العملية (Transaction ID) هنا للتفعيل الفوري.</p>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="manualTxId" placeholder="رقم العملية (Transaction ID)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center font-mono text-sm focus:outline-none focus:border-blue-500">
-        <button onclick="verifyTransaction()" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 font-semibold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <i class="fas fa-check-circle"></i>
-          <span>تحقق وتفعيل</span>
-        </button>
-      </div>
-    </section>
-
-  </main>
-
-  <footer class="max-w-4xl mx-auto w-full text-center py-6 text-xs text-gray-600 border-t border-gray-800/50 mt-8">
-    جميع الحقوق محفوظة &copy; Smart Contractor 2026
-  </footer>
-
-  <!-- JS Logic -->
-  <script>
-    // رابط الـ Cloudflare Worker الخاص بك
-    const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
-
-    function showAlert(msg, type = "info") {
-      const box = document.getElementById('alertBox');
-      box.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'border-red-500/30', 'bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30', 'bg-blue-500/10', 'text-blue-400', 'border-blue-500/30');
-      box.classList.add('border');
-
-      if (type === "error") {
-        box.classList.add('bg-red-500/10', 'text-red-400', 'border-red-500/30');
-      } else if (type === "success") {
-        box.classList.add('bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/30');
-      } else {
-        box.classList.add('bg-blue-500/10', 'text-blue-400', 'border-blue-500/30');
-      }
-
-      box.innerHTML = msg;
-      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    // مزامنة الأكواد بين الحقول
-    document.getElementById('trialDeviceCode')?.addEventListener('input', (e) => {
-      if(document.getElementById('subDeviceCode')) document.getElementById('subDeviceCode').value = e.target.value.toUpperCase();
-    });
-    document.getElementById('subDeviceCode')?.addEventListener('input', (e) => {
-      if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = e.target.value.toUpperCase();
-    });
-
-    // دالة الدفع الديناميكي
-    async function startDynamicPayment(planType) {
-      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
-                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
-      
-      if (!deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود جهازك أولاً لتتمكن من الدفع والتفعيل الفوري.", "error");
-        return;
-      }
-
-      showAlert("⏳ جاري تحضير بوابة الدفع الفورية...", "info");
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            action: "create_payment_intent",
-            plan_type: planType,
-            device_id: deviceCode
-          })
-        });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          showAlert(`❌ استجابة غير صالحة من السيرفر (رمز الخطأ: ${response.status}). تأكد من إعداد المتغيرات على Cloudflare.`, "error");
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.success && data.payment_url) {
-          window.location.href = data.payment_url;
-        } else {
-          showAlert(`⚠️ ${data.message || "تعذر فتح بوابة الدفع الفورية."}`, "error");
-        }
-      } catch (err) {
-        console.error(err);
-        showAlert(`❌ خطأ في الاتصال: ${err.message}`, "error");
-      }
-    }
-
-    // دالة الفحص اليدوي
-    async function verifyTransaction() {
-      const txId = document.getElementById('manualTxId')?.value.trim();
-      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
-                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
-
-      if (!txId || !deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود الجهاز ورقم العملية بشكل صحيح.", "error");
-        return;
-      }
-
-      showAlert("⏳ جاري التحقق من العملية والتفعيل...", "info");
-
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 
-            'Accept': 'application/json',
-            'Content-Type': 'application/json' 
-          },
-          body: JSON.stringify({
-            action: "verify_payment",
-            transaction_id: txId,
-            device_id: deviceCode
-          })
-        });
-
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          showAlert(`❌ تعذر الفحص. السيرفر أرجع خطأ (${response.status}).`, "error");
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          showAlert(`✅ ${data.message}`, "success");
-        } else {
-          showAlert(`❌ ${data.message}`, "error");
-        }
-      } catch (err) {
-        console.error(err);
-        showAlert("❌ تعذر الاتصال بسيرفر الفحص.", "error");
-      }
-    }
-
-    // دالة التجربة المجانية
-    function activateTrial() {
-      const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
-      if (!deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود الجهاز للتفعيل التجريبي.", "error");
-        return;
-      }
-      showAlert(`✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
-    }
   </script>
 </body>
 </html>
