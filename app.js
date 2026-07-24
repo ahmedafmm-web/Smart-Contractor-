@@ -100,7 +100,6 @@ async function checkActivation() {
     const lastOnlineCheck = localStorage.getItem('contractor_last_online_check');
     let isCacheValid = false;
 
-    // 1️⃣ التحقق من مهلة الـ 72 ساعة أوفلاين من آخر فحص سحابي ناجح
     if (cachedExpiry && lastOnlineCheck) {
         const expiryDate = new Date(cachedExpiry);
         const lastCheckDate = new Date(lastOnlineCheck);
@@ -119,7 +118,6 @@ async function checkActivation() {
         showLockScreen("برجاء الاتصال بالإنترنت أو الضغط على زر التوجيه بالأسفل لتجديد التفعيل.");
     }
 
-    // 2️⃣ محاولة الاتصال بالسحابة لتحديث مهلة الـ 72 ساعة الأوفلاين
     try {
         if (!navigator.onLine) {
             throw new Error("OfflineMode");
@@ -247,7 +245,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    // 1️⃣ فحص وجود بيانات الشركة السابقة لإظهار الشاشة
+    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات عند فتح الصفحة
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
     } else {
@@ -259,37 +257,43 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 2️⃣ ربط حدث حفظ الإعدادات مع ضغط صورة اللوجو لمنع امتلاء الـ localStorage
+    // 2️⃣ ربط حدث حفظ الإعدادات مع ضغط صورة اللوجو وحفظها إجبارياً بدون تشنج
     const saveSetupBtn = document.getElementById('save-setup-btn');
     if (saveSetupBtn) {
         saveSetupBtn.addEventListener('click', () => {
-            const name = document.getElementById('setup-company-name').value.trim();
-            const phone = document.getElementById('setup-company-phone').value.trim();
-            const address = document.getElementById('setup-company-address').value.trim();
-            const logoFile = document.getElementById('setup-company-logo').files[0];
+            const nameInput = document.getElementById('setup-company-name');
+            const phoneInput = document.getElementById('setup-company-phone');
+            const addressInput = document.getElementById('setup-company-address');
+            const logoFileInput = document.getElementById('setup-company-logo');
+
+            const name = nameInput ? nameInput.value.trim() : '';
+            const phone = phoneInput ? phoneInput.value.trim() : '';
+            const address = addressInput ? addressInput.value.trim() : '';
+            const logoFile = logoFileInput && logoFileInput.files ? logoFileInput.files[0] : null;
             
             if (!name || !phone) { 
                 alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)'); 
                 return; 
             }
-            
+
+            saveSetupBtn.disabled = true;
+            saveSetupBtn.innerText = "جاري الحفظ والمعالجة...";
+
+            // حفظ النسب الأساسية
             localStorage.setItem('contractor_initial_rates', JSON.stringify({
-                markup: document.getElementById('markup-rate').value || "15",
-                contingency: document.getElementById('contingency-rate').value || "5",
-                waste: document.getElementById('waste-rate').value || "5"
+                markup: document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15",
+                contingency: document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5",
+                waste: document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5"
             }));
-            
-            const commitSave = (logoBase64 = '') => {
+
+            const saveCompanyToLocalStorage = (logoBase64) => {
                 const companyObj = { name, phone, address, logo: logoBase64 };
                 localStorage.setItem('contractor_company', JSON.stringify(companyObj));
                 companyData = companyObj;
-                
-                const setupScreen = document.getElementById('setup-screen');
-                if (setupScreen) setupScreen.classList.add('hidden');
-                
                 window.location.reload();
             };
-            
+
+            // معالجة وضغط الصورة فوراً في الذاكرة لحفظها إجبارياً في الـ localStorage
             if (logoFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -297,7 +301,9 @@ window.addEventListener('DOMContentLoaded', async () => {
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const maxDim = 300;
+                        
+                        // تصغير المقاس لـ 200px كحد أقصى للحفاظ على النقاء مع سرعة الحفظ الفائقة
+                        const maxDim = 200;
                         let width = img.width;
                         let height = img.height;
                         
@@ -311,14 +317,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        const compressedBase64 = canvas.toDataURL('image/png', 0.8);
-                        commitSave(compressedBase64);
+                        const compressedLogo = canvas.toDataURL('image/png', 0.85);
+                        saveCompanyToLocalStorage(compressedLogo);
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(logoFile);
-            } else { 
-                commitSave(''); 
+            } else {
+                saveCompanyToLocalStorage('');
             }
         });
     }
@@ -616,3 +622,4 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
+ 
