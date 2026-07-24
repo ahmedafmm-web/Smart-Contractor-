@@ -61,6 +61,7 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
+// إعداد ربط Supabase
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
@@ -87,6 +88,7 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
+// دالة فحص التفعيل الأساسية عند فتح التطبيق
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -100,8 +102,7 @@ async function checkActivation() {
     if (cachedExpiry) {
         const expiryDate = new Date(cachedExpiry);
         if (expiryDate > now) {
-            const actScreen = document.getElementById('activation-screen');
-            if (actScreen) actScreen.classList.add('hidden');
+            if(document.getElementById('activation-screen')) document.getElementById('activation-screen').classList.add('hidden');
             isCacheValid = true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -139,8 +140,7 @@ async function checkActivation() {
 
         if (remoteExpiry && new Date(remoteExpiry) > now) {
             localStorage.setItem('contractor_subscription_expiry_cache', remoteExpiry);
-            const actScreen = document.getElementById('activation-screen');
-            if (actScreen) actScreen.classList.add('hidden');
+            if(document.getElementById('activation-screen')) document.getElementById('activation-screen').classList.add('hidden');
             return true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -169,26 +169,26 @@ function updateUILanguage() {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     
-    document.getElementById('lang-toggle-btn').innerText = lang === 'ar' ? '🌐 EN' : '🌐 العربي';
-    document.getElementById('app-main-title').innerText = i18n[lang].appTitle;
-    document.getElementById('setup-title').innerText = i18n[lang].setupTitle;
-    document.getElementById('lbl-comp-name').innerText = i18n[lang].lblCompName;
-    document.getElementById('lbl-comp-phone').innerText = i18n[lang].lblCompPhone;
-    document.getElementById('lbl-comp-address').innerText = i18n[lang].lblCompAddress;
-    document.getElementById('save-setup-btn').innerText = i18n[lang].btnSaveSetup;
-    document.getElementById('sec-client-info').innerText = i18n[lang].secClientInfo;
-    document.getElementById('lbl-customer-name').innerText = i18n[lang].lblCustomerName;
-    document.getElementById('lbl-customer-phone').innerText = i18n[lang].lblCustomerPhone;
-    document.getElementById('lbl-markup').innerText = i18n[lang].lblMarkup;
-    document.getElementById('lbl-contingency').innerText = i18n[lang].lblContingency;
-    document.getElementById('lbl-waste').innerText = i18n[lang].lblWaste;
-    document.getElementById('sec-items').innerText = i18n[lang].secItems;
-    document.getElementById('btn-text-add').innerText = i18n[lang].btnAddItem;
-    document.getElementById('btn-text-pdf').innerText = i18n[lang].btnGeneratePDF;
-    document.getElementById('modal-add-title').innerText = i18n[lang].modalAddTitle;
-    document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
-    document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
-    document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
+    if(document.getElementById('lang-toggle-btn')) document.getElementById('lang-toggle-btn').innerText = lang === 'ar' ? '🌐 EN' : '🌐 العربي';
+    if(document.getElementById('app-main-title')) document.getElementById('app-main-title').innerText = i18n[lang].appTitle;
+    if(document.getElementById('setup-title')) document.getElementById('setup-title').innerText = i18n[lang].setupTitle;
+    if(document.getElementById('lbl-comp-name')) document.getElementById('lbl-comp-name').innerText = i18n[lang].lblCompName;
+    if(document.getElementById('lbl-comp-phone')) document.getElementById('lbl-comp-phone').innerText = i18n[lang].lblCompPhone;
+    if(document.getElementById('lbl-comp-address')) document.getElementById('lbl-comp-address').innerText = i18n[lang].lblCompAddress;
+    if(document.getElementById('save-setup-btn')) document.getElementById('save-setup-btn').innerText = i18n[lang].btnSaveSetup;
+    if(document.getElementById('sec-client-info')) document.getElementById('sec-client-info').innerText = i18n[lang].secClientInfo;
+    if(document.getElementById('lbl-customer-name')) document.getElementById('lbl-customer-name').innerText = i18n[lang].lblCustomerName;
+    if(document.getElementById('lbl-customer-phone')) document.getElementById('lbl-customer-phone').innerText = i18n[lang].lblCustomerPhone;
+    if(document.getElementById('lbl-markup')) document.getElementById('lbl-markup').innerText = i18n[lang].lblMarkup;
+    if(document.getElementById('lbl-contingency')) document.getElementById('lbl-contingency').innerText = i18n[lang].lblContingency;
+    if(document.getElementById('lbl-waste')) document.getElementById('lbl-waste').innerText = i18n[lang].lblWaste;
+    if(document.getElementById('sec-items')) document.getElementById('sec-items').innerText = i18n[lang].secItems;
+    if(document.getElementById('btn-text-add')) document.getElementById('btn-text-add').innerText = i18n[lang].btnAddItem;
+    if(document.getElementById('btn-text-pdf')) document.getElementById('btn-text-pdf').innerText = i18n[lang].btnGeneratePDF;
+    if(document.getElementById('modal-add-title')) document.getElementById('modal-add-title').innerText = i18n[lang].modalAddTitle;
+    if(document.getElementById('lbl-new-name')) document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
+    if(document.getElementById('lbl-new-mat')) document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
+    if(document.getElementById('lbl-new-lab')) document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
     
     document.querySelectorAll('.area-input').forEach(input => {
         input.placeholder = i18n[lang].placeholderArea;
@@ -197,17 +197,18 @@ function updateUILanguage() {
 
 function renderItems() {
     const container = document.getElementById('dynamic-items-list');
+    if(!container) return;
     container.innerHTML = '';
     const allItems = [...defaultItems, ...customItems];
     
     allItems.forEach(item => {
         const itemName = currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name);
         const itemHTML = `
-            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm" id="card-${item.id}">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm" id="card-${item.id}">
                 <div class="flex flex-col md:flex-row justify-between gap-2 mb-3">
                     <input type="text" value="${itemName}" data-type="name" data-id="${item.id}"
-                           class="font-bold text-gray-800 text-sm md:text-base bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 outline-none px-1 py-0.5 w-full md:w-auto flex-1">
-                    <span class="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded font-semibold self-start md:self-center">
+                           class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full md:w-auto flex-1">
+                    <span class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold self-start md:self-center">
                         ${currentLang === 'ar' ? 'متر مربع' : 'Sqm'}
                     </span>
                 </div>
@@ -215,16 +216,16 @@ function renderItems() {
                     <div class="md:col-span-2">
                         <input type="number" step="any" data-id="${item.id}" data-type="area" placeholder="${i18n[currentLang].placeholderArea}" 
                                style="font-variant-numeric: tabular-nums; font-family: monospace;"
-                               class="area-input w-full p-2.5 bg-gray-50 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-bold text-center">
+                               class="area-input w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 font-bold text-center text-slate-100">
                     </div>
                     <div class="grid grid-cols-2 gap-1 text-xs">
                         <div class="flex flex-col">
-                            <span class="text-gray-400 text-[10px]">${currentLang === 'ar' ? 'خامات:' : 'Mat:'}</span>
-                            <input type="number" step="any" value="${item.mat_cost}" data-type="mat" data-id="${item.id}" style="font-family: monospace;" class="p-1 border rounded text-center font-semibold bg-gray-50">
+                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'خامات:' : 'Mat:'}</span>
+                            <input type="number" step="any" value="${item.mat_cost}" data-type="mat" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
                         </div>
                         <div class="flex flex-col">
-                            <span class="text-gray-400 text-[10px]">${currentLang === 'ar' ? 'مصنعية:' : 'Labor:'}</span>
-                            <input type="number" step="any" value="${item.lab_cost}" data-type="lab" data-id="${item.id}" style="font-family: monospace;" class="p-1 border rounded text-center font-semibold bg-gray-50">
+                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'مصنعية:' : 'Labor:'}</span>
+                            <input type="number" step="any" value="${item.lab_cost}" data-type="lab" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
                         </div>
                     </div>
                 </div>
@@ -235,96 +236,121 @@ function renderItems() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    // 1️⃣ إظهار شاشة الإعدادات أو استرجاع النسب (نفس منطق الكود الأصلي)
-    if (!companyData) {
-        document.getElementById('setup-screen').classList.remove('hidden');
-    } else {
-        const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
-        if (initialRates) {
-            document.getElementById('markup-rate').value = initialRates.markup;
-            document.getElementById('contingency-rate').value = initialRates.contingency;
-            document.getElementById('waste-rate').value = initialRates.waste;
-        }
-    }
-    
-    // 2️⃣ ربط حدث حفظ الإعدادات (نفس الكود الأصلي المباشر)
-    document.getElementById('save-setup-btn').addEventListener('click', () => {
-        const name = document.getElementById('setup-company-name').value.trim();
-        const phone = document.getElementById('setup-company-phone').value.trim();
-        const address = document.getElementById('setup-company-address').value.trim();
-        const logoFile = document.getElementById('setup-company-logo').files[0];
-        
-        if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
-        
-        localStorage.setItem('contractor_initial_rates', JSON.stringify({
-            markup: document.getElementById('markup-rate').value || "15",
-            contingency: document.getElementById('contingency-rate').value || "5",
-            waste: document.getElementById('waste-rate').value || "5"
-        }));
-        
-        const save = (logoBase64 = '') => {
-            localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
-            window.location.reload();
-        };
-        
-        if (logoFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => save(reader.result);
-            reader.readAsDataURL(logoFile);
-        } else { save(); }
-    });
-
-    // 3️⃣ زر الإعدادات ⚙️ للتعديل ومسح البيانات المؤقتة تمهيداً لإعادتها (نفس كودك الأصلي)
-    document.getElementById('settings-btn').addEventListener('click', () => {
-        if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
-            localStorage.removeItem('contractor_company');
-            localStorage.removeItem('contractor_initial_rates');
-            window.location.reload();
-        }
-    });
-
-    document.getElementById('lang-toggle-btn').addEventListener('click', () => {
-        currentLang = currentLang === 'ar' ? 'en' : 'ar';
-        localStorage.setItem('contractor_lang', currentLang);
-        updateUILanguage();
-        renderItems();
-    });
-
-    document.getElementById('add-new-item-btn').addEventListener('click', () => {
-        document.getElementById('add-item-modal').classList.remove('hidden');
-    });
-
-    document.getElementById('close-modal-btn').addEventListener('click', () => {
-        document.getElementById('add-item-modal').classList.add('hidden');
-    });
-
-    document.getElementById('save-new-item-btn').addEventListener('click', () => {
-        const name = document.getElementById('new-item-name').value.trim();
-        const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
-        const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
-        
-        if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
-        
-        customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
-        localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
-        document.getElementById('add-item-modal').classList.add('hidden');
-        renderItems();
-    });
-
-    document.getElementById('generate-pdf-btn').addEventListener('click', () => {
-        generateQuotationPDF();
-    });
-
     updateUILanguage();
     renderItems();
 
-    // 4️⃣ التحقق السحابي في النهاية لمنع تعطيل الأحداث المربوطة
+    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات فوراً وتجهيز أزرار الواجهة أولاً
+    if (!companyData) {
+        if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
+    } else {
+        const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
+        if (initialRates) {
+            if(document.getElementById('markup-rate')) document.getElementById('markup-rate').value = initialRates.markup;
+            if(document.getElementById('contingency-rate')) document.getElementById('contingency-rate').value = initialRates.contingency;
+            if(document.getElementById('waste-rate')) document.getElementById('waste-rate').value = initialRates.waste;
+        }
+    }
+    
+    // 2️⃣ ربط حدث حفظ الإعدادات (قبل كود التفعيل لضمان عدم توقفه أبداً)
+    const saveSetupBtn = document.getElementById('save-setup-btn');
+    if (saveSetupBtn) {
+        saveSetupBtn.addEventListener('click', () => {
+            const name = document.getElementById('setup-company-name').value.trim();
+            const phone = document.getElementById('setup-company-phone').value.trim();
+            const address = document.getElementById('setup-company-address').value.trim();
+            const logoFile = document.getElementById('setup-company-logo').files[0];
+            
+            if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
+            
+            localStorage.setItem('contractor_initial_rates', JSON.stringify({
+                markup: document.getElementById('markup-rate').value || "15",
+                contingency: document.getElementById('contingency-rate').value || "5",
+                waste: document.getElementById('waste-rate').value || "5"
+            }));
+            
+            const save = (logoBase64 = '') => {
+                localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
+                window.location.reload();
+            };
+            
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onloadend = () => save(reader.result);
+                reader.readAsDataURL(logoFile);
+            } else { save(); }
+        });
+    }
+
+    // 3️⃣ زر الإعدادات ⚙️ للتعديل ومسح البيانات المؤقتة لفتح الشاشة من جديد
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
+                localStorage.removeItem('contractor_company');
+                localStorage.removeItem('contractor_initial_rates');
+                window.location.reload();
+            }
+        });
+    }
+
+    const langBtn = document.getElementById('lang-toggle-btn');
+    if (langBtn) {
+        langBtn.addEventListener('click', () => {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('contractor_lang', currentLang);
+            updateUILanguage();
+            renderItems();
+        });
+    }
+
+    const addBtn = document.getElementById('add-new-item-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            document.getElementById('add-item-modal').classList.remove('hidden');
+        });
+    }
+    
+    const closeBtn = document.getElementById('close-modal-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('add-item-modal').classList.add('hidden');
+        });
+    }
+
+    const saveItemBtn = document.getElementById('save-new-item-btn');
+    if (saveItemBtn) {
+        saveItemBtn.addEventListener('click', () => {
+            const name = document.getElementById('new-item-name').value.trim();
+            const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
+            const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
+            
+            if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
+            
+            customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
+            localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+            document.getElementById('add-item-modal').classList.add('hidden');
+            renderItems();
+        });
+    }
+
+    const pdfBtn = document.getElementById('generate-pdf-btn');
+    if (pdfBtn) {
+        pdfBtn.addEventListener('click', () => {
+            generateQuotationPDF();
+        });
+    }
+
+    // 4️⃣ الفحص السحابي ينفذ الآن بعد تجهيز كافة الأحداث في الصفحة
     await checkActivation();
 });
 
 function generateQuotationPDF() {
-    const cName = document.getElementById('client-name').value || (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
-    const cPhone = document.getElementById('client-phone').value || '---';
+    const clientNameInput = document.getElementById('client-name');
+    const cName = clientNameInput && clientNameInput.value.trim() ? clientNameInput.value.trim() : (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
+    
+    const clientPhoneInput = document.getElementById('client-phone');
+    const cPhone = clientPhoneInput && clientPhoneInput.value.trim() ? clientPhoneInput.value.trim() : '---';
+    
     const markup = parseFloat(document.getElementById('markup-rate').value) / 100;
     const contingency = parseFloat(document.getElementById('contingency-rate').value) / 100;
     const waste = parseFloat(document.getElementById('waste-rate').value) / 100;
@@ -371,17 +397,22 @@ function generateQuotationPDF() {
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
     const printWindow = window.open('', '_blank');
     
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
+    
     printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="${currentLang}" dir="${direction}">
         <head>
             <meta charset="UTF-8">
-            <title>Quotation_${cName}</title>
+            <title>${cName}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
                 body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
                 @media print {
-                    body { padding: 0; }
+                    @page { size: auto; margin: 0mm !important; }
+                    html, body { margin: 0mm !important; padding: 0mm !important; }
+                    body { padding: 20px; }
                 }
             </style>
         </head>
@@ -402,7 +433,7 @@ function generateQuotationPDF() {
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
                     <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
                     <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
-                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${new Date().toLocaleDateString('en-US')}<br>
+                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
                 </div>
                 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
@@ -420,14 +451,11 @@ function generateQuotationPDF() {
                 </table>
                 
                 <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
-                    ${currentLang === 'ar' ? 'Grand Total Amount:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
                 </div>
                 
                 <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
-                    <strong style="color: #334155;">${currentLang === 'ar' ? 'ملاحظات هامة وطريقة السداد:' : 'Important Notes & Payment Terms:'}</strong><br>
-                    1. ${i18n[currentLang].txtValid}<br>
-                    2. ${document.getElementById('payment-terms-input') ? document.getElementById('payment-terms-input').value : i18n[currentLang].txtPayments}<br>
-                    <p style="text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+                    <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
                 </div>
             </div>
             <script>
@@ -448,12 +476,15 @@ async function checkSubscriptionManually() {
     
     const btn = document.getElementById('manual-verify-btn');
     const btnText = document.getElementById('verify-btn-text');
+    const btnIcon = document.getElementById('verify-btn-icon');
     const lockMsg = document.getElementById('lock-message');
     const expiryBox = document.getElementById('expiry-display-box');
     const expiryDateText = document.getElementById('expiry-date-text');
 
     btn.disabled = true;
-    btnText.innerText = "جاري التحقق...";
+    btnText.innerText = "جاري فحص السحابة والتواريخ...";
+    btnIcon.innerText = "⏳";
+    btn.classList.add('opacity-80');
 
     try {
         if (!navigator.onLine) {
@@ -466,10 +497,13 @@ async function checkSubscriptionManually() {
         const data = await response.json();
 
         if (!data || data.length === 0) {
-            lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو لم يتم تفعيله بعد.";
+            lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو لم يتم تفعيله بعد. يرجى الانتقال لصفحة الاشتراكات.";
             if (expiryBox) expiryBox.classList.add('hidden');
             btnText.innerText = "فشل التحقق (غير مفعل)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
             btn.disabled = false;
+            btn.classList.remove('opacity-80');
             return;
         }
 
@@ -483,9 +517,9 @@ async function checkSubscriptionManually() {
                 isAccessGranted = true;
                 rawExpiryString = user.subscription_expires_at;
                 const subExpiry = new Date(user.subscription_expires_at);
-                expiryDateFormatted = "اشتراكك ينتهي في: " + subExpiry.toLocaleDateString('ar-EG');
+                expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             } else {
-                lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي.";
+                lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
                 localStorage.removeItem('contractor_subscription_expiry_cache');
             }
         }
@@ -494,9 +528,9 @@ async function checkSubscriptionManually() {
             if (now < trialExpiry) {
                 isAccessGranted = true;
                 rawExpiryString = user.trial_expires_at;
-                expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleDateString('ar-EG');
+                expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             } else {
-                lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية.";
+                lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
                 localStorage.removeItem('contractor_subscription_expiry_cache');
             }
         }
@@ -509,25 +543,31 @@ async function checkSubscriptionManually() {
                 expiryBox.classList.remove('hidden');
             }
 
-            btnText.innerText = "تم التفعيل بنجاح";
+            btnText.innerText = "تم التحقق والفتح بنجاح";
+            btnIcon.innerText = "✓";
+            btn.style.background = "#10b981"; 
 
             setTimeout(() => {
                 const actScreen = document.getElementById('activation-screen');
                 if (actScreen) actScreen.classList.add('hidden');
                 window.location.reload(); 
-            }, 1000);
+            }, 1800);
         } else {
             if (expiryBox) expiryBox.classList.add('hidden');
-            btnText.innerText = "فشل التحقق (منتهي)";
+            btnText.innerText = "فشل التحقق (الاشتراك منتهي)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
             btn.disabled = false;
+            btn.classList.remove('opacity-80');
         }
 
     } catch (error) {
         console.error(error);
         localStorage.removeItem('contractor_subscription_expiry_cache');
-        btnText.innerText = "فشل التفعيل (أوفلاين)";
+        btnText.innerText = "لا يوجد إنترنت! فشل التفعيل";
+        btnIcon.innerText = "🌐";
         btn.disabled = false;
-        alert("❌ خطأ: يلزم وجود إنترنت للتحقق!");
+        btn.classList.remove('opacity-80');
+        alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
- 
