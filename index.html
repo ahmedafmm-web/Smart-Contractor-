@@ -100,7 +100,28 @@
                     <input type="file" id="setup-company-logo" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600/20 file:text-indigo-400">
                 </div>
                 
-                <button type="button" id="save-setup-btn" onclick="window.saveCompanyData()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4 cursor-pointer">حفظ البيانات والدخول</button>
+                <!-- 🎯 كود الحفظ المباشر داخل الزرار مباشرة لمنع أي تشنج -->
+                <button type="button" id="save-setup-btn" onclick="
+                    const name = document.getElementById('setup-company-name').value.trim();
+                    const phone = document.getElementById('setup-company-phone').value.trim();
+                    const address = document.getElementById('setup-company-address').value.trim();
+                    const logoFile = document.getElementById('setup-company-logo').files[0];
+                    if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية (الاسم والتليفون)'); return; }
+                    
+                    const saveAndReload = (logoData = '') => {
+                        localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoData }));
+                        location.reload();
+                    };
+                    
+                    if (logoFile) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => saveAndReload(e.target.result);
+                        reader.onerror = () => saveAndReload('');
+                        reader.readAsDataURL(logoFile);
+                    } else {
+                        saveAndReload();
+                    }
+                " class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4 cursor-pointer">حفظ البيانات والدخول</button>
             </div>
         </div>
     </div>
@@ -223,7 +244,7 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=10.0"></script>
+    <script src="app.js?v=25.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
