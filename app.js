@@ -88,42 +88,56 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// 🎯 دالة صريحة ومستقلة لحفظ بيانات الشركة وتضمن إخفاء الشاشة
-window.saveCompanyData = function() {
-    const name = document.getElementById('setup-company-name').value.trim();
-    const phone = document.getElementById('setup-company-phone').value.trim();
-    const address = document.getElementById('setup-company-address').value.trim();
-    const logoFile = document.getElementById('setup-company-logo').files[0];
+// 📌 دالة حفظ إعدادات أول مرة المباشرة والقصيرة والمضمونة
+async function saveCompanyData() {
+    const nameInput = document.getElementById('setup-company-name');
+    const phoneInput = document.getElementById('setup-company-phone');
+    const addressInput = document.getElementById('setup-company-address');
+    const logoInput = document.getElementById('setup-company-logo');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const address = addressInput ? addressInput.value.trim() : '';
 
     if (!name || !phone) {
-        alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)');
+        alert('الرجاء إدخال البيانات الأساسية: اسم الشركة ورقم التليفون');
         return;
     }
 
-    localStorage.setItem('contractor_initial_rates', JSON.stringify({
-        markup: document.getElementById('markup-rate').value || "15",
-        contingency: document.getElementById('contingency-rate').value || "5",
-        waste: document.getElementById('waste-rate').value || "5"
-    }));
-
-    const executeSave = (logoBase64 = '') => {
-        companyData = { name, phone, address, logo: logoBase64 };
-        localStorage.setItem('contractor_company', JSON.stringify(companyData));
-        
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) {
-            setupScreen.classList.add('hidden');
-        }
+    // 1. حفظ النسب الأساسية
+    const rates = {
+        markup: document.getElementById('markup-rate')?.value || "15",
+        contingency: document.getElementById('contingency-rate')?.value || "5",
+        waste: document.getElementById('waste-rate')?.value || "5"
     };
+    localStorage.setItem('contractor_initial_rates', JSON.stringify(rates));
 
-    if (logoFile) {
-        const reader = new FileReader();
-        reader.onloadend = () => executeSave(reader.result);
-        reader.readAsDataURL(logoFile);
-    } else {
-        executeSave();
+    // 2. تحويل اللوجو بشكل متزامن مضمون
+    let logoBase64 = '';
+    if (logoInput && logoInput.files && logoInput.files[0]) {
+        try {
+            logoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve('');
+                reader.readAsDataURL(logoInput.files[0]);
+            });
+        } catch (e) {
+            console.warn("تعذر حفظ اللوجو، سيتم الحفظ بدونه");
+        }
     }
-};
+
+    // 3. كتابة البيانات في الـ localStorage وتحديث الكائن الحالي
+    companyData = { name, phone, address, logo: logoBase64 };
+    localStorage.setItem('contractor_company', JSON.stringify(companyData));
+
+    // 4. إخفاء شاشة الإعدادات فوراً وبشكل صريح
+    const setupScreen = document.getElementById('setup-screen');
+    if (setupScreen) {
+        setupScreen.classList.add('hidden');
+        setupScreen.style.display = 'none';
+    }
+}
 
 // دالة فحص التفعيل الأساسية عند فتح التطبيق
 async function checkActivation() {
