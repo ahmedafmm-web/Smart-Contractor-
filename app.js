@@ -1,4 +1,4 @@
-// 📌 تسجيل دالة الحفظ المباشرة على مستوى الـ Global Window فوراً قبل أي كود
+// 📌 دالة الحفظ المباشرة على مستوى الـ Global Window فوراً بدون أي تعارض
 window.saveCompanyData = function() {
     const nameEl = document.getElementById('setup-company-name');
     const phoneEl = document.getElementById('setup-company-phone');
@@ -318,6 +318,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // ⚙️ زر الإعدادات وإعادة فتح الشاشة وتعبئة البيانات المخزنة للتعديل
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
