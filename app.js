@@ -239,7 +239,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات طبقاً لوجود بيانات مخزنة
+    // إظهار شاشة الإعدادات إذا لم تكن هناك بيانات مخزنة
     const setupScreen = document.getElementById('setup-screen');
     if (!companyData) {
         if (setupScreen) setupScreen.classList.remove('hidden');
@@ -253,45 +253,18 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    // 2️⃣ منطق الحفظ الأصلي بتاع ملفك (تم رفعه هنا ليعمل دائماً بدون التأثر بـ checkActivation)
-    const saveSetupBtn = document.getElementById('save-setup-btn');
-    if (saveSetupBtn) {
-        saveSetupBtn.addEventListener('click', () => {
-            const name = document.getElementById('setup-company-name').value.trim();
-            const phone = document.getElementById('setup-company-phone').value.trim();
-            const address = document.getElementById('setup-company-address').value.trim();
-            const logoFile = document.getElementById('setup-company-logo').files[0];
-            
-            if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
-            
-            localStorage.setItem('contractor_initial_rates', JSON.stringify({
-                markup: document.getElementById('markup-rate').value || "15",
-                contingency: document.getElementById('contingency-rate').value || "5",
-                waste: document.getElementById('waste-rate').value || "5"
-            }));
-            
-            const save = (logoBase64 = '') => {
-                localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
-                window.location.reload();
-            };
-            
-            if (logoFile) {
-                const reader = new FileReader();
-                reader.onloadend = () => save(reader.result);
-                reader.readAsDataURL(logoFile);
-            } else { 
-                save(); 
-            }
-        });
-    }
-
+    // زر الإعدادات ⚙️ لإعادة فتح شاشة البيانات وتعديلها
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
-            if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
-                localStorage.removeItem('contractor_company');
-                localStorage.removeItem('contractor_initial_rates');
-                window.location.reload();
+            const setupScreen = document.getElementById('setup-screen');
+            if (setupScreen) {
+                if(companyData) {
+                    if(document.getElementById('setup-company-name')) document.getElementById('setup-company-name').value = companyData.name || '';
+                    if(document.getElementById('setup-company-phone')) document.getElementById('setup-company-phone').value = companyData.phone || '';
+                    if(document.getElementById('setup-company-address')) document.getElementById('setup-company-address').value = companyData.address || '';
+                }
+                setupScreen.classList.remove('hidden');
             }
         });
     }
@@ -343,7 +316,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 3️⃣ كود التفعيل السحابي ياتي بعد ربط الأزرار
+    // التحقق السحابي
     await checkActivation();
 });
 
@@ -574,3 +547,4 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
+ 
