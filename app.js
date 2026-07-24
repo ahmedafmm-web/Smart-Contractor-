@@ -65,7 +65,7 @@ let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) ||
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
-// 🎯 دالة إخفاء البانر التراحيبي نهائياً
+// 🎯 دالة إخفاء البانر التراحيبي
 function hideHeroBanner() {
     const heroBanner = document.getElementById('hero-banner');
     if (heroBanner) {
@@ -108,17 +108,15 @@ async function checkActivation() {
     const offlineUntil = localStorage.getItem('contractor_offline_until');
     let isCacheValid = false;
 
-    // التأكد من أن مهلة الأوفلاين (الـ 3 أيام) والتفعيل السحابي كلاهما ساريان
     if (cachedExpiry && offlineUntil) {
         const expiryDate = new Date(cachedExpiry);
         const offlineLimitDate = new Date(offlineUntil);
 
         if (expiryDate > now && now <= offlineLimitDate) {
             document.getElementById('activation-screen').classList.add('hidden');
-            hideHeroBanner(); // إخفاء البانر التراحيبي
+            hideHeroBanner();
             isCacheValid = true;
         } else {
-            // انقضت الـ 3 أيام، قم بإلغاء الكاش
             localStorage.removeItem('contractor_subscription_expiry_cache');
             localStorage.removeItem('contractor_offline_until');
         }
@@ -160,7 +158,6 @@ async function checkActivation() {
         }
 
         if (remoteExpiry && new Date(remoteExpiry) > now) {
-            // تعيين مهلة 3 أيام (72 ساعة) من الآن للأوفلاين
             const next3Days = new Date();
             next3Days.setDate(next3Days.getDate() + 3);
 
@@ -168,7 +165,7 @@ async function checkActivation() {
             localStorage.setItem('contractor_offline_until', next3Days.toISOString());
             
             document.getElementById('activation-screen').classList.add('hidden');
-            hideHeroBanner(); // إخفاء البانر فور التفعيل
+            hideHeroBanner();
             return true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -266,7 +263,7 @@ function renderItems() {
     });
 }
 
-// 📌 منطق التحميل وحفظ شاشة الإعدادات لأول مرة
+// 📌 منطق التحميل والتحقق والتخزين المضمون
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
@@ -276,13 +273,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
-    // إخفاء البانر تلقائياً طالما التفعيل ساري
     hideHeroBanner();
 
-    // فحص هل تم إدخال بيانات الشركة من قبل أم لا (تظهر أول مرة فقط)
-    if (!companyData) {
+    // التأكد التام من وجود البيانات في localStorage
+    const savedCompany = localStorage.getItem('contractor_company');
+    if (!savedCompany) {
         document.getElementById('setup-screen').classList.remove('hidden');
     } else {
+        companyData = JSON.parse(savedCompany);
         document.getElementById('setup-screen').classList.add('hidden');
         const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
         if (initialRates) {
@@ -292,14 +290,19 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // حفظ بيانات إعدادات النظام وتخزينها للمرات القادمة
-    document.getElementById('save-setup-btn').addEventListener('click', () => {
+    // 🛠️ زر الحفظ المحدث بـ Promise لضمان كتابة البيانات في الـ Storage قبل التحديث
+    document.getElementById('save-setup-btn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        
         const name = document.getElementById('setup-company-name').value.trim();
         const phone = document.getElementById('setup-company-phone').value.trim();
         const address = document.getElementById('setup-company-address').value.trim();
         const logoFile = document.getElementById('setup-company-logo').files[0];
         
-        if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
+        if (!name || !phone) { 
+            alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)'); 
+            return; 
+        }
         
         localStorage.setItem('contractor_initial_rates', JSON.stringify({
             markup: document.getElementById('markup-rate').value || "15",
@@ -307,18 +310,20 @@ window.addEventListener('DOMContentLoaded', async () => {
             waste: document.getElementById('waste-rate').value || "5"
         }));
         
-        const save = (logoBase64 = '') => {
-            companyData = { name, phone, address, logo: logoBase64 };
-            localStorage.setItem('contractor_company', JSON.stringify(companyData));
-            document.getElementById('setup-screen').classList.add('hidden');
-            window.location.reload();
-        };
-        
+        let logoBase64 = '';
         if (logoFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => save(reader.result);
-            reader.readAsDataURL(logoFile);
-        } else { save(); }
+            logoBase64 = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(logoFile);
+            });
+        }
+
+        const newCompanyObj = { name, phone, address, logo: logoBase64 };
+        localStorage.setItem('contractor_company', JSON.stringify(newCompanyObj));
+        
+        document.getElementById('setup-screen').classList.add('hidden');
+        window.location.reload();
     });
 
     document.getElementById('lang-toggle-btn').addEventListener('click', () => {
@@ -573,7 +578,7 @@ async function checkSubscriptionManually() {
 
             setTimeout(() => {
                 document.getElementById('activation-screen').classList.add('hidden');
-                hideHeroBanner(); // إخفاء البانر التراحيبي فوراً
+                hideHeroBanner();
                 window.location.reload(); 
             }, 1800);
         } else {
