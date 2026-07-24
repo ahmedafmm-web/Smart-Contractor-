@@ -13,7 +13,6 @@
     <style>
         body { font-family: 'Cairo', sans-serif; }
         
-        /* ضمان وضوح الخطوط أثناء الكتابة والطباعة */
         input, select, textarea {
             color: #f8fafc !important;
             background-color: #020617 !important;
@@ -37,7 +36,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- 🔒 شاشة التفعيل المطورة المحافظة على جميع عناصر القفل -->
+    <!-- 🔒 شاشة التفعيل المطورة -->
     <div id="activation-screen" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             
@@ -49,15 +48,12 @@
             <p class="text-xs text-slate-400 mb-4 font-mono tracking-wider">Smart Contractor By Ahmed Mohamed</p>
             <hr class="border-slate-800 mb-4">
             
-            <!-- رسالة النظام الأساسية -->
             <p id="lock-message" class="text-sm font-medium text-slate-300 mb-4 px-2 leading-relaxed"></p>
             
-            <!-- مربع عرض تاريخ الانتهاء -->
             <div id="expiry-display-box" class="hidden bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 p-3.5 rounded-xl text-sm font-bold mb-4 flex items-center justify-center gap-2 animate-pulse">
                 <i class="fas fa-calendar-alt"></i> <span id="expiry-date-text"></span>
             </div>
 
-            <!-- زرار التحقق المباشر المحدث -->
             <button id="manual-verify-btn" onclick="checkSubscriptionManually()" class="w-full mb-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 px-4 rounded-xl transition-all duration-300 shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 text-sm">
                 <span id="verify-btn-icon"><i class="fas fa-sync-alt"></i></span>
                 <span id="verify-btn-text">اضغط هنا للتحقق وتفعيل الأداة الآن</span>
@@ -74,7 +70,6 @@
                 <div class="flex-grow border-t border-slate-800"></div>
             </div>
 
-            <!-- زر واحد رئيسي للانتقال لصفحة الاشتراكات -->
             <button onclick="goToSubscriptionPage()" class="w-full bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/60 text-indigo-200 font-bold py-3.5 px-4 rounded-xl transition-all duration-300 shadow-xl shadow-indigo-950/50 flex items-center justify-center gap-2 text-sm">
                 <i class="fas fa-crown text-amber-400"></i>
                 <span>الانتقال لصفحة الاشتراكات والتفعيل</span>
@@ -83,7 +78,7 @@
         </div>
     </div>
 
-    <!-- شاشة الإعدادات الشاملة (للمرة الأولى فقط) -->
+    <!-- شاشة الإعدادات الشاملة -->
     <div id="setup-screen" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-40 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full shadow-2xl overflow-y-auto max-h-[90vh]">
             <h2 id="setup-title" class="text-2xl font-bold text-indigo-400 mb-4 text-center">إعدادات النظام أول مرة</h2>
@@ -104,8 +99,8 @@
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-logo">لوجو الشركة (صورة)</label>
                     <input type="file" id="setup-company-logo" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600/20 file:text-indigo-400">
                 </div>
-                <!-- الزرار مربوط مباشرةً بالدالة المستقلة لتجنب أي تعارض DOM -->
-                <button type="button" id="save-setup-btn" onclick="saveCompanyData()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4 cursor-pointer">حفظ البيانات والدخول</button>
+                
+                <button type="button" id="save-setup-btn" onclick="window.saveCompanyData()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4 cursor-pointer">حفظ البيانات والدخول</button>
             </div>
         </div>
     </div>
@@ -130,7 +125,7 @@
             </div>
         </header>
 
-        <!-- Hero Card (سيختفي كلياً عند التفعيل) -->
+        <!-- Hero Card -->
         <main id="hero-banner" class="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 sm:p-10 text-center my-6 space-y-6 backdrop-blur">
             <div class="inline-flex items-center gap-2 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full text-indigo-400 text-xs font-semibold">
                 <i class="fas fa-rocket"></i>
@@ -228,7 +223,7 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=6.0"></script>
+    <script src="app.js?v=10.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
@@ -247,4 +242,3 @@
     </script>
 </body>
 </html>
- 
