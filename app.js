@@ -257,7 +257,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 2️⃣ ربط حدث حفظ الإعدادات مع ضغط صورة اللوجو وحفظها إجبارياً بدون تشنج
+    // 2️⃣ ربط حدث حفظ الإعدادات مع ظهور تنبيه بالحفظ في ذاكرة المتصفح
     const saveSetupBtn = document.getElementById('save-setup-btn');
     if (saveSetupBtn) {
         saveSetupBtn.addEventListener('click', () => {
@@ -277,7 +277,7 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
 
             saveSetupBtn.disabled = true;
-            saveSetupBtn.innerText = "جاري الحفظ والمعالجة...";
+            saveSetupBtn.innerText = "جاري الحفظ...";
 
             // حفظ النسب الأساسية
             localStorage.setItem('contractor_initial_rates', JSON.stringify({
@@ -286,14 +286,25 @@ window.addEventListener('DOMContentLoaded', async () => {
                 waste: document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5"
             }));
 
-            const saveCompanyToLocalStorage = (logoBase64) => {
+            const commitDataToStorage = (logoBase64) => {
                 const companyObj = { name, phone, address, logo: logoBase64 };
+                
+                // كتابة البيانات بشكل صريح ومضمون في ذاكرة المتصفح
                 localStorage.setItem('contractor_company', JSON.stringify(companyObj));
                 companyData = companyObj;
-                window.location.reload();
+                
+                setTimeout(() => {
+                    const setupScreen = document.getElementById('setup-screen');
+                    if (setupScreen) setupScreen.classList.add('hidden');
+                    saveSetupBtn.disabled = false;
+                    saveSetupBtn.innerText = "حفظ البيانات والدخول";
+
+                    // 🔔 إظهار رسالة التنبيه الفورية المطلوب ظهورها
+                    alert("✅ تم الحفظ بنجاح في ذاكرة المتصفح!");
+                }, 200);
             };
 
-            // معالجة وضغط الصورة فوراً في الذاكرة لحفظها إجبارياً في الـ localStorage
+            // معالجة وضغط الصورة فوراً في الذاكرة لحفظها إجبارياً
             if (logoFile) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -302,7 +313,6 @@ window.addEventListener('DOMContentLoaded', async () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
                         
-                        // تصغير المقاس لـ 200px كحد أقصى للحفاظ على النقاء مع سرعة الحفظ الفائقة
                         const maxDim = 200;
                         let width = img.width;
                         let height = img.height;
@@ -317,14 +327,14 @@ window.addEventListener('DOMContentLoaded', async () => {
                         canvas.height = height;
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        const compressedLogo = canvas.toDataURL('image/png', 0.85);
-                        saveCompanyToLocalStorage(compressedLogo);
+                        const compressedLogo = canvas.toDataURL('image/png', 0.8);
+                        commitDataToStorage(compressedLogo);
                     };
                     img.src = e.target.result;
                 };
                 reader.readAsDataURL(logoFile);
             } else {
-                saveCompanyToLocalStorage('');
+                commitDataToStorage('');
             }
         });
     }
@@ -622,4 +632,3 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
- 
