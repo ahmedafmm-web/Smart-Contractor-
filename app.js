@@ -92,6 +92,47 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
+// 📌 دالة حفظ بيانات الشركة المباشرة عند الضغط على زرار الحفظ
+async function saveCompanyData() {
+    const nameInput = document.getElementById('setup-company-name');
+    const phoneInput = document.getElementById('setup-company-phone');
+    const addressInput = document.getElementById('setup-company-address');
+    const logoInput = document.getElementById('setup-company-logo');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const address = addressInput ? addressInput.value.trim() : '';
+    const logoFile = logoInput && logoInput.files ? logoInput.files[0] : null;
+
+    if (!name || !phone) {
+        alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)');
+        return;
+    }
+
+    localStorage.setItem('contractor_initial_rates', JSON.stringify({
+        markup: document.getElementById('markup-rate')?.value || "15",
+        contingency: document.getElementById('contingency-rate')?.value || "5",
+        waste: document.getElementById('waste-rate')?.value || "5"
+    }));
+
+    let logoBase64 = '';
+    if (logoFile) {
+        logoBase64 = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.readAsDataURL(logoFile);
+        });
+    }
+
+    companyData = { name, phone, address, logo: logoBase64 };
+    localStorage.setItem('contractor_company', JSON.stringify(companyData));
+
+    const setupScreen = document.getElementById('setup-screen');
+    if (setupScreen) {
+        setupScreen.classList.add('hidden');
+    }
+}
+
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -250,46 +291,7 @@ function renderItems() {
     });
 }
 
-// 📌 كود حفظ البيانات المستقل والمضمون 100%
-document.addEventListener('click', async function(e) {
-    if (e.target && e.target.id === 'save-setup-btn') {
-        e.preventDefault();
-        
-        const name = document.getElementById('setup-company-name').value.trim();
-        const phone = document.getElementById('setup-company-phone').value.trim();
-        const address = document.getElementById('setup-company-address').value.trim();
-        const logoFile = document.getElementById('setup-company-logo').files[0];
-        
-        if (!name || !phone) { 
-            alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)'); 
-            return; 
-        }
-        
-        localStorage.setItem('contractor_initial_rates', JSON.stringify({
-            markup: document.getElementById('markup-rate').value || "15",
-            contingency: document.getElementById('contingency-rate').value || "5",
-            waste: document.getElementById('waste-rate').value || "5"
-        }));
-        
-        let logoBase64 = '';
-        if (logoFile) {
-            logoBase64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.readAsDataURL(logoFile);
-            });
-        }
-
-        companyData = { name, phone, address, logo: logoBase64 };
-        localStorage.setItem('contractor_company', JSON.stringify(companyData));
-        
-        // إخفاء الشاشة فوراً وبدون reload يتسبب في تصفير البيانات
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) setupScreen.classList.add('hidden');
-    }
-});
-
-// 📌 تشغيل التطبيق
+// 📌 بداية تشغيل التطبيق
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
@@ -586,4 +588,3 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
- 
