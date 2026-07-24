@@ -247,7 +247,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات
+    // 1️⃣ فحص وجود بيانات الشركة السابقة لإظهار الشاشة
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
     } else {
@@ -259,7 +259,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 2️⃣ ربط حدث حفظ الإعدادات أول مرة
+    // 2️⃣ ربط حدث حفظ الإعدادات مع ضغط صورة اللوجو لمنع امتلاء الـ localStorage
     const saveSetupBtn = document.getElementById('save-setup-btn');
     if (saveSetupBtn) {
         saveSetupBtn.addEventListener('click', () => {
@@ -268,7 +268,10 @@ window.addEventListener('DOMContentLoaded', async () => {
             const address = document.getElementById('setup-company-address').value.trim();
             const logoFile = document.getElementById('setup-company-logo').files[0];
             
-            if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
+            if (!name || !phone) { 
+                alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)'); 
+                return; 
+            }
             
             localStorage.setItem('contractor_initial_rates', JSON.stringify({
                 markup: document.getElementById('markup-rate').value || "15",
@@ -276,16 +279,47 @@ window.addEventListener('DOMContentLoaded', async () => {
                 waste: document.getElementById('waste-rate').value || "5"
             }));
             
-            const save = (logoBase64 = '') => {
-                localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
+            const commitSave = (logoBase64 = '') => {
+                const companyObj = { name, phone, address, logo: logoBase64 };
+                localStorage.setItem('contractor_company', JSON.stringify(companyObj));
+                companyData = companyObj;
+                
+                const setupScreen = document.getElementById('setup-screen');
+                if (setupScreen) setupScreen.classList.add('hidden');
+                
                 window.location.reload();
             };
             
             if (logoFile) {
                 const reader = new FileReader();
-                reader.onloadend = () => save(reader.result);
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const ctx = canvas.getContext('2d');
+                        const maxDim = 300;
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > height) {
+                            if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+                        } else {
+                            if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        const compressedBase64 = canvas.toDataURL('image/png', 0.8);
+                        commitSave(compressedBase64);
+                    };
+                    img.src = e.target.result;
+                };
                 reader.readAsDataURL(logoFile);
-            } else { save(); }
+            } else { 
+                commitSave(''); 
+            }
         });
     }
 
