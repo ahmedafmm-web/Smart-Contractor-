@@ -1,3 +1,47 @@
+// 📌 تسجيل دالة الحفظ المباشرة على مستوى الـ Global Window فوراً قبل أي كود
+window.saveCompanyData = function() {
+    const nameEl = document.getElementById('setup-company-name');
+    const phoneEl = document.getElementById('setup-company-phone');
+    const addressEl = document.getElementById('setup-company-address');
+    const logoEl = document.getElementById('setup-company-logo');
+
+    const name = nameEl ? nameEl.value.trim() : '';
+    const phone = phoneEl ? phoneEl.value.trim() : '';
+    const address = addressEl ? addressEl.value.trim() : '';
+
+    if (!name || !phone) {
+        alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)');
+        return;
+    }
+
+    const markup = document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15";
+    const contingency = document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5";
+    const waste = document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5";
+
+    localStorage.setItem('contractor_initial_rates', JSON.stringify({ markup, contingency, waste }));
+
+    const executeSave = (logoBase64 = '') => {
+        companyData = { name, phone, address, logo: logoBase64 };
+        localStorage.setItem('contractor_company', JSON.stringify(companyData));
+        
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) {
+            setupScreen.style.setProperty('display', 'none', 'important');
+            setupScreen.classList.add('hidden');
+        }
+        window.location.reload();
+    };
+
+    if (logoEl && logoEl.files && logoEl.files[0]) {
+        const reader = new FileReader();
+        reader.onloadend = () => executeSave(reader.result);
+        reader.onerror = () => executeSave('');
+        reader.readAsDataURL(logoEl.files[0]);
+    } else {
+        executeSave();
+    }
+};
+
 const i18n = {
     ar: {
         appTitle: "The Smart Contractor",
@@ -61,7 +105,6 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
-// إعداد ربط Supabase
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
@@ -88,67 +131,6 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// 📌 دالة حفظ إعدادات أول مرة المباشرة والقصيرة والمضمونة (تم إصلاحها بالكامل)
-window.saveCompanyData = async function() {
-    try {
-        const nameInput = document.getElementById('setup-company-name');
-        const phoneInput = document.getElementById('setup-company-phone');
-        const addressInput = document.getElementById('setup-company-address');
-        const logoInput = document.getElementById('setup-company-logo');
-
-        const name = nameInput ? nameInput.value.trim() : '';
-        const phone = phoneInput ? phoneInput.value.trim() : '';
-        const address = addressInput ? addressInput.value.trim() : '';
-
-        if (!name || !phone) {
-            alert('الرجاء إدخال البيانات الأساسية: اسم الشركة ورقم التليفون');
-            return;
-        }
-
-        // 1. حفظ النسب الأساسية
-        const markupEl = document.getElementById('markup-rate');
-        const contingencyEl = document.getElementById('contingency-rate');
-        const wasteEl = document.getElementById('waste-rate');
-
-        const rates = {
-            markup: markupEl ? markupEl.value : "15",
-            contingency: contingencyEl ? contingencyEl.value : "5",
-            waste: wasteEl ? wasteEl.value : "5"
-        };
-        localStorage.setItem('contractor_initial_rates', JSON.stringify(rates));
-
-        // 2. تحويل اللوجو بشكل متزامن أمن
-        let logoBase64 = '';
-        if (logoInput && logoInput.files && logoInput.files.length > 0) {
-            try {
-                logoBase64 = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result);
-                    reader.onerror = () => resolve('');
-                    reader.readAsDataURL(logoInput.files[0]);
-                });
-            } catch (e) {
-                console.warn("تعذر حفظ اللوجو، سيتم الحفظ بدونه");
-            }
-        }
-
-        // 3. كتابة البيانات في الـ localStorage وتحديث الكائن الحالي
-        companyData = { name, phone, address, logo: logoBase64 };
-        localStorage.setItem('contractor_company', JSON.stringify(companyData));
-
-        // 4. إخفاء شاشة الإعدادات فوراً وبشكل صريح
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) {
-            setupScreen.classList.add('hidden');
-            setupScreen.style.display = 'none';
-        }
-    } catch (err) {
-        console.error("خطأ أثناء الحفظ:", err);
-        alert("حدث خطأ أثناء الحفظ، يرجى إعادة المحاولة.");
-    }
-};
-
-// دالة فحص التفعيل الأساسية عند فتح التطبيق
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -218,7 +200,6 @@ async function checkActivation() {
     }
 }
 
-// 🔒 دالة إظهار شاشة القفل
 function showLockScreen(msg) {
     const activationScreen = document.getElementById('activation-screen');
     const lockMessage = document.getElementById('lock-message');
@@ -303,10 +284,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderItems();
 
     const isAllowed = await checkActivation();
-    if (!isAllowed) {
-        return;
-    }
     
+    // التحقق من وجود بيانات الشركة لعرض أو إخفاء الشاشة
     if (!companyData) {
         const setupScreen = document.getElementById('setup-screen');
         if (setupScreen) {
@@ -327,6 +306,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
+    if (!isAllowed) return;
+
     const langBtn = document.getElementById('lang-toggle-btn');
     if (langBtn) {
         langBtn.addEventListener('click', () => {
@@ -342,6 +323,11 @@ window.addEventListener('DOMContentLoaded', async () => {
         settingsBtn.addEventListener('click', () => {
             const setupScreen = document.getElementById('setup-screen');
             if (setupScreen) {
+                if(companyData) {
+                    if(document.getElementById('setup-company-name')) document.getElementById('setup-company-name').value = companyData.name || '';
+                    if(document.getElementById('setup-company-phone')) document.getElementById('setup-company-phone').value = companyData.phone || '';
+                    if(document.getElementById('setup-company-address')) document.getElementById('setup-company-address').value = companyData.address || '';
+                }
                 setupScreen.classList.remove('hidden');
                 setupScreen.style.display = 'flex';
             }
@@ -512,7 +498,6 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
-// 🔒 دالة فحص واستعلام التفعيل اليدوي
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -614,4 +599,3 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
- 
