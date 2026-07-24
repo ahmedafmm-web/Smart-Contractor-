@@ -104,7 +104,7 @@
                     <label class="block text-sm font-semibold mb-1 text-slate-300" id="lbl-comp-logo">لوجو الشركة (صورة)</label>
                     <input type="file" id="setup-company-logo" accept="image/*" class="w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600/20 file:text-indigo-400">
                 </div>
-                <!-- 🎯 التعديل الوحيد: ربط الزر بشرط المباشرة onclick دون تعديل التصميم -->
+                <!-- الزرار مربوط مباشرةً بالدالة المستقلة لتجنب أي تعارض DOM -->
                 <button type="button" id="save-setup-btn" onclick="saveCompanyData()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3 rounded-lg transition mt-4 cursor-pointer">حفظ البيانات والدخول</button>
             </div>
         </div>
@@ -228,7 +228,7 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=5.0"></script>
+    <script src="app.js?v=6.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
@@ -247,3 +247,4 @@
     </script>
 </body>
 </html>
+ 
