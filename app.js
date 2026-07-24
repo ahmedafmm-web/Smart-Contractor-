@@ -61,6 +61,10 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
+// إعداد ربط Supabase
+const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
+
 function generateDeviceFingerprint() {
     const specs = [
         navigator.userAgent,
@@ -80,28 +84,176 @@ function generateDeviceFingerprint() {
     return "TSCAM-" + Math.abs(hash).toString(16).toUpperCase();
 }
 
-function checkActivation() {
-    const activeKey = localStorage.getItem('contractor_active_key');
-    const fingerprint = generateDeviceFingerprint();
-    const expectedKey = "LIC-" + btoa(fingerprint + "AHMED").substring(0, 12).toUpperCase();
+function getDeviceID() {
+    return generateDeviceFingerprint();
+}
+
+// 🎯 دالة صريحة ومستقلة لحفظ بيانات الشركة وتضمن إخفاء الشاشة
+window.saveCompanyData = function() {
+    const name = document.getElementById('setup-company-name').value.trim();
+    const phone = document.getElementById('setup-company-phone').value.trim();
+    const address = document.getElementById('setup-company-address').value.trim();
+    const logoFile = document.getElementById('setup-company-logo').files[0];
+
+    if (!name || !phone) {
+        alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)');
+        return;
+    }
+
+    localStorage.setItem('contractor_initial_rates', JSON.stringify({
+        markup: document.getElementById('markup-rate').value || "15",
+        contingency: document.getElementById('contingency-rate').value || "5",
+        waste: document.getElementById('waste-rate').value || "5"
+    }));
+
+    const executeSave = (logoBase64 = '') => {
+        companyData = { name, phone, address, logo: logoBase64 };
+        localStorage.setItem('contractor_company', JSON.stringify(companyData));
+        
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) {
+            setupScreen.classList.add('hidden');
+        }
+    };
+
+    if (logoFile) {
+        const reader = new FileReader();
+        reader.onloadend = () => executeSave(reader.result);
+        reader.readAsDataURL(logoFile);
+    } else {
+        executeSave();
+    }
+};
+
+// دالة فحص التفعيل الأساسية عند فتح التطبيق
+async function checkActivation() {
+    const fingerprint = getDeviceID();
+    const now = new Date();
     
-    if (activeKey !== expectedKey) {
-        document.getElementById('activation-screen').classList.remove('hidden');
-        document.getElementById('device-id-box').innerText = fingerprint;
+    const idBox = document.getElementById('device-id-box');
+    if(idBox) idBox.innerText = fingerprint;
+
+    const cachedExpiry = localStorage.getItem('contractor_subscription_expiry_cache');
+    let isCacheValid = false;
+
+    if (cachedExpiry) {
+        const expiryDate = new Date(cachedExpiry);
+        if (expiryDate > now) {
+            document.getElementById('activation-screen').classList.add('hidden');
+            isCacheValid = true;
+        } else {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+        }
+    }
+
+    if (!isCacheValid) {
+        showLockScreen("برجاء الضغط على زر التوجيه بالأسفل للذهاب إلى بوابة التفعيل وتنشيط حسابك.");
+    }
+
+    try {
+        if (!navigator.onLine) {
+            throw new Error("OfflineMode");
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            showLockScreen("🔒 هذا الجهاز غير مسجل بالسحابة أو تم إلغاء تفعيله.");
+            return false;
+        }
+
+        const user = data[0];
+        let remoteExpiry = null;
+
+        if (user.is_subscribed === true || user.is_subscribed === "true") {
+            remoteExpiry = user.subscription_expires_at;
+        } else if (user.trial_expires_at) {
+            remoteExpiry = user.trial_expires_at;
+        }
+
+        if (remoteExpiry && new Date(remoteExpiry) > now) {
+            localStorage.setItem('contractor_subscription_expiry_cache', remoteExpiry);
+            document.getElementById('activation-screen').classList.add('hidden');
+            return true;
+        } else {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            showLockScreen("🔒 انتهت صلاحية الاشتراك الحالي. يرجى التجديد للاستمرار.");
+            return false;
+        }
+
+    } catch (error) {
+        console.error("فشل الاتصال بالسيرفر:", error);
+        localStorage.removeItem('contractor_subscription_expiry_cache');
+        showLockScreen("⚠️ عذراً، لا يمكن استخدام الأداة بدون اتصال بالإنترنت للتحقق من الصلاحية.");
         return false;
     }
-    document.getElementById('activation-screen').classList.add('hidden');
-    return true;
+}
+
+// 🔒 دالة إظهار شاشة القفل
+function showLockScreen(msg) {
+    const activationScreen = document.getElementById('activation-screen');
+    const lockMessage = document.getElementById('lock-message');
+    
+    if (activationScreen) activationScreen.classList.remove('hidden');
+    if (lockMessage) lockMessage.innerText = msg;
+}
+
+// دالة التحويل المباشر مع تمرير كود الجهاز
+function goToSubscriptionPortal(deviceId) {
+    window.location.href = `subscription.html?device=${deviceId}`;
+}
+
+async function registerNewTrialUser(deviceId) {
+    const now = new Date();
+    now.setHours(now.getHours() + 48); 
+    const trialExpiryString = now.toISOString();
+
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+            method: "POST",
+            headers: { 
+                "apikey": SUPABASE_KEY, 
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({ 
+                device_id: deviceId, 
+                trial_expires_at: trialExpiryString, 
+                is_subscribed: false 
+            })
+        });
+        localStorage.setItem('contractor_subscription_expiry_cache', trialExpiryString);
+    } catch(e) { console.error(e); }
+}
+
+function startPaymobPayment(planType) {
+    const paymentLinks = {
+        'monthly': 'https://paymob.link/FssME',
+        'yearly': 'https://paymob.link/FssME'
+    };
+
+    const targetUrl = paymentLinks[planType];
+
+    if (targetUrl) {
+        window.location.href = targetUrl;
+    } else {
+        alert('حدث خطأ في تحديد باقة الاشتراك، برجاء المحاولة مرة أخرى.');
+    }
 }
 
 (function selfDefending() {
     const initialConfig = checkActivation.toString().length;
     setInterval(() => {
         if (checkActivation.toString().length !== initialConfig || checkActivation.toString().includes('return true; //bypass')) {
-            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات النظام</div>";
+            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات الأمان الرقمية</div>";
             localStorage.clear();
         }
-    }, 2000);
+    }, 3000);
 })();
 
 function updateUILanguage() {
@@ -174,22 +326,19 @@ function renderItems() {
     });
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    if (!checkActivation()) {
-        document.getElementById('activate-btn').addEventListener('click', () => {
-            const key = document.getElementById('license-key-input').value.trim();
-            localStorage.setItem('contractor_active_key', key);
-            if (checkActivation()) { window.location.reload(); } else { alert('كود تفعيل خاطئ! | Invalid Key'); }
-        });
+window.addEventListener('DOMContentLoaded', async () => {
+    updateUILanguage();
+    renderItems();
+
+    const isAllowed = await checkActivation();
+    if (!isAllowed) {
         return;
     }
     
-    // --- [منطق الحفظ القديم]: التحقق من وجود بيانات الشركة عند التشغيل ---
     if (!companyData) {
         document.getElementById('setup-screen').classList.remove('hidden');
     } else {
         document.getElementById('setup-screen').classList.add('hidden');
-        // ملء البيانات المخزنة مسبقاً إذا كانت متوفرة
         const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
         if (initialRates) {
             document.getElementById('markup-rate').value = initialRates.markup;
@@ -197,49 +346,6 @@ window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('waste-rate').value = initialRates.waste;
         }
     }
-    
-    // --- [منطق الحفظ القديم]: التعامل مع حفظ البيانات لأول مرة وتحديث الشاشات ---
-    document.getElementById('save-setup-btn').addEventListener('click', () => {
-        const name = document.getElementById('setup-company-name').value.trim();
-        const phone = document.getElementById('setup-company-phone').value.trim();
-        const address = document.getElementById('setup-company-address').value.trim();
-        const logoFile = document.getElementById('setup-company-logo').files[0];
-        
-        // استخراج قيم النسب المحفوظة في الشاشة الأولية
-        const setupMarkup = document.getElementById('setup-markup-rate') ? document.getElementById('setup-markup-rate').value : "15";
-        const setupContingency = document.getElementById('setup-contingency-rate') ? document.getElementById('setup-contingency-rate').value : "5";
-        const setupWaste = document.getElementById('setup-waste-rate') ? document.getElementById('setup-waste-rate').value : "5";
-
-        if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
-        
-        // حفظ النسب الابتدائية
-        const ratesToSave = {
-            markup: setupMarkup || document.getElementById('markup-rate').value || "15",
-            contingency: setupContingency || document.getElementById('contingency-rate').value || "5",
-            waste: setupWaste || document.getElementById('waste-rate').value || "5"
-        };
-        
-        localStorage.setItem('contractor_initial_rates', JSON.stringify(ratesToSave));
-        
-        // تحديث قيم عناصر الواجهة المباشرة
-        document.getElementById('markup-rate').value = ratesToSave.markup;
-        document.getElementById('contingency-rate').value = ratesToSave.contingency;
-        document.getElementById('waste-rate').value = ratesToSave.waste;
-        
-        const save = (logoBase64 = '') => {
-            companyData = { name, phone, address, logo: logoBase64 };
-            localStorage.setItem('contractor_company', JSON.stringify(companyData));
-            document.getElementById('setup-screen').classList.add('hidden');
-        };
-        
-        if (logoFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => save(reader.result);
-            reader.readAsDataURL(logoFile);
-        } else { 
-            save(); 
-        }
-    });
 
     document.getElementById('lang-toggle-btn').addEventListener('click', () => {
         currentLang = currentLang === 'ar' ? 'en' : 'ar';
@@ -248,14 +354,12 @@ window.addEventListener('DOMContentLoaded', () => {
         renderItems();
     });
 
-    // --- [منطق الحفظ القديم]: فتح شاشة الإعداد لتعديل البيانات بدلاً من إعادة التحميل المباشر ---
     document.getElementById('settings-btn').addEventListener('click', () => {
-        if (companyData) {
-            document.getElementById('setup-company-name').value = companyData.name || '';
-            document.getElementById('setup-company-phone').value = companyData.phone || '';
-            document.getElementById('setup-company-address').value = companyData.address || '';
+        if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
+            localStorage.removeItem('contractor_company');
+            localStorage.removeItem('contractor_initial_rates');
+            window.location.reload();
         }
-        document.getElementById('setup-screen').classList.remove('hidden');
     });
 
     document.getElementById('add-new-item-btn').addEventListener('click', () => {
@@ -281,14 +385,15 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('generate-pdf-btn').addEventListener('click', () => {
         generateQuotationPDF();
     });
-
-    updateUILanguage();
-    renderItems();
 });
 
 function generateQuotationPDF() {
-    const cName = document.getElementById('client-name').value || (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
-    const cPhone = document.getElementById('client-phone').value || '---';
+    const clientNameInput = document.getElementById('client-name');
+    const cName = clientNameInput && clientNameInput.value.trim() ? clientNameInput.value.trim() : (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
+    
+    const clientPhoneInput = document.getElementById('client-phone');
+    const cPhone = clientPhoneInput && clientPhoneInput.value.trim() ? clientPhoneInput.value.trim() : '---';
+    
     const markup = parseFloat(document.getElementById('markup-rate').value) / 100;
     const contingency = parseFloat(document.getElementById('contingency-rate').value) / 100;
     const waste = parseFloat(document.getElementById('waste-rate').value) / 100;
@@ -335,17 +440,22 @@ function generateQuotationPDF() {
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
     const printWindow = window.open('', '_blank');
     
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const formattedDate = new Date().toLocaleDateString('ar-EG', dateOptions);
+    
     printWindow.document.write(`
         <!DOCTYPE html>
         <html lang="${currentLang}" dir="${direction}">
         <head>
             <meta charset="UTF-8">
-            <title>Quotation_${cName}</title>
+            <title>${cName}</title>
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
                 body { font-family: 'Cairo', sans-serif; background-color: #ffffff; padding: 20px; margin: 0; }
                 @media print {
-                    body { padding: 0; }
+                    @page { size: auto; margin: 0mm !important; }
+                    html, body { margin: 0mm !important; padding: 0mm !important; }
+                    body { padding: 20px; }
                 }
             </style>
         </head>
@@ -366,7 +476,7 @@ function generateQuotationPDF() {
                 <div style="background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 30px; line-height: 1.6; font-size: 14px;">
                     <strong>${currentLang === 'ar' ? 'موجه إلى السيد / السيدة:' : 'Client Name:'}</strong> ${cName}<br>
                     <strong>${currentLang === 'ar' ? 'رقم الهاتف:' : 'Phone Number:'}</strong> ${cPhone}<br>
-                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${new Date().toLocaleDateString('en-US')}<br>
+                    <strong>${currentLang === 'ar' ? 'تاريخ الإصدار:' : 'Date of Issue:'}</strong> ${formattedDate}<br>
                 </div>
                 
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
@@ -384,14 +494,11 @@ function generateQuotationPDF() {
                 </table>
                 
                 <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
-                    ${currentLang === 'ar' ? 'Grand Total Amount:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
                 </div>
                 
                 <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
-                    <strong style="color: #334155;">${currentLang === 'ar' ? 'ملاحظات هامة وطريقة السداد:' : 'Important Notes & Payment Terms:'}</strong><br>
-                    1. ${i18n[currentLang].txtValid}<br>
-                    2. ${document.getElementById('payment-terms-input') ? document.getElementById('payment-terms-input').value : i18n[currentLang].txtPayments}<br>
-                    <p style="text-align: center; margin-top: 30px; font-size: 10px; color: #94a3b8;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
+                    <p style="text-align: center; margin-top: 15px; font-size: 13px; color: #334155; font-weight: 600; letter-spacing: 0.5px;">The Smart Contractor By Ahmed Mohamed &copy; 2026</p>
                 </div>
             </div>
             <script>
@@ -404,4 +511,106 @@ function generateQuotationPDF() {
         </html>
     `);
     printWindow.document.close();
+}
+
+// 🔒 دالة فحص واستعلام التفعيل اليدوي
+async function checkSubscriptionManually() {
+    const fingerprint = getDeviceID();
+    const now = new Date();
+    
+    const btn = document.getElementById('manual-verify-btn');
+    const btnText = document.getElementById('verify-btn-text');
+    const btnIcon = document.getElementById('verify-btn-icon');
+    const lockMsg = document.getElementById('lock-message');
+    const expiryBox = document.getElementById('expiry-display-box');
+    const expiryDateText = document.getElementById('expiry-date-text');
+
+    btn.disabled = true;
+    btnText.innerText = "جاري فحص السحابة والتواريخ...";
+    btnIcon.innerText = "⏳";
+    btn.classList.add('opacity-80');
+
+    try {
+        if (!navigator.onLine) {
+            throw new Error("NoInternetManual");
+        }
+
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        if (!data || data.length === 0) {
+            lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو لم يتم تفعيله بعد. يرجى الانتقال لصفحة الاشتراكات.";
+            if (expiryBox) expiryBox.classList.add('hidden');
+            btnText.innerText = "فشل التحقق (غير مفعل)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
+            return;
+        }
+
+        const user = data[0];
+        let isAccessGranted = false;
+        let expiryDateFormatted = "";
+        let rawExpiryString = null;
+
+        if (user.is_subscribed === true || user.is_subscribed === "true") {
+            if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
+                isAccessGranted = true;
+                rawExpiryString = user.subscription_expires_at;
+                const subExpiry = new Date(user.subscription_expires_at);
+                expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
+            } else {
+                lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
+                localStorage.removeItem('contractor_subscription_expiry_cache');
+            }
+        }
+        else if (user.trial_expires_at) {
+            const trialExpiry = new Date(user.trial_expires_at);
+            if (now < trialExpiry) {
+                isAccessGranted = true;
+                rawExpiryString = user.trial_expires_at;
+                expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
+            } else {
+                lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
+                localStorage.removeItem('contractor_subscription_expiry_cache');
+            }
+        }
+
+        if (isAccessGranted) {
+            localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
+
+            if (expiryBox && expiryDateText) {
+                expiryDateText.innerText = expiryDateFormatted;
+                expiryBox.classList.remove('hidden');
+            }
+
+            btnText.innerText = "تم التحقق والفتح بنجاح";
+            btnIcon.innerText = "✓";
+            btn.style.background = "#10b981"; 
+
+            setTimeout(() => {
+                document.getElementById('activation-screen').classList.add('hidden');
+                window.location.reload(); 
+            }, 1800);
+        } else {
+            if (expiryBox) expiryBox.classList.add('hidden');
+            btnText.innerText = "فشل التحقق (الاشتراك منتهي)";
+            btnIcon.innerText = "❌";
+            btn.style.background = "#ef4444"; 
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
+        }
+
+    } catch (error) {
+        console.error(error);
+        localStorage.removeItem('contractor_subscription_expiry_cache');
+        btnText.innerText = "لا يوجد إنترنت! فشل التفعيل";
+        btnIcon.innerText = "🌐";
+        btn.disabled = false;
+        btn.classList.remove('opacity-80');
+        alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
+    }
 }
