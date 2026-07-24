@@ -1,47 +1,3 @@
-// 📌 دالة الحفظ المباشرة على مستوى الـ Global Window فوراً بدون أي تعارض
-window.saveCompanyData = function() {
-    const nameEl = document.getElementById('setup-company-name');
-    const phoneEl = document.getElementById('setup-company-phone');
-    const addressEl = document.getElementById('setup-company-address');
-    const logoEl = document.getElementById('setup-company-logo');
-
-    const name = nameEl ? nameEl.value.trim() : '';
-    const phone = phoneEl ? phoneEl.value.trim() : '';
-    const address = addressEl ? addressEl.value.trim() : '';
-
-    if (!name || !phone) {
-        alert('الرجاء إدخال البيانات الأساسية (اسم الشركة ورقم التليفون)');
-        return;
-    }
-
-    const markup = document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15";
-    const contingency = document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5";
-    const waste = document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5";
-
-    localStorage.setItem('contractor_initial_rates', JSON.stringify({ markup, contingency, waste }));
-
-    const executeSave = (logoBase64 = '') => {
-        companyData = { name, phone, address, logo: logoBase64 };
-        localStorage.setItem('contractor_company', JSON.stringify(companyData));
-        
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) {
-            setupScreen.style.setProperty('display', 'none', 'important');
-            setupScreen.classList.add('hidden');
-        }
-        window.location.reload();
-    };
-
-    if (logoEl && logoEl.files && logoEl.files[0]) {
-        const reader = new FileReader();
-        reader.onloadend = () => executeSave(reader.result);
-        reader.onerror = () => executeSave('');
-        reader.readAsDataURL(logoEl.files[0]);
-    } else {
-        executeSave();
-    }
-};
-
 const i18n = {
     ar: {
         appTitle: "The Smart Contractor",
@@ -213,26 +169,26 @@ function updateUILanguage() {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     
-    document.getElementById('lang-toggle-btn').innerText = lang === 'ar' ? '🌐 EN' : '🌐 العربي';
-    document.getElementById('app-main-title').innerText = i18n[lang].appTitle;
-    document.getElementById('setup-title').innerText = i18n[lang].setupTitle;
-    document.getElementById('lbl-comp-name').innerText = i18n[lang].lblCompName;
-    document.getElementById('lbl-comp-phone').innerText = i18n[lang].lblCompPhone;
-    document.getElementById('lbl-comp-address').innerText = i18n[lang].lblCompAddress;
-    document.getElementById('save-setup-btn').innerText = i18n[lang].btnSaveSetup;
-    document.getElementById('sec-client-info').innerText = i18n[lang].secClientInfo;
-    document.getElementById('lbl-customer-name').innerText = i18n[lang].lblCustomerName;
-    document.getElementById('lbl-customer-phone').innerText = i18n[lang].lblCustomerPhone;
-    document.getElementById('lbl-markup').innerText = i18n[lang].lblMarkup;
-    document.getElementById('lbl-contingency').innerText = i18n[lang].lblContingency;
-    document.getElementById('lbl-waste').innerText = i18n[lang].lblWaste;
-    document.getElementById('sec-items').innerText = i18n[lang].secItems;
-    document.getElementById('btn-text-add').innerText = i18n[lang].btnAddItem;
-    document.getElementById('btn-text-pdf').innerText = i18n[lang].btnGeneratePDF;
-    document.getElementById('modal-add-title').innerText = i18n[lang].modalAddTitle;
-    document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
-    document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
-    document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
+    if (document.getElementById('lang-toggle-btn')) document.getElementById('lang-toggle-btn').innerText = lang === 'ar' ? '🌐 EN' : '🌐 العربي';
+    if (document.getElementById('app-main-title')) document.getElementById('app-main-title').innerText = i18n[lang].appTitle;
+    if (document.getElementById('setup-title')) document.getElementById('setup-title').innerText = i18n[lang].setupTitle;
+    if (document.getElementById('lbl-comp-name')) document.getElementById('lbl-comp-name').innerText = i18n[lang].lblCompName;
+    if (document.getElementById('lbl-comp-phone')) document.getElementById('lbl-comp-phone').innerText = i18n[lang].lblCompPhone;
+    if (document.getElementById('lbl-comp-address')) document.getElementById('lbl-comp-address').innerText = i18n[lang].lblCompAddress;
+    if (document.getElementById('save-setup-btn')) document.getElementById('save-setup-btn').innerText = i18n[lang].btnSaveSetup;
+    if (document.getElementById('sec-client-info')) document.getElementById('sec-client-info').innerText = i18n[lang].secClientInfo;
+    if (document.getElementById('lbl-customer-name')) document.getElementById('lbl-customer-name').innerText = i18n[lang].lblCustomerName;
+    if (document.getElementById('lbl-customer-phone')) document.getElementById('lbl-customer-phone').innerText = i18n[lang].lblCustomerPhone;
+    if (document.getElementById('lbl-markup')) document.getElementById('lbl-markup').innerText = i18n[lang].lblMarkup;
+    if (document.getElementById('lbl-contingency')) document.getElementById('lbl-contingency').innerText = i18n[lang].lblContingency;
+    if (document.getElementById('lbl-waste')) document.getElementById('lbl-waste').innerText = i18n[lang].lblWaste;
+    if (document.getElementById('sec-items')) document.getElementById('sec-items').innerText = i18n[lang].secItems;
+    if (document.getElementById('btn-text-add')) document.getElementById('btn-text-add').innerText = i18n[lang].btnAddItem;
+    if (document.getElementById('btn-text-pdf')) document.getElementById('btn-text-pdf').innerText = i18n[lang].btnGeneratePDF;
+    if (document.getElementById('modal-add-title')) document.getElementById('modal-add-title').innerText = i18n[lang].modalAddTitle;
+    if (document.getElementById('lbl-new-name')) document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
+    if (document.getElementById('lbl-new-mat')) document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
+    if (document.getElementById('lbl-new-lab')) document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
     
     document.querySelectorAll('.area-input').forEach(input => {
         input.placeholder = i18n[lang].placeholderArea;
@@ -283,21 +239,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    const isAllowed = await checkActivation();
-    
-    // التحقق من وجود بيانات الشركة لعرض أو إخفاء الشاشة
+    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات طبقاً لوجود بيانات مخزنة
+    const setupScreen = document.getElementById('setup-screen');
     if (!companyData) {
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) {
-            setupScreen.classList.remove('hidden');
-            setupScreen.style.display = 'flex';
-        }
+        if (setupScreen) setupScreen.classList.remove('hidden');
     } else {
-        const setupScreen = document.getElementById('setup-screen');
-        if (setupScreen) {
-            setupScreen.classList.add('hidden');
-            setupScreen.style.display = 'none';
-        }
+        if (setupScreen) setupScreen.classList.add('hidden');
         const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
         if (initialRates) {
             if (document.getElementById('markup-rate')) document.getElementById('markup-rate').value = initialRates.markup;
@@ -306,7 +253,48 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    if (!isAllowed) return;
+    // 2️⃣ منطق الحفظ الأصلي بتاع ملفك (تم رفعه هنا ليعمل دائماً بدون التأثر بـ checkActivation)
+    const saveSetupBtn = document.getElementById('save-setup-btn');
+    if (saveSetupBtn) {
+        saveSetupBtn.addEventListener('click', () => {
+            const name = document.getElementById('setup-company-name').value.trim();
+            const phone = document.getElementById('setup-company-phone').value.trim();
+            const address = document.getElementById('setup-company-address').value.trim();
+            const logoFile = document.getElementById('setup-company-logo').files[0];
+            
+            if (!name || !phone) { alert('الرجاء إدخال البيانات الأساسية'); return; }
+            
+            localStorage.setItem('contractor_initial_rates', JSON.stringify({
+                markup: document.getElementById('markup-rate').value || "15",
+                contingency: document.getElementById('contingency-rate').value || "5",
+                waste: document.getElementById('waste-rate').value || "5"
+            }));
+            
+            const save = (logoBase64 = '') => {
+                localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
+                window.location.reload();
+            };
+            
+            if (logoFile) {
+                const reader = new FileReader();
+                reader.onloadend = () => save(reader.result);
+                reader.readAsDataURL(logoFile);
+            } else { 
+                save(); 
+            }
+        });
+    }
+
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
+                localStorage.removeItem('contractor_company');
+                localStorage.removeItem('contractor_initial_rates');
+                window.location.reload();
+            }
+        });
+    }
 
     const langBtn = document.getElementById('lang-toggle-btn');
     if (langBtn) {
@@ -315,23 +303,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             localStorage.setItem('contractor_lang', currentLang);
             updateUILanguage();
             renderItems();
-        });
-    }
-
-    // ⚙️ زر الإعدادات وإعادة فتح الشاشة وتعبئة البيانات المخزنة للتعديل
-    const settingsBtn = document.getElementById('settings-btn');
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => {
-            const setupScreen = document.getElementById('setup-screen');
-            if (setupScreen) {
-                if(companyData) {
-                    if(document.getElementById('setup-company-name')) document.getElementById('setup-company-name').value = companyData.name || '';
-                    if(document.getElementById('setup-company-phone')) document.getElementById('setup-company-phone').value = companyData.phone || '';
-                    if(document.getElementById('setup-company-address')) document.getElementById('setup-company-address').value = companyData.address || '';
-                }
-                setupScreen.classList.remove('hidden');
-                setupScreen.style.display = 'flex';
-            }
         });
     }
 
@@ -371,6 +342,9 @@ window.addEventListener('DOMContentLoaded', async () => {
             generateQuotationPDF();
         });
     }
+
+    // 3️⃣ كود التفعيل السحابي ياتي بعد ربط الأزرار
+    await checkActivation();
 });
 
 function generateQuotationPDF() {
