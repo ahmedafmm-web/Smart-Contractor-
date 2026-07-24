@@ -88,56 +88,65 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// 📌 دالة حفظ إعدادات أول مرة المباشرة والقصيرة والمضمونة
-async function saveCompanyData() {
-    const nameInput = document.getElementById('setup-company-name');
-    const phoneInput = document.getElementById('setup-company-phone');
-    const addressInput = document.getElementById('setup-company-address');
-    const logoInput = document.getElementById('setup-company-logo');
+// 📌 دالة حفظ إعدادات أول مرة المباشرة والقصيرة والمضمونة (تم إصلاحها بالكامل)
+window.saveCompanyData = async function() {
+    try {
+        const nameInput = document.getElementById('setup-company-name');
+        const phoneInput = document.getElementById('setup-company-phone');
+        const addressInput = document.getElementById('setup-company-address');
+        const logoInput = document.getElementById('setup-company-logo');
 
-    const name = nameInput ? nameInput.value.trim() : '';
-    const phone = phoneInput ? phoneInput.value.trim() : '';
-    const address = addressInput ? addressInput.value.trim() : '';
+        const name = nameInput ? nameInput.value.trim() : '';
+        const phone = phoneInput ? phoneInput.value.trim() : '';
+        const address = addressInput ? addressInput.value.trim() : '';
 
-    if (!name || !phone) {
-        alert('الرجاء إدخال البيانات الأساسية: اسم الشركة ورقم التليفون');
-        return;
-    }
-
-    // 1. حفظ النسب الأساسية
-    const rates = {
-        markup: document.getElementById('markup-rate')?.value || "15",
-        contingency: document.getElementById('contingency-rate')?.value || "5",
-        waste: document.getElementById('waste-rate')?.value || "5"
-    };
-    localStorage.setItem('contractor_initial_rates', JSON.stringify(rates));
-
-    // 2. تحويل اللوجو بشكل متزامن مضمون
-    let logoBase64 = '';
-    if (logoInput && logoInput.files && logoInput.files[0]) {
-        try {
-            logoBase64 = await new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = () => resolve('');
-                reader.readAsDataURL(logoInput.files[0]);
-            });
-        } catch (e) {
-            console.warn("تعذر حفظ اللوجو، سيتم الحفظ بدونه");
+        if (!name || !phone) {
+            alert('الرجاء إدخال البيانات الأساسية: اسم الشركة ورقم التليفون');
+            return;
         }
-    }
 
-    // 3. كتابة البيانات في الـ localStorage وتحديث الكائن الحالي
-    companyData = { name, phone, address, logo: logoBase64 };
-    localStorage.setItem('contractor_company', JSON.stringify(companyData));
+        // 1. حفظ النسب الأساسية
+        const markupEl = document.getElementById('markup-rate');
+        const contingencyEl = document.getElementById('contingency-rate');
+        const wasteEl = document.getElementById('waste-rate');
 
-    // 4. إخفاء شاشة الإعدادات فوراً وبشكل صريح
-    const setupScreen = document.getElementById('setup-screen');
-    if (setupScreen) {
-        setupScreen.classList.add('hidden');
-        setupScreen.style.display = 'none';
+        const rates = {
+            markup: markupEl ? markupEl.value : "15",
+            contingency: contingencyEl ? contingencyEl.value : "5",
+            waste: wasteEl ? wasteEl.value : "5"
+        };
+        localStorage.setItem('contractor_initial_rates', JSON.stringify(rates));
+
+        // 2. تحويل اللوجو بشكل متزامن أمن
+        let logoBase64 = '';
+        if (logoInput && logoInput.files && logoInput.files.length > 0) {
+            try {
+                logoBase64 = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = () => resolve('');
+                    reader.readAsDataURL(logoInput.files[0]);
+                });
+            } catch (e) {
+                console.warn("تعذر حفظ اللوجو، سيتم الحفظ بدونه");
+            }
+        }
+
+        // 3. كتابة البيانات في الـ localStorage وتحديث الكائن الحالي
+        companyData = { name, phone, address, logo: logoBase64 };
+        localStorage.setItem('contractor_company', JSON.stringify(companyData));
+
+        // 4. إخفاء شاشة الإعدادات فوراً وبشكل صريح
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) {
+            setupScreen.classList.add('hidden');
+            setupScreen.style.display = 'none';
+        }
+    } catch (err) {
+        console.error("خطأ أثناء الحفظ:", err);
+        alert("حدث خطأ أثناء الحفظ، يرجى إعادة المحاولة.");
     }
-}
+};
 
 // دالة فحص التفعيل الأساسية عند فتح التطبيق
 async function checkActivation() {
@@ -153,7 +162,8 @@ async function checkActivation() {
     if (cachedExpiry) {
         const expiryDate = new Date(cachedExpiry);
         if (expiryDate > now) {
-            document.getElementById('activation-screen').classList.add('hidden');
+            const actScreen = document.getElementById('activation-screen');
+            if (actScreen) actScreen.classList.add('hidden');
             isCacheValid = true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -191,7 +201,8 @@ async function checkActivation() {
 
         if (remoteExpiry && new Date(remoteExpiry) > now) {
             localStorage.setItem('contractor_subscription_expiry_cache', remoteExpiry);
-            document.getElementById('activation-screen').classList.add('hidden');
+            const actScreen = document.getElementById('activation-screen');
+            if (actScreen) actScreen.classList.add('hidden');
             return true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -215,60 +226,6 @@ function showLockScreen(msg) {
     if (activationScreen) activationScreen.classList.remove('hidden');
     if (lockMessage) lockMessage.innerText = msg;
 }
-
-// دالة التحويل المباشر مع تمرير كود الجهاز
-function goToSubscriptionPortal(deviceId) {
-    window.location.href = `subscription.html?device=${deviceId}`;
-}
-
-async function registerNewTrialUser(deviceId) {
-    const now = new Date();
-    now.setHours(now.getHours() + 48); 
-    const trialExpiryString = now.toISOString();
-
-    try {
-        await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-            method: "POST",
-            headers: { 
-                "apikey": SUPABASE_KEY, 
-                "Authorization": `Bearer ${SUPABASE_KEY}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ 
-                device_id: deviceId, 
-                trial_expires_at: trialExpiryString, 
-                is_subscribed: false 
-            })
-        });
-        localStorage.setItem('contractor_subscription_expiry_cache', trialExpiryString);
-    } catch(e) { console.error(e); }
-}
-
-function startPaymobPayment(planType) {
-    const paymentLinks = {
-        'monthly': 'https://paymob.link/FssME',
-        'yearly': 'https://paymob.link/FssME'
-    };
-
-    const targetUrl = paymentLinks[planType];
-
-    if (targetUrl) {
-        window.location.href = targetUrl;
-    } else {
-        alert('حدث خطأ في تحديد باقة الاشتراك، برجاء المحاولة مرة أخرى.');
-    }
-}
-
-(function selfDefending() {
-    const initialConfig = checkActivation.toString().length;
-    setInterval(() => {
-        if (checkActivation.toString().length !== initialConfig || checkActivation.toString().includes('return true; //bypass')) {
-            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات الأمان الرقمية</div>";
-            localStorage.clear();
-        }
-    }, 3000);
-})();
 
 function updateUILanguage() {
     const lang = currentLang;
@@ -303,6 +260,7 @@ function updateUILanguage() {
 
 function renderItems() {
     const container = document.getElementById('dynamic-items-list');
+    if (!container) return;
     container.innerHTML = '';
     const allItems = [...defaultItems, ...customItems];
     
@@ -350,55 +308,82 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
     
     if (!companyData) {
-        document.getElementById('setup-screen').classList.remove('hidden');
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) {
+            setupScreen.classList.remove('hidden');
+            setupScreen.style.display = 'flex';
+        }
     } else {
-        document.getElementById('setup-screen').classList.add('hidden');
+        const setupScreen = document.getElementById('setup-screen');
+        if (setupScreen) {
+            setupScreen.classList.add('hidden');
+            setupScreen.style.display = 'none';
+        }
         const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
         if (initialRates) {
-            document.getElementById('markup-rate').value = initialRates.markup;
-            document.getElementById('contingency-rate').value = initialRates.contingency;
-            document.getElementById('waste-rate').value = initialRates.waste;
+            if (document.getElementById('markup-rate')) document.getElementById('markup-rate').value = initialRates.markup;
+            if (document.getElementById('contingency-rate')) document.getElementById('contingency-rate').value = initialRates.contingency;
+            if (document.getElementById('waste-rate')) document.getElementById('waste-rate').value = initialRates.waste;
         }
     }
 
-    document.getElementById('lang-toggle-btn').addEventListener('click', () => {
-        currentLang = currentLang === 'ar' ? 'en' : 'ar';
-        localStorage.setItem('contractor_lang', currentLang);
-        updateUILanguage();
-        renderItems();
-    });
+    const langBtn = document.getElementById('lang-toggle-btn');
+    if (langBtn) {
+        langBtn.addEventListener('click', () => {
+            currentLang = currentLang === 'ar' ? 'en' : 'ar';
+            localStorage.setItem('contractor_lang', currentLang);
+            updateUILanguage();
+            renderItems();
+        });
+    }
 
-    document.getElementById('settings-btn').addEventListener('click', () => {
-        if(confirm(currentLang === 'ar' ? "هل تريد تعديل بيانات الشركة واللوجو والنسب؟" : "Modify configuration?")) {
-            localStorage.removeItem('contractor_company');
-            localStorage.removeItem('contractor_initial_rates');
-            window.location.reload();
-        }
-    });
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            const setupScreen = document.getElementById('setup-screen');
+            if (setupScreen) {
+                setupScreen.classList.remove('hidden');
+                setupScreen.style.display = 'flex';
+            }
+        });
+    }
 
-    document.getElementById('add-new-item-btn').addEventListener('click', () => {
-        document.getElementById('add-item-modal').classList.remove('hidden');
-    });
-    document.getElementById('close-modal-btn').addEventListener('click', () => {
-        document.getElementById('add-item-modal').classList.add('hidden');
-    });
+    const addBtn = document.getElementById('add-new-item-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            document.getElementById('add-item-modal').classList.remove('hidden');
+        });
+    }
+    
+    const closeBtn = document.getElementById('close-modal-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('add-item-modal').classList.add('hidden');
+        });
+    }
 
-    document.getElementById('save-new-item-btn').addEventListener('click', () => {
-        const name = document.getElementById('new-item-name').value.trim();
-        const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
-        const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
-        
-        if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
-        
-        customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
-        localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
-        document.getElementById('add-item-modal').classList.add('hidden');
-        renderItems();
-    });
+    const saveItemBtn = document.getElementById('save-new-item-btn');
+    if (saveItemBtn) {
+        saveItemBtn.addEventListener('click', () => {
+            const name = document.getElementById('new-item-name').value.trim();
+            const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
+            const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
+            
+            if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
+            
+            customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
+            localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+            document.getElementById('add-item-modal').classList.add('hidden');
+            renderItems();
+        });
+    }
 
-    document.getElementById('generate-pdf-btn').addEventListener('click', () => {
-        generateQuotationPDF();
-    });
+    const pdfBtn = document.getElementById('generate-pdf-btn');
+    if (pdfBtn) {
+        pdfBtn.addEventListener('click', () => {
+            generateQuotationPDF();
+        });
+    }
 });
 
 function generateQuotationPDF() {
@@ -606,7 +591,8 @@ async function checkSubscriptionManually() {
             btn.style.background = "#10b981"; 
 
             setTimeout(() => {
-                document.getElementById('activation-screen').classList.add('hidden');
+                const actScreen = document.getElementById('activation-screen');
+                if (actScreen) actScreen.classList.add('hidden');
                 window.location.reload(); 
             }, 1800);
         } else {
@@ -628,3 +614,4 @@ async function checkSubscriptionManually() {
         alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
     }
 }
+ 
