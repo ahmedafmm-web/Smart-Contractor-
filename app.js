@@ -65,7 +65,7 @@ let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) ||
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
-// دالة إخفاء البانر التراحيبي عند فتح الأداة بنجاح
+// 🎯 دالة إخفاء البانر التراحيبي نهائياً
 function hideHeroBanner() {
     const heroBanner = document.getElementById('hero-banner');
     if (heroBanner) {
@@ -96,7 +96,7 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل الأساسية عند فتح التطبيق
+// 🔒 دالة فحص التفعيل الأساسية مع مهلة الـ 3 أيام الأوفلاين
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -108,23 +108,24 @@ async function checkActivation() {
     const offlineUntil = localStorage.getItem('contractor_offline_until');
     let isCacheValid = false;
 
-    // فحص صلاحية التفعيل مع مهلة 3 أيام أوفلاين
+    // التأكد من أن مهلة الأوفلاين (الـ 3 أيام) والتفعيل السحابي كلاهما ساريان
     if (cachedExpiry && offlineUntil) {
         const expiryDate = new Date(cachedExpiry);
         const offlineLimitDate = new Date(offlineUntil);
 
         if (expiryDate > now && now <= offlineLimitDate) {
             document.getElementById('activation-screen').classList.add('hidden');
-            hideHeroBanner(); // إخفاء البانر عند الفتح أوفلاين
+            hideHeroBanner(); // إخفاء البانر التراحيبي
             isCacheValid = true;
         } else {
+            // انقضت الـ 3 أيام، قم بإلغاء الكاش
             localStorage.removeItem('contractor_subscription_expiry_cache');
             localStorage.removeItem('contractor_offline_until');
         }
     }
 
     if (!isCacheValid && !navigator.onLine) {
-        showLockScreen("⚠️ انقضت مهلة الاستخدام بدون إنترنت (3 أيام). يرجى الاتصال بالإنترنت للتحقق من التفعيل.");
+        showLockScreen("⚠️ انقضت مهلة الاستخدام بدون إنترنت (3 أيام). يرجى الاتصال بالإنترنت لتجديد التفعيل.");
         return false;
     }
 
@@ -159,7 +160,7 @@ async function checkActivation() {
         }
 
         if (remoteExpiry && new Date(remoteExpiry) > now) {
-            // حفظ تاريخ الانتهاء الاصلي + مهلة 3 أيام (72 ساعة) أوفلاين جديدة
+            // تعيين مهلة 3 أيام (72 ساعة) من الآن للأوفلاين
             const next3Days = new Date();
             next3Days.setDate(next3Days.getDate() + 3);
 
@@ -167,7 +168,7 @@ async function checkActivation() {
             localStorage.setItem('contractor_offline_until', next3Days.toISOString());
             
             document.getElementById('activation-screen').classList.add('hidden');
-            hideHeroBanner(); // إخفاء البانر عند الفتح أونلاين
+            hideHeroBanner(); // إخفاء البانر فور التفعيل
             return true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
@@ -187,7 +188,6 @@ async function checkActivation() {
     }
 }
 
-// 🔒 دالة إظهار شاشة القفل (تم تنظيفها تماماً وحذف إنشاء الزرار الديناميكي)
 function showLockScreen(msg) {
     const activationScreen = document.getElementById('activation-screen');
     const lockMessage = document.getElementById('lock-message');
@@ -195,64 +195,6 @@ function showLockScreen(msg) {
     if (activationScreen) activationScreen.classList.remove('hidden');
     if (lockMessage) lockMessage.innerText = msg;
 }
-
-// دالة التحويل المباشر مع تمرير كود الجهاز
-function goToSubscriptionPortal(deviceId) {
-    window.location.href = `subscription.html?device=${deviceId}`;
-}
-
-async function registerNewTrialUser(deviceId) {
-    const now = new Date();
-    now.setHours(now.getHours() + 48); 
-    const trialExpiryString = now.toISOString();
-
-    try {
-        await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-            method: "POST",
-            headers: { 
-                "apikey": SUPABASE_KEY, 
-                "Authorization": `Bearer ${SUPABASE_KEY}`,
-                "Content-Type": "application/json",
-                "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({ 
-                device_id: deviceId, 
-                trial_expires_at: trialExpiryString, 
-                is_subscribed: false 
-            })
-        });
-        localStorage.setItem('contractor_subscription_expiry_cache', trialExpiryString);
-        
-        const next3Days = new Date();
-        next3Days.setDate(next3Days.getDate() + 3);
-        localStorage.setItem('contractor_offline_until', next3Days.toISOString());
-    } catch(e) { console.error(e); }
-}
-
-function startPaymobPayment(planType) {
-    const paymentLinks = {
-        'monthly': 'https://paymob.link/FssME',
-        'yearly': 'https://paymob.link/FssME'
-    };
-
-    const targetUrl = paymentLinks[planType];
-
-    if (targetUrl) {
-        window.location.href = targetUrl;
-    } else {
-        alert('حدث خطأ في تحديد باقة الاشتراك، برجاء المحاولة مرة أخرى.');
-    }
-}
-
-(function selfDefending() {
-    const initialConfig = checkActivation.toString().length;
-    setInterval(() => {
-        if (checkActivation.toString().length !== initialConfig || checkActivation.toString().includes('return true; //bypass')) {
-            document.body.innerHTML = "<div style='color:red; text-align:center; margin-top:20%; font-size:24px; font-family:sans-serif;'>نسخة غير مصرح بها / تم اكتشاف تعديل في ملفات الأمان الرقمية</div>";
-            localStorage.clear();
-        }
-    }, 3000);
-})();
 
 function updateUILanguage() {
     const lang = currentLang;
@@ -324,6 +266,7 @@ function renderItems() {
     });
 }
 
+// 📌 منطق التحميل وحفظ شاشة الإعدادات لأول مرة
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
@@ -333,9 +276,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     
+    // إخفاء البانر تلقائياً طالما التفعيل ساري
+    hideHeroBanner();
+
+    // فحص هل تم إدخال بيانات الشركة من قبل أم لا (تظهر أول مرة فقط)
     if (!companyData) {
         document.getElementById('setup-screen').classList.remove('hidden');
     } else {
+        document.getElementById('setup-screen').classList.add('hidden');
         const initialRates = JSON.parse(localStorage.getItem('contractor_initial_rates'));
         if (initialRates) {
             document.getElementById('markup-rate').value = initialRates.markup;
@@ -344,6 +292,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
+    // حفظ بيانات إعدادات النظام وتخزينها للمرات القادمة
     document.getElementById('save-setup-btn').addEventListener('click', () => {
         const name = document.getElementById('setup-company-name').value.trim();
         const phone = document.getElementById('setup-company-phone').value.trim();
@@ -359,7 +308,9 @@ window.addEventListener('DOMContentLoaded', async () => {
         }));
         
         const save = (logoBase64 = '') => {
-            localStorage.setItem('contractor_company', JSON.stringify({ name, phone, address, logo: logoBase64 }));
+            companyData = { name, phone, address, logo: logoBase64 };
+            localStorage.setItem('contractor_company', JSON.stringify(companyData));
+            document.getElementById('setup-screen').classList.add('hidden');
             window.location.reload();
         };
         
