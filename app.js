@@ -88,7 +88,7 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل الأساسية عند فتح التطبيق
+// دالة فحص التفعيل الأساسية عند فتح التطبيق مع مهلة الـ 72 ساعة أوفلاين
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -97,22 +97,29 @@ async function checkActivation() {
     if(idBox) idBox.innerText = fingerprint;
 
     const cachedExpiry = localStorage.getItem('contractor_subscription_expiry_cache');
+    const lastOnlineCheck = localStorage.getItem('contractor_last_online_check');
     let isCacheValid = false;
 
-    if (cachedExpiry) {
+    // 1️⃣ التحقق من مهلة الـ 72 ساعة أوفلاين من آخر فحص سحابي ناجح
+    if (cachedExpiry && lastOnlineCheck) {
         const expiryDate = new Date(cachedExpiry);
-        if (expiryDate > now) {
+        const lastCheckDate = new Date(lastOnlineCheck);
+        
+        const hoursSinceLastCheck = (now - lastCheckDate) / (1000 * 60 * 60);
+
+        if (expiryDate > now && hoursSinceLastCheck <= 72) {
             if(document.getElementById('activation-screen')) document.getElementById('activation-screen').classList.add('hidden');
             isCacheValid = true;
-        } else {
+        } else if (hoursSinceLastCheck > 72) {
             localStorage.removeItem('contractor_subscription_expiry_cache');
         }
     }
 
     if (!isCacheValid) {
-        showLockScreen("برجاء الضغط على زر التوجيه بالأسفل للذهاب إلى بوابة التفعيل وتنشيط حسابك.");
+        showLockScreen("برجاء الاتصال بالإنترنت أو الضغط على زر التوجيه بالأسفل لتجديد التفعيل.");
     }
 
+    // 2️⃣ محاولة الاتصال بالسحابة لتحديث مهلة الـ 72 ساعة الأوفلاين
     try {
         if (!navigator.onLine) {
             throw new Error("OfflineMode");
@@ -125,6 +132,7 @@ async function checkActivation() {
 
         if (!data || data.length === 0) {
             localStorage.removeItem('contractor_subscription_expiry_cache');
+            localStorage.removeItem('contractor_last_online_check');
             showLockScreen("🔒 هذا الجهاز غير مسجل بالسحابة أو تم إلغاء تفعيله.");
             return false;
         }
@@ -140,19 +148,19 @@ async function checkActivation() {
 
         if (remoteExpiry && new Date(remoteExpiry) > now) {
             localStorage.setItem('contractor_subscription_expiry_cache', remoteExpiry);
+            localStorage.setItem('contractor_last_online_check', now.toISOString());
             if(document.getElementById('activation-screen')) document.getElementById('activation-screen').classList.add('hidden');
             return true;
         } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
+            localStorage.removeItem('contractor_last_online_check');
             showLockScreen("🔒 انتهت صلاحية الاشتراك الحالي. يرجى التجديد للاستمرار.");
             return false;
         }
 
     } catch (error) {
-        console.error("فشل الاتصال بالسيرفر:", error);
-        localStorage.removeItem('contractor_subscription_expiry_cache');
-        showLockScreen("⚠️ عذراً، لا يمكن استخدام الأداة بدون اتصال بالإنترنت للتحقق من الصلاحية.");
-        return false;
+        console.error("وضع الأوفلاين:", error);
+        return isCacheValid;
     }
 }
 
@@ -239,7 +247,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات فوراً وتجهيز أزرار الواجهة أولاً
+    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
     } else {
@@ -251,7 +259,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 2️⃣ ربط حدث حفظ الإعدادات (قبل كود التفعيل لضمان عدم توقفه أبداً)
+    // 2️⃣ ربط حدث حفظ الإعدادات أول مرة
     const saveSetupBtn = document.getElementById('save-setup-btn');
     if (saveSetupBtn) {
         saveSetupBtn.addEventListener('click', () => {
@@ -281,7 +289,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 3️⃣ زر الإعدادات ⚙️ للتعديل ومسح البيانات المؤقتة لفتح الشاشة من جديد
+    // 3️⃣ زر الإعدادات ⚙️ لإعادة التعديل ومسح البيانات المؤقتة
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
@@ -340,7 +348,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 4️⃣ الفحص السحابي ينفذ الآن بعد تجهيز كافة الأحداث في الصفحة
+    // 4️⃣ تنفيذ الفحص السحابي
     await checkActivation();
 });
 
@@ -470,6 +478,7 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
+// دالة التحقق اليدوي عند الضغط على الزرار (تحدث مهلة الـ 72 ساعة)
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -521,6 +530,7 @@ async function checkSubscriptionManually() {
             } else {
                 lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
                 localStorage.removeItem('contractor_subscription_expiry_cache');
+                localStorage.removeItem('contractor_last_online_check');
             }
         }
         else if (user.trial_expires_at) {
@@ -532,11 +542,13 @@ async function checkSubscriptionManually() {
             } else {
                 lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
                 localStorage.removeItem('contractor_subscription_expiry_cache');
+                localStorage.removeItem('contractor_last_online_check');
             }
         }
 
         if (isAccessGranted) {
             localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
+            localStorage.setItem('contractor_last_online_check', now.toISOString());
 
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
@@ -563,7 +575,6 @@ async function checkSubscriptionManually() {
 
     } catch (error) {
         console.error(error);
-        localStorage.removeItem('contractor_subscription_expiry_cache');
         btnText.innerText = "لا يوجد إنترنت! فشل التفعيل";
         btnIcon.innerText = "🌐";
         btn.disabled = false;
