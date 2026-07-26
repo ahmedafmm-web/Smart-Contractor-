@@ -20,6 +20,7 @@ const i18n = {
         lblNewName: "اسم البند (مثال: تركيب سيراميك)",
         lblNewMat: "تكلفة المواد للمتر (م²)",
         lblNewLab: "تكلفة المصنعية للمتر (م²)",
+        lblNewImg: "صورة البند (اختياري)",
         placeholderArea: "المساحة بالمتر المربع (م²)",
         txtValid: "هذه المقايسة سارية لمدة 3 أيام فقط من تاريخ الإصدار نتيجه تذبذب أسعار السوق.",
         txtPayments: "طريقة الدفع الافتراضية: 50% مقدم تعاقد، 30% عند توريد المواد، 20% عند الاستلام النهائي."
@@ -45,6 +46,7 @@ const i18n = {
         lblNewName: "Item Name (e.g., Ceramic Tiles)",
         lblNewMat: "Material Cost per m²",
         lblNewLab: "Labor Cost per m²",
+        lblNewImg: "Item Image (Optional)",
         placeholderArea: "Area in Square Meters (m²)",
         txtValid: "This quotation is valid for 3 days only from the date of issue due to market price fluctuations.",
         txtPayments: "Default Payment Terms: 50% Advance, 30% upon Material Delivery, 20% upon Final Handover."
@@ -60,6 +62,9 @@ const defaultItems = [
 let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
+
+// ذاكرة حفظ صور وأسماء البنود المحدثة
+let itemDetailsCache = JSON.parse(localStorage.getItem('contractor_items_details')) || {};
 
 // إعداد ربط Supabase
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
@@ -88,7 +93,33 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة فحص التفعيل الأساسية عند فتح التطبيق مع مهلة الـ 72 ساعة أوفلاين
+// دالة ضغط الصور لحفظ مساحة الـ localStorage
+function compressAndBase64(file, callback) {
+    if (!file) { callback(''); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const maxDim = 180;
+            let width = img.width;
+            let height = img.height;
+            if (width > height) {
+                if (width > maxDim) { height *= maxDim / width; width = maxDim; }
+            } else {
+                if (height > maxDim) { width *= maxDim / height; height = maxDim; }
+            }
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(img, 0, 0, width, height);
+            callback(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 async function checkActivation() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -103,7 +134,6 @@ async function checkActivation() {
     if (cachedExpiry && lastOnlineCheck) {
         const expiryDate = new Date(cachedExpiry);
         const lastCheckDate = new Date(lastOnlineCheck);
-        
         const hoursSinceLastCheck = (now - lastCheckDate) / (1000 * 60 * 60);
 
         if (expiryDate > now && hoursSinceLastCheck <= 72) {
@@ -165,7 +195,6 @@ async function checkActivation() {
 function showLockScreen(msg) {
     const activationScreen = document.getElementById('activation-screen');
     const lockMessage = document.getElementById('lock-message');
-    
     if (activationScreen) activationScreen.classList.remove('hidden');
     if (lockMessage) lockMessage.innerText = msg;
 }
@@ -195,6 +224,7 @@ function updateUILanguage() {
     if(document.getElementById('lbl-new-name')) document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
     if(document.getElementById('lbl-new-mat')) document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
     if(document.getElementById('lbl-new-lab')) document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
+    if(document.getElementById('lbl-new-img')) document.getElementById('lbl-new-img').innerText = i18n[lang].lblNewImg;
     
     document.querySelectorAll('.area-input').forEach(input => {
         input.placeholder = i18n[lang].placeholderArea;
@@ -208,12 +238,29 @@ function renderItems() {
     const allItems = [...defaultItems, ...customItems];
     
     allItems.forEach(item => {
-        const itemName = currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name);
+        const cached = itemDetailsCache[item.id] || {};
+        const itemName = cached.name || (currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name));
+        const itemImg = cached.img || item.img || '';
+
         const itemHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm" id="card-${item.id}">
-                <div class="flex flex-col md:flex-row justify-between gap-2 mb-3">
-                    <input type="text" value="${itemName}" data-type="name" data-id="${item.id}"
-                           class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full md:w-auto flex-1">
+                <div class="flex flex-col md:flex-row justify-between gap-2 mb-3 items-center">
+                    <div class="flex items-center gap-3 w-full md:w-auto flex-1">
+                        <!-- معاينة وصورة البند -->
+                        <div class="relative w-12 h-12 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center overflow-hidden shrink-0 group">
+                            <img id="img-preview-${item.id}" src="${itemImg}" class="${itemImg ? '' : 'hidden'} w-full h-full object-cover">
+                            <i id="img-icon-${item.id}" class="fas fa-image text-slate-600 text-lg ${itemImg ? 'hidden' : ''}"></i>
+                            <label for="file-input-${item.id}" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition text-white text-xs">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            <input type="file" id="file-input-${item.id}" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', this)">
+                        </div>
+
+                        <!-- اسم البند -->
+                        <input type="text" value="${itemName}" data-type="name" data-id="${item.id}" onchange="saveItemName('${item.id}', this.value)"
+                               class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full flex-1">
+                    </div>
+
                     <span class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold self-start md:self-center">
                         ${currentLang === 'ar' ? 'متر مربع' : 'Sqm'}
                     </span>
@@ -241,11 +288,37 @@ function renderItems() {
     });
 }
 
+// دالة حفظ تغيير اسم البند تلقائياً في الذاكرة
+function saveItemName(itemId, newName) {
+    if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
+    itemDetailsCache[itemId].name = newName;
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+}
+
+// دالة حفظ تغيير صورة البند تلقائياً في الذاكرة
+function handleItemImageUpload(itemId, inputElement) {
+    const file = inputElement.files ? inputElement.files[0] : null;
+    if (!file) return;
+
+    compressAndBase64(file, (base64Img) => {
+        if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
+        itemDetailsCache[itemId].img = base64Img;
+        localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+
+        const previewImg = document.getElementById(`img-preview-${itemId}`);
+        const icon = document.getElementById(`img-icon-${itemId}`);
+        if (previewImg) {
+            previewImg.src = base64Img;
+            previewImg.classList.remove('hidden');
+        }
+        if (icon) icon.classList.add('hidden');
+    });
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
 
-    // 1️⃣ إظهار أو إخفاء شاشة الإعدادات عند فتح الصفحة
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
     } else {
@@ -257,7 +330,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         }
     }
     
-    // 2️⃣ ربط حدث حفظ الإعدادات مع ظهور تنبيه بالحفظ في ذاكرة المتصفح
     const saveSetupBtn = document.getElementById('save-setup-btn');
     if (saveSetupBtn) {
         saveSetupBtn.addEventListener('click', () => {
@@ -279,7 +351,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             saveSetupBtn.disabled = true;
             saveSetupBtn.innerText = "جاري الحفظ...";
 
-            // حفظ النسب الأساسية
             localStorage.setItem('contractor_initial_rates', JSON.stringify({
                 markup: document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15",
                 contingency: document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5",
@@ -288,8 +359,6 @@ window.addEventListener('DOMContentLoaded', async () => {
 
             const commitDataToStorage = (logoBase64) => {
                 const companyObj = { name, phone, address, logo: logoBase64 };
-                
-                // كتابة البيانات بشكل صريح ومضمون في ذاكرة المتصفح
                 localStorage.setItem('contractor_company', JSON.stringify(companyObj));
                 companyData = companyObj;
                 
@@ -298,48 +367,20 @@ window.addEventListener('DOMContentLoaded', async () => {
                     if (setupScreen) setupScreen.classList.add('hidden');
                     saveSetupBtn.disabled = false;
                     saveSetupBtn.innerText = "حفظ البيانات والدخول";
-
-                    // 🔔 إظهار رسالة التنبيه الفورية المطلوب ظهورها
                     alert("✅ تم الحفظ بنجاح في ذاكرة المتصفح!");
                 }, 200);
             };
 
-            // معالجة وضغط الصورة فوراً في الذاكرة لحفظها إجبارياً
             if (logoFile) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const ctx = canvas.getContext('2d');
-                        
-                        const maxDim = 200;
-                        let width = img.width;
-                        let height = img.height;
-                        
-                        if (width > height) {
-                            if (width > maxDim) { height *= maxDim / width; width = maxDim; }
-                        } else {
-                            if (height > maxDim) { width *= maxDim / height; height = maxDim; }
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        const compressedLogo = canvas.toDataURL('image/png', 0.8);
-                        commitDataToStorage(compressedLogo);
-                    };
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(logoFile);
+                compressAndBase64(logoFile, (compressedLogo) => {
+                    commitDataToStorage(compressedLogo);
+                });
             } else {
                 commitDataToStorage('');
             }
         });
     }
 
-    // 3️⃣ زر الإعدادات ⚙️ لإعادة التعديل ومسح البيانات المؤقتة
     const settingsBtn = document.getElementById('settings-btn');
     if (settingsBtn) {
         settingsBtn.addEventListener('click', () => {
@@ -375,19 +416,37 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // حفظ بند جديد مخصص مع صورته الختامية
     const saveItemBtn = document.getElementById('save-new-item-btn');
     if (saveItemBtn) {
         saveItemBtn.addEventListener('click', () => {
             const name = document.getElementById('new-item-name').value.trim();
             const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
             const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
+            const imgFile = document.getElementById('new-item-img') && document.getElementById('new-item-img').files ? document.getElementById('new-item-img').files[0] : null;
             
             if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
-            
-            customItems.push({ id: "custom_" + Date.now(), name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab });
-            localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
-            document.getElementById('add-item-modal').classList.add('hidden');
-            renderItems();
+
+            const newItemId = "custom_" + Date.now();
+
+            compressAndBase64(imgFile, (base64Img) => {
+                const newItem = { id: newItemId, name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab };
+                customItems.push(newItem);
+                localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+
+                if (base64Img) {
+                    itemDetailsCache[newItemId] = { name: name, img: base64Img };
+                    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+                }
+
+                document.getElementById('add-item-modal').classList.add('hidden');
+                document.getElementById('new-item-name').value = '';
+                document.getElementById('new-item-mat-cost').value = '';
+                document.getElementById('new-item-lab-cost').value = '';
+                if(document.getElementById('new-item-img')) document.getElementById('new-item-img').value = '';
+
+                renderItems();
+            });
         });
     }
 
@@ -398,7 +457,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 4️⃣ تنفيذ الفحص السحابي
     await checkActivation();
 });
 
@@ -427,6 +485,10 @@ function generateQuotationPDF() {
         const currentItemName = nameInput ? nameInput.value.trim() : (currentLang === 'ar' ? item.name_ar : item.name_en);
         const currentMatCost = matInput ? parseFloat(matInput.value) : item.mat_cost;
         const currentLabCost = labInput ? parseFloat(labInput.value) : item.lab_cost;
+
+        // جلب صورة البند المقترنة
+        const cached = itemDetailsCache[item.id] || {};
+        const itemImg = cached.img || item.img || '';
         
         if (!isNaN(area) && area > 0) {
             const totalMaterialCost = area * currentMatCost * (1 + waste);
@@ -438,10 +500,15 @@ function generateQuotationPDF() {
             
             rowsHTML += `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 12px; text-align: start;">${currentItemName}</td>
-                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${area.toLocaleString('en-US')} M²</td>
-                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="padding: 10px; text-align: start; vertical-align: middle;">
+                        <div style="display: flex; items-center: center; gap: 12px;">
+                            ${itemImg ? `<img src="${itemImg}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; shrink: 0;">` : ''}
+                            <span style="font-weight: 700; align-self: center;">${currentItemName}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${area.toLocaleString('en-US')} M²</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace; vertical-align: middle;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 </tr>
             `;
         }
@@ -528,7 +595,6 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
-// دالة التحقق اليدوي عند الضغط على الزرار (تحدث مهلة الـ 72 ساعة)
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
