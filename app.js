@@ -55,10 +55,9 @@ let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
-// ذاكرة حفظ التفاصيل الدقيقة وقيم المدخلات الحالية لمنع ضياع الأرقام
 let itemDetailsCache = JSON.parse(localStorage.getItem('contractor_items_details')) || {};
 let activeInputValues = {}; 
-let savedQuotationsList = JSON.parse(localStorage.getItem('contractor_saved_quotations')) || [];
+let cloudSavedQuotations = [];
 
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
@@ -108,7 +107,6 @@ function compressAndBase64(file, callback) {
     reader.readAsDataURL(file);
 }
 
-// 🛡️ حفظ اللحظة الحالية لكافة المدخلات المكتوبة قبل أي تحديث بالصفحة
 function snapshotCurrentInputs() {
     const allItems = [...defaultItems, ...customItems];
     allItems.forEach(item => {
@@ -164,14 +162,12 @@ function renderItems() {
 
         const itemHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group" id="card-${item.id}">
-                <!-- 🗑️ زر حذف البند بالكامل -->
                 <button onclick="deleteWorkItem('${item.id}')" title="حذف هذا البند" class="absolute top-3 left-3 text-slate-500 hover:text-red-400 p-1.5 transition text-xs">
                     <i class="fas fa-trash-alt"></i>
                 </button>
 
                 <div class="flex flex-col md:flex-row justify-between gap-2 mb-2 items-center pl-6">
                     <div class="flex items-center gap-3 w-full md:w-auto flex-1">
-                        <!-- معاينة وصورة البند -->
                         <div class="relative w-11 h-11 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center overflow-hidden shrink-0 group">
                             <img id="img-preview-${item.id}" src="${itemImg}" class="${itemImg ? '' : 'hidden'} w-full h-full object-cover">
                             <i id="img-icon-${item.id}" class="fas fa-image text-slate-600 text-base ${itemImg ? 'hidden' : ''}"></i>
@@ -181,12 +177,10 @@ function renderItems() {
                             <input type="file" id="file-input-${item.id}" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', this)">
                         </div>
 
-                        <!-- اسم البند -->
                         <input type="text" value="${itemName}" data-type="name" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'name', this.value)"
                                class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full flex-1">
                     </div>
 
-                    <!-- 📐 قائمة اختيار وحدات القياس -->
                     <select data-type="unit" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'unit', this.value)" class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold outline-none focus:border-indigo-500 cursor-pointer">
                         <option value="m2" ${itemUnit === 'm2' ? 'selected' : ''}>متر مسطح (م²)</option>
                         <option value="m3" ${itemUnit === 'm3' ? 'selected' : ''}>متر مكعب (م³)</option>
@@ -197,7 +191,6 @@ function renderItems() {
                     </select>
                 </div>
 
-                <!-- 📝 حقل التوصيف الفني للبند -->
                 <div class="mb-3">
                     <textarea data-type="desc" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'desc', this.value)" placeholder="${i18n[currentLang].placeholderDesc}" rows="1" class="w-full p-2 bg-slate-950 border border-slate-800/80 rounded-lg outline-none focus:border-indigo-500 text-xs text-slate-300 resize-none">${itemDesc}</textarea>
                 </div>
@@ -247,7 +240,6 @@ function handleItemImageUpload(itemId, inputElement) {
     });
 }
 
-// 🗑️ حذف البند من الواجهة والذاكرة
 function deleteWorkItem(itemId) {
     if (!confirm('هل أنت تأكد من حذف هذا البند من المقايسة؟')) return;
     
@@ -261,7 +253,6 @@ function deleteWorkItem(itemId) {
     renderItems();
 }
 
-// ➕ إظهار / إخفاء كارت الإضافة المباشرة المدمجة
 function toggleInlineAddCard(show) {
     const card = document.getElementById('inline-add-container');
     if (!card) return;
@@ -273,7 +264,6 @@ function toggleInlineAddCard(show) {
     }
 }
 
-// ➕ تأكيد إضافة البند المخصص الجديد فوراً بدون إعادة تحميل وتشتيت
 function commitInlineNewItem() {
     const name = document.getElementById('inline-item-name').value.trim();
     const unit = document.getElementById('inline-item-unit').value;
@@ -293,7 +283,6 @@ function commitInlineNewItem() {
     itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit };
     localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
 
-    // تفريغ المدخلات
     document.getElementById('inline-item-name').value = '';
     document.getElementById('inline-item-desc').value = '';
     document.getElementById('inline-item-mat').value = '';
@@ -303,65 +292,128 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// 💾 حفظ المقايسة الحالية بأرشيف الجهاز
-function saveCurrentQuotation() {
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase المقترنة ببصمة الجهاز
+async function saveCurrentQuotationToCloud() {
     const clientName = document.getElementById('client-name').value.trim();
-    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه!'); return; }
+    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
+
+    const btn = document.getElementById('save-current-q-btn');
+    btn.disabled = true;
+    btn.innerText = "جاري الحفظ بالسحابة...";
 
     snapshotCurrentInputs();
-    const qRecord = {
-        id: "q_" + Date.now(),
+    const deviceId = getDeviceID();
+    const qDataObj = {
         clientName: clientName,
         clientPhone: document.getElementById('client-phone').value.trim(),
-        date: new Date().toLocaleDateString('ar-EG'),
+        markup: document.getElementById('markup-rate').value,
+        contingency: document.getElementById('contingency-rate').value,
+        waste: document.getElementById('waste-rate').value,
         inputs: activeInputValues,
-        customItems: customItems
+        customItems: customItems,
+        itemDetailsCache: itemDetailsCache
     };
 
-    savedQuotationsList.unshift(qRecord);
-    if (savedQuotationsList.length > 10) savedQuotationsList.pop(); // الاحتفاظ بآخر 10 مقايسات
-    localStorage.setItem('contractor_saved_quotations', JSON.stringify(savedQuotationsList));
-    
-    renderSavedQuotationsUI();
-    alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح في أرشيف المقايسات!`);
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/quotations`, {
+            method: 'POST',
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`,
+                "Content-Type": "application/json",
+                "Prefer": "return=representation"
+            },
+            body: JSON.stringify({
+                device_id: deviceId,
+                client_name: clientName,
+                client_phone: qDataObj.clientPhone,
+                quotation_data: qDataObj
+            })
+        });
+
+        if (response.ok) {
+            alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
+            fetchCloudQuotations();
+        } else {
+            throw new Error("فشل الحفظ في Supabase");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("❌ خطأ: لم نتمكن من الحفظ بالسحابة، تحقّق من الاتصال بالإنترنت والجدول.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
+    }
 }
 
-function renderSavedQuotationsUI() {
+// ☁️ 2. جلب وتنزيل أرشيف جميع المقايسات السحابية الخاصة بهذا الجهاز
+async function fetchCloudQuotations() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
-    
-    if (savedQuotationsList.length === 0) {
-        listContainer.innerHTML = `<p id="no-saved-q-msg" class="text-xs text-slate-500 italic">لا توجد مقايسات محفوظة بعد.</p>`;
-        return;
-    }
 
+    const deviceId = getDeviceID();
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/quotations?device_id=eq.${deviceId}&order=created_at.desc`, {
+            headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+        });
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            cloudSavedQuotations = data;
+            renderCloudQuotationsUI();
+        } else {
+            listContainer.innerHTML = `<p id="no-saved-q-msg" class="text-xs text-slate-500 italic">لا توجد مقايسات محفوظة بالسحابة لهذا الجهاز بعد.</p>`;
+        }
+    } catch (err) {
+        console.error(err);
+        listContainer.innerHTML = `<p class="text-xs text-red-400">عفواً، فشل تحميل الأرشيف السحابي.</p>`;
+    }
+}
+
+function renderCloudQuotationsUI() {
+    const listContainer = document.getElementById('saved-quotations-list');
+    if (!listContainer) return;
     listContainer.innerHTML = '';
-    savedQuotationsList.forEach(q => {
+
+    cloudSavedQuotations.forEach(row => {
+        const dateStr = new Date(row.created_at).toLocaleDateString('ar-EG');
         const badgeHTML = `
-            <button onclick="loadSavedQuotation('${q.id}')" class="shrink-0 bg-slate-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                <i class="fas fa-file-invoice text-indigo-400"></i>
-                <span>${q.clientName} (${q.date})</span>
+            <button onclick="loadSavedQuotationFromCloud('${row.id}')" class="shrink-0 bg-slate-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="fas fa-cloud text-indigo-400"></i>
+                <span>${row.client_name} (${dateStr})</span>
             </button>
         `;
         listContainer.insertAdjacentHTML('beforeend', badgeHTML);
     });
 }
 
-function loadSavedQuotation(qId) {
-    const q = savedQuotationsList.find(item => item.id === qId);
-    if (!q) return;
+// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة بجميع أرقامها وتفاصيلها
+function loadSavedQuotationFromCloud(rowId) {
+    const record = cloudSavedQuotations.find(r => r.id === rowId);
+    if (!record || !record.quotation_data) return;
 
-    if (confirm(`هل تريد استرجاع وتعديل مقايسة العميل (${q.clientName})؟`)) {
-        document.getElementById('client-name').value = q.clientName || '';
-        document.getElementById('client-phone').value = q.clientPhone || '';
+    const q = record.quotation_data;
+    if (confirm(`هل تريد استرجاع المقايسة السحابية للعميل (${record.client_name}) بالكامل؟`)) {
+        document.getElementById('client-name').value = q.clientName || record.client_name || '';
+        document.getElementById('client-phone').value = q.clientPhone || record.client_phone || '';
         
+        if (q.markup) document.getElementById('markup-rate').value = q.markup;
+        if (q.contingency) document.getElementById('contingency-rate').value = q.contingency;
+        if (q.waste) document.getElementById('waste-rate').value = q.waste;
+
         if (q.customItems) {
             customItems = q.customItems;
             localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
         }
 
+        if (q.itemDetailsCache) {
+            itemDetailsCache = q.itemDetailsCache;
+            localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+        }
+
         activeInputValues = q.inputs || {};
         renderItems();
+        alert(`✅ تم استرجاع كافة بيانات أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
     }
 }
 
@@ -474,7 +526,7 @@ function updateUILanguage() {
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
-    renderSavedQuotationsUI();
+    fetchCloudQuotations();
 
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
@@ -569,7 +621,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     await checkActivation();
 });
 
-// 📄 طباعة وتأكيدات الـ PDF المحدثة مع التوصيف والوحدات الفردية
 function generateQuotationPDF() {
     const clientNameInput = document.getElementById('client-name');
     const cName = clientNameInput && clientNameInput.value.trim() ? clientNameInput.value.trim() : (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
