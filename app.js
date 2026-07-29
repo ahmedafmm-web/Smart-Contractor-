@@ -58,6 +58,7 @@ let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) ||
 let itemDetailsCache = JSON.parse(localStorage.getItem('contractor_items_details')) || {};
 let activeInputValues = {}; 
 let cloudSavedQuotations = [];
+let targetDeleteRowId = null;
 
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
@@ -107,7 +108,6 @@ function compressAndBase64(file, callback) {
     reader.readAsDataURL(file);
 }
 
-// 🎯 أخذ لقطة حية لكل المدخلات المكتوبة بالـ DOM
 function snapshotCurrentInputs() {
     const allItems = [...defaultItems, ...customItems];
     allItems.forEach(item => {
@@ -141,7 +141,6 @@ function getUnitLabel(unitKey) {
     return unitsMap[unitKey] || unitsMap['m2'];
 }
 
-// 🎯 رسم بنود المقايسة وتعبئتها بالبيانات المسترجعة
 function renderItems(skipSnapshot = false) {
     const container = document.getElementById('dynamic-items-list');
     if (!container) return;
@@ -297,7 +296,7 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase المقترنة ببصمة الجهاز
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase
 async function saveCurrentQuotationToCloud() {
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
@@ -307,6 +306,7 @@ async function saveCurrentQuotationToCloud() {
     btn.innerText = "جاري الحفظ بالسحابة...";
 
     snapshotCurrentInputs();
+
     const deviceId = getDeviceID();
     const qDataObj = {
         clientName: clientName,
@@ -375,6 +375,7 @@ async function fetchCloudQuotations() {
     }
 }
 
+// 🎯 دعم الضغطة الطويلة (Long Press) للحذف
 function renderCloudQuotationsUI() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
@@ -382,17 +383,99 @@ function renderCloudQuotationsUI() {
 
     cloudSavedQuotations.forEach(row => {
         const dateStr = new Date(row.created_at).toLocaleDateString('ar-EG');
-        const badgeHTML = `
-            <button onclick="loadSavedQuotationFromCloud('${row.id}')" class="shrink-0 bg-slate-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
-                <i class="fas fa-cloud text-indigo-400"></i>
-                <span>${row.client_name} (${dateStr})</span>
-            </button>
-        `;
-        listContainer.insertAdjacentHTML('beforeend', badgeHTML);
+        const btn = document.createElement('button');
+        btn.className = "shrink-0 bg-slate-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2 select-none relative group cursor-pointer";
+        btn.innerHTML = `<i class="fas fa-cloud text-indigo-400"></i><span>${row.client_name} (${dateStr})</span>`;
+
+        let pressTimer = null;
+
+        // أحداث اللمس والموبايل
+        btn.addEventListener('touchstart', (e) => {
+            pressTimer = setTimeout(() => {
+                openDeleteCloudModal(row.id, row.client_name);
+            }, 650); // 650 مللي ثانية للضغطة الطويلة
+        }, { passive: true });
+
+        btn.addEventListener('touchend', () => { clearTimeout(pressTimer); });
+        btn.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
+
+        // أحداث الماوس للكمبيوتر
+        btn.addEventListener('mousedown', () => {
+            pressTimer = setTimeout(() => {
+                openDeleteCloudModal(row.id, row.client_name);
+            }, 650);
+        });
+
+        btn.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
+        btn.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
+
+        // إلغاء القائمة الافتراضية والضغط الأيمن بالماوس
+        btn.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            openDeleteCloudModal(row.id, row.client_name);
+        });
+
+        // الضغطة العادية للاسترجاع
+        btn.addEventListener('click', () => {
+            loadSavedQuotationFromCloud(row.id);
+        });
+
+        listContainer.appendChild(btn);
     });
 }
 
-// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة بجميع أرقامها وتفاصيلها المكتوبة
+// 🗑️ فتح نافذة الحذف المخصصة
+function openDeleteCloudModal(rowId, clientName) {
+    targetDeleteRowId = rowId;
+    const modal = document.getElementById('delete-cloud-modal');
+    const msg = document.getElementById('delete-modal-msg');
+    
+    if (modal && msg) {
+        msg.innerText = `هل أنت تأكد من حذف المقايسة السحابية الخاصة بالعميل (${clientName}) نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`;
+        modal.classList.remove('hidden');
+    }
+}
+
+function closeDeleteCloudModal() {
+    targetDeleteRowId = null;
+    const modal = document.getElementById('delete-cloud-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// 🗑️ تنفيذ دالة الحذف النهائي من Supabase
+async function executeDeleteCloudQuotation() {
+    if (!targetDeleteRowId) return;
+
+    const confirmBtn = document.getElementById('confirm-delete-cloud-btn');
+    confirmBtn.disabled = true;
+    confirmBtn.innerText = "جاري الحذف...";
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/quotations?id=eq.${targetDeleteRowId}`, {
+            method: 'DELETE',
+            headers: {
+                "apikey": SUPABASE_KEY,
+                "Authorization": `Bearer ${SUPABASE_KEY}`
+            }
+        });
+
+        if (response.ok) {
+            closeDeleteCloudModal();
+            fetchCloudQuotations();
+            alert("✅ تم حذف المقايسة بنجاح من الأرشيف السحابي!");
+        } else {
+            throw new Error("فشل الحذف من السحابة");
+        }
+    } catch (err) {
+        console.error(err);
+        alert("❌ خطأ: تعذر حذف المقايسة السحابية، تحقق من الاتصال بالإنترنت.");
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.innerText = "تأكيد الحذف";
+    }
+}
+
+// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة
 function loadSavedQuotationFromCloud(rowId) {
     const record = cloudSavedQuotations.find(r => r.id === rowId);
     if (!record || !record.quotation_data) return;
@@ -400,7 +483,6 @@ function loadSavedQuotationFromCloud(rowId) {
     const q = record.quotation_data;
     if (confirm(`هل تريد استرجاع المقايسة السحابية للعميل (${record.client_name}) بالكامل؟`)) {
         
-        // 1. استرجاع بيانات العميل والنسب
         document.getElementById('client-name').value = q.clientName || record.client_name || '';
         document.getElementById('client-phone').value = q.clientPhone || record.client_phone || '';
         
@@ -408,25 +490,20 @@ function loadSavedQuotationFromCloud(rowId) {
         if (q.contingency !== undefined) document.getElementById('contingency-rate').value = q.contingency;
         if (q.waste !== undefined) document.getElementById('waste-rate').value = q.waste;
 
-        // 2. استرجاع البنود المخصصة وتأكيد حفظها بالـ LocalStorage
         if (q.customItems && Array.isArray(q.customItems)) {
             customItems = q.customItems;
             localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
         }
 
-        // 3. استرجاع تفاصيل وصور البنود
         if (q.itemDetailsCache) {
             itemDetailsCache = q.itemDetailsCache;
             localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
         }
 
-        // 4. استرجاع أرقام المساحات والخامات والمصنعيات لكل بند
         activeInputValues = q.inputs || {};
 
-        // 5. 🎯 إعادة بناء الكروت فوراً بدون أخذ Snapshot للقيم الفاضية
         renderItems(true);
 
-        // 6. 🎯 ضخ القيمة بالـ DOM وتعبئة كل حقل رقمي مباشرة على الشاشة
         Object.keys(activeInputValues).forEach(itemId => {
             const vals = activeInputValues[itemId];
             if (!vals) return;
@@ -592,6 +669,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
     fetchCloudQuotations();
+
+    // ربط زر تأكيد الحذف السحابي
+    const confirmDeleteBtn = document.getElementById('confirm-delete-cloud-btn');
+    if (confirmDeleteBtn) {
+        confirmDeleteBtn.addEventListener('click', executeDeleteCloudQuotation);
+    }
 
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
@@ -842,4 +925,3 @@ function hideSplashScreen() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
- 
