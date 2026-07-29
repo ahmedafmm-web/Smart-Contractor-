@@ -129,20 +129,20 @@
             </div>
         </header>
 
-        <!-- 📂 شريط أرشيف المقايسات المضافة حديثاً -->
+        <!-- ☁️ شريط أرشيف المقايسات السحابية المربوط بـ Supabase -->
         <section class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm mb-6">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                    <i class="fas fa-folder-open text-amber-400"></i>
-                    <span id="txt-saved-quotations">المقايسات المحفوظة (الأرشيف)</span>
+                    <i class="fas fa-cloud text-indigo-400"></i>
+                    <span id="txt-saved-quotations">الأرشيف السحابي للمقايسات</span>
                 </h3>
-                <button id="save-current-q-btn" onclick="saveCurrentQuotation()" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
-                    <i class="fas fa-save"></i>
-                    <span id="txt-btn-save-q">حفظ المقايسة الحالية</span>
+                <button id="save-current-q-btn" onclick="saveCurrentQuotationToCloud()" class="bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 text-indigo-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <span id="txt-btn-save-q">حفظ سحابي للمقايسة الحالية</span>
                 </button>
             </div>
             <div id="saved-quotations-list" class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-                <p id="no-saved-q-msg" class="text-xs text-slate-500 italic">لا توجد مقايسات محفوظة بعد.</p>
+                <p id="no-saved-q-msg" class="text-xs text-slate-500 italic">جاري جلب المقايسات السحابية...</p>
             </div>
         </section>
 
@@ -224,7 +224,7 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=85.0"></script>
+    <script src="app.js?v=90.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
