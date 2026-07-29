@@ -16,12 +16,8 @@ const i18n = {
         secItems: "بنود الأعمال والمساحات",
         btnAddItem: "بند جديد",
         btnGeneratePDF: "إصدار المقايسة فوراً PDF",
-        modalAddTitle: "إضافة بند جديد مخصص",
-        lblNewName: "اسم البند (مثال: تركيب سيراميك)",
-        lblNewMat: "تكلفة المواد للمتر (م²)",
-        lblNewLab: "تكلفة المصنعية للمتر (م²)",
-        lblNewImg: "صورة البند (اختياري)",
-        placeholderArea: "المساحة بالمتر المربع (م²)",
+        placeholderArea: "الكمية / المساحة",
+        placeholderDesc: "التوصيف الفني للبند (اختياري)...",
         txtValid: "هذه المقايسة سارية لمدة 3 أيام فقط من تاريخ الإصدار نتيجه تذبذب أسعار السوق.",
         txtPayments: "طريقة الدفع الافتراضية: 50% مقدم تعاقد، 30% عند توريد المواد، 20% عند الاستلام النهائي."
     },
@@ -42,41 +38,35 @@ const i18n = {
         secItems: "Work Items & Areas",
         btnAddItem: "Add Item",
         btnGeneratePDF: "Generate PDF Quotation",
-        modalAddTitle: "Add Custom Work Item",
-        lblNewName: "Item Name (e.g., Ceramic Tiles)",
-        lblNewMat: "Material Cost per m²",
-        lblNewLab: "Labor Cost per m²",
-        lblNewImg: "Item Image (Optional)",
-        placeholderArea: "Area in Square Meters (m²)",
+        placeholderArea: "Quantity / Area",
+        placeholderDesc: "Technical Item Description (Optional)...",
         txtValid: "This quotation is valid for 3 days only from the date of issue due to market price fluctuations.",
         txtPayments: "Default Payment Terms: 50% Advance, 30% upon Material Delivery, 20% upon Final Handover."
     }
 };
 
 const defaultItems = [
-    { id: "epoxy", name_ar: "توريد وتركيب أرضيات إيبوكسي", name_en: "Supply & Apply Epoxy Flooring", mat_cost: 250, lab_cost: 80 },
-    { id: "painting", name_ar: "أعمال الدهانات والنقاشة المتكاملة", name_en: "Integrated Painting & Decoration", mat_cost: 90, lab_cost: 45 },
-    { id: "plastering", name_ar: "أعمال المحارة والياسة الجدارية", name_en: "Wall Plastering Works", mat_cost: 65, lab_cost: 35 }
+    { id: "epoxy", name_ar: "توريد وتركيب أرضيات إيبوكسي", name_en: "Supply & Apply Epoxy Flooring", mat_cost: 250, lab_cost: 80, unit: "m2" },
+    { id: "painting", name_ar: "أعمال الدهانات والنقاشة المتكاملة", name_en: "Integrated Painting & Decoration", mat_cost: 90, lab_cost: 45, unit: "m2" },
+    { id: "plastering", name_ar: "أعمال المحارة والياسة الجدارية", name_en: "Wall Plastering Works", mat_cost: 65, lab_cost: 35, unit: "m2" }
 ];
 
 let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
 
-// ذاكرة حفظ صور وأسماء البنود المحدثة
+// ذاكرة حفظ التفاصيل الدقيقة وقيم المدخلات الحالية لمنع ضياع الأرقام
 let itemDetailsCache = JSON.parse(localStorage.getItem('contractor_items_details')) || {};
+let activeInputValues = {}; 
+let savedQuotationsList = JSON.parse(localStorage.getItem('contractor_saved_quotations')) || [];
 
-// إعداد ربط Supabase
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
 function generateDeviceFingerprint() {
     const specs = [
-        navigator.userAgent,
-        screen.height,
-        screen.width,
-        screen.colorDepth,
-        navigator.hardwareConcurrency || 4,
+        navigator.userAgent, screen.height, screen.width,
+        screen.colorDepth, navigator.hardwareConcurrency || 4,
         new Date().getTimezoneOffset()
     ].join('||');
     
@@ -93,7 +83,6 @@ function getDeviceID() {
     return generateDeviceFingerprint();
 }
 
-// دالة ضغط الصور لحفظ مساحة الـ localStorage
 function compressAndBase64(file, callback) {
     if (!file) { callback(''); return; }
     const reader = new FileReader();
@@ -110,14 +99,270 @@ function compressAndBase64(file, callback) {
             } else {
                 if (height > maxDim) { width *= maxDim / height; height = maxDim; }
             }
-            canvas.width = width;
-            canvas.height = height;
+            canvas.width = width; canvas.height = height;
             ctx.drawImage(img, 0, 0, width, height);
             callback(canvas.toDataURL('image/jpeg', 0.7));
         };
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+
+// 🛡️ حفظ اللحظة الحالية لكافة المدخلات المكتوبة قبل أي تحديث بالصفحة
+function snapshotCurrentInputs() {
+    const allItems = [...defaultItems, ...customItems];
+    allItems.forEach(item => {
+        const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
+        const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
+        const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${item.id}"]`);
+        const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${item.id}"]`);
+        const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
+        const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
+
+        activeInputValues[item.id] = {
+            area: areaInput ? areaInput.value : '',
+            name: nameInput ? nameInput.value : '',
+            desc: descInput ? descInput.value : '',
+            unit: unitSelect ? unitSelect.value : (item.unit || 'm2'),
+            mat: matInput ? matInput.value : item.mat_cost,
+            lab: labInput ? labInput.value : item.lab_cost
+        };
+    });
+}
+
+function getUnitLabel(unitKey) {
+    const unitsMap = {
+        'm2': currentLang === 'ar' ? 'متر مسطح (م²)' : 'Sqm (m²)',
+        'm3': currentLang === 'ar' ? 'متر مكعب (م³)' : 'Cbm (m³)',
+        'm': currentLang === 'ar' ? 'متر طولي (م)' : 'Linear (m)',
+        'ls': currentLang === 'ar' ? 'مقطوعية (L.S)' : 'Lump Sum (L.S)',
+        'pcs': currentLang === 'ar' ? 'بالعدد (عدد)' : 'Pieces (Pcs)',
+        'weight': currentLang === 'ar' ? 'بالوزن (كجم/طن)' : 'Weight (Kg/Ton)'
+    };
+    return unitsMap[unitKey] || unitsMap['m2'];
+}
+
+function renderItems() {
+    const container = document.getElementById('dynamic-items-list');
+    if (!container) return;
+    
+    snapshotCurrentInputs();
+    container.innerHTML = '';
+    const allItems = [...defaultItems, ...customItems];
+
+    allItems.forEach(item => {
+        const cached = itemDetailsCache[item.id] || {};
+        const activeVals = activeInputValues[item.id] || {};
+
+        const itemName = activeVals.name !== undefined ? activeVals.name : (cached.name || (currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name)));
+        const itemImg = cached.img || item.img || '';
+        const itemDesc = activeVals.desc !== undefined ? activeVals.desc : (cached.desc || '');
+        const itemUnit = activeVals.unit || cached.unit || item.unit || 'm2';
+        const itemArea = activeVals.area !== undefined ? activeVals.area : '';
+        const itemMat = activeVals.mat !== undefined ? activeVals.mat : item.mat_cost;
+        const itemLab = activeVals.lab !== undefined ? activeVals.lab : item.lab_cost;
+
+        const itemHTML = `
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group" id="card-${item.id}">
+                <!-- 🗑️ زر حذف البند بالكامل -->
+                <button onclick="deleteWorkItem('${item.id}')" title="حذف هذا البند" class="absolute top-3 left-3 text-slate-500 hover:text-red-400 p-1.5 transition text-xs">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+
+                <div class="flex flex-col md:flex-row justify-between gap-2 mb-2 items-center pl-6">
+                    <div class="flex items-center gap-3 w-full md:w-auto flex-1">
+                        <!-- معاينة وصورة البند -->
+                        <div class="relative w-11 h-11 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center overflow-hidden shrink-0 group">
+                            <img id="img-preview-${item.id}" src="${itemImg}" class="${itemImg ? '' : 'hidden'} w-full h-full object-cover">
+                            <i id="img-icon-${item.id}" class="fas fa-image text-slate-600 text-base ${itemImg ? 'hidden' : ''}"></i>
+                            <label for="file-input-${item.id}" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition text-white text-xs">
+                                <i class="fas fa-camera"></i>
+                            </label>
+                            <input type="file" id="file-input-${item.id}" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', this)">
+                        </div>
+
+                        <!-- اسم البند -->
+                        <input type="text" value="${itemName}" data-type="name" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'name', this.value)"
+                               class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full flex-1">
+                    </div>
+
+                    <!-- 📐 قائمة اختيار وحدات القياس -->
+                    <select data-type="unit" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'unit', this.value)" class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold outline-none focus:border-indigo-500 cursor-pointer">
+                        <option value="m2" ${itemUnit === 'm2' ? 'selected' : ''}>متر مسطح (م²)</option>
+                        <option value="m3" ${itemUnit === 'm3' ? 'selected' : ''}>متر مكعب (م³)</option>
+                        <option value="m" ${itemUnit === 'm' ? 'selected' : ''}>متر طولي (م)</option>
+                        <option value="ls" ${itemUnit === 'ls' ? 'selected' : ''}>مقطوعية (L.S)</option>
+                        <option value="pcs" ${itemUnit === 'pcs' ? 'selected' : ''}>بالعدد (عدد)</option>
+                        <option value="weight" ${itemUnit === 'weight' ? 'selected' : ''}>بالوزن (كجم/طن)</option>
+                    </select>
+                </div>
+
+                <!-- 📝 حقل التوصيف الفني للبند -->
+                <div class="mb-3">
+                    <textarea data-type="desc" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'desc', this.value)" placeholder="${i18n[currentLang].placeholderDesc}" rows="1" class="w-full p-2 bg-slate-950 border border-slate-800/80 rounded-lg outline-none focus:border-indigo-500 text-xs text-slate-300 resize-none">${itemDesc}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div class="md:col-span-2">
+                        <input type="number" step="any" value="${itemArea}" data-id="${item.id}" data-type="area" placeholder="${i18n[currentLang].placeholderArea}" 
+                               style="font-variant-numeric: tabular-nums; font-family: monospace;"
+                               class="area-input w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 font-bold text-center text-slate-100">
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 text-xs">
+                        <div class="flex flex-col">
+                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'خامات:' : 'Mat:'}</span>
+                            <input type="number" step="any" value="${itemMat}" data-type="mat" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'مصنعية:' : 'Labor:'}</span>
+                            <input type="number" step="any" value="${itemLab}" data-type="lab" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', itemHTML);
+    });
+}
+
+function saveItemDetail(itemId, key, value) {
+    if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
+    itemDetailsCache[itemId][key] = value;
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+}
+
+function handleItemImageUpload(itemId, inputElement) {
+    const file = inputElement.files ? inputElement.files[0] : null;
+    if (!file) return;
+
+    compressAndBase64(file, (base64Img) => {
+        if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
+        itemDetailsCache[itemId].img = base64Img;
+        localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+
+        const previewImg = document.getElementById(`img-preview-${itemId}`);
+        const icon = document.getElementById(`img-icon-${itemId}`);
+        if (previewImg) { previewImg.src = base64Img; previewImg.classList.remove('hidden'); }
+        if (icon) icon.classList.add('hidden');
+    });
+}
+
+// 🗑️ حذف البند من الواجهة والذاكرة
+function deleteWorkItem(itemId) {
+    if (!confirm('هل أنت تأكد من حذف هذا البند من المقايسة؟')) return;
+    
+    customItems = customItems.filter(item => item.id !== itemId);
+    localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+    
+    delete activeInputValues[itemId];
+    delete itemDetailsCache[itemId];
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+    
+    renderItems();
+}
+
+// ➕ إظهار / إخفاء كارت الإضافة المباشرة المدمجة
+function toggleInlineAddCard(show) {
+    const card = document.getElementById('inline-add-container');
+    if (!card) return;
+    if (show) {
+        card.classList.remove('hidden');
+        document.getElementById('inline-item-name').focus();
+    } else {
+        card.classList.add('hidden');
+    }
+}
+
+// ➕ تأكيد إضافة البند المخصص الجديد فوراً بدون إعادة تحميل وتشتيت
+function commitInlineNewItem() {
+    const name = document.getElementById('inline-item-name').value.trim();
+    const unit = document.getElementById('inline-item-unit').value;
+    const desc = document.getElementById('inline-item-desc').value.trim();
+    const mat = parseFloat(document.getElementById('inline-item-mat').value) || 0;
+    const lab = parseFloat(document.getElementById('inline-item-lab').value) || 0;
+
+    if (!name) { alert('برجاء كتابة اسم البند'); return; }
+
+    const newItemId = "custom_" + Date.now();
+    const newItem = { id: newItemId, name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab, unit: unit };
+
+    customItems.push(newItem);
+    localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+
+    if (!itemDetailsCache[newItemId]) itemDetailsCache[newItemId] = {};
+    itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit };
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+
+    // تفريغ المدخلات
+    document.getElementById('inline-item-name').value = '';
+    document.getElementById('inline-item-desc').value = '';
+    document.getElementById('inline-item-mat').value = '';
+    document.getElementById('inline-item-lab').value = '';
+    toggleInlineAddCard(false);
+
+    renderItems();
+}
+
+// 💾 حفظ المقايسة الحالية بأرشيف الجهاز
+function saveCurrentQuotation() {
+    const clientName = document.getElementById('client-name').value.trim();
+    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه!'); return; }
+
+    snapshotCurrentInputs();
+    const qRecord = {
+        id: "q_" + Date.now(),
+        clientName: clientName,
+        clientPhone: document.getElementById('client-phone').value.trim(),
+        date: new Date().toLocaleDateString('ar-EG'),
+        inputs: activeInputValues,
+        customItems: customItems
+    };
+
+    savedQuotationsList.unshift(qRecord);
+    if (savedQuotationsList.length > 10) savedQuotationsList.pop(); // الاحتفاظ بآخر 10 مقايسات
+    localStorage.setItem('contractor_saved_quotations', JSON.stringify(savedQuotationsList));
+    
+    renderSavedQuotationsUI();
+    alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح في أرشيف المقايسات!`);
+}
+
+function renderSavedQuotationsUI() {
+    const listContainer = document.getElementById('saved-quotations-list');
+    if (!listContainer) return;
+    
+    if (savedQuotationsList.length === 0) {
+        listContainer.innerHTML = `<p id="no-saved-q-msg" class="text-xs text-slate-500 italic">لا توجد مقايسات محفوظة بعد.</p>`;
+        return;
+    }
+
+    listContainer.innerHTML = '';
+    savedQuotationsList.forEach(q => {
+        const badgeHTML = `
+            <button onclick="loadSavedQuotation('${q.id}')" class="shrink-0 bg-slate-950 border border-indigo-500/30 hover:border-indigo-400 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-2">
+                <i class="fas fa-file-invoice text-indigo-400"></i>
+                <span>${q.clientName} (${q.date})</span>
+            </button>
+        `;
+        listContainer.insertAdjacentHTML('beforeend', badgeHTML);
+    });
+}
+
+function loadSavedQuotation(qId) {
+    const q = savedQuotationsList.find(item => item.id === qId);
+    if (!q) return;
+
+    if (confirm(`هل تريد استرجاع وتعديل مقايسة العميل (${q.clientName})؟`)) {
+        document.getElementById('client-name').value = q.clientName || '';
+        document.getElementById('client-phone').value = q.clientPhone || '';
+        
+        if (q.customItems) {
+            customItems = q.customItems;
+            localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
+        }
+
+        activeInputValues = q.inputs || {};
+        renderItems();
+    }
 }
 
 async function checkActivation() {
@@ -220,104 +465,16 @@ function updateUILanguage() {
     if(document.getElementById('sec-items')) document.getElementById('sec-items').innerText = i18n[lang].secItems;
     if(document.getElementById('btn-text-add')) document.getElementById('btn-text-add').innerText = i18n[lang].btnAddItem;
     if(document.getElementById('btn-text-pdf')) document.getElementById('btn-text-pdf').innerText = i18n[lang].btnGeneratePDF;
-    if(document.getElementById('modal-add-title')) document.getElementById('modal-add-title').innerText = i18n[lang].modalAddTitle;
-    if(document.getElementById('lbl-new-name')) document.getElementById('lbl-new-name').innerText = i18n[lang].lblNewName;
-    if(document.getElementById('lbl-new-mat')) document.getElementById('lbl-new-mat').innerText = i18n[lang].lblNewMat;
-    if(document.getElementById('lbl-new-lab')) document.getElementById('lbl-new-lab').innerText = i18n[lang].lblNewLab;
-    if(document.getElementById('lbl-new-img')) document.getElementById('lbl-new-img').innerText = i18n[lang].lblNewImg;
     
     document.querySelectorAll('.area-input').forEach(input => {
         input.placeholder = i18n[lang].placeholderArea;
     });
 }
 
-function renderItems() {
-    const container = document.getElementById('dynamic-items-list');
-    if(!container) return;
-    container.innerHTML = '';
-    const allItems = [...defaultItems, ...customItems];
-    
-    allItems.forEach(item => {
-        const cached = itemDetailsCache[item.id] || {};
-        const itemName = cached.name || (currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name));
-        const itemImg = cached.img || item.img || '';
-
-        const itemHTML = `
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm" id="card-${item.id}">
-                <div class="flex flex-col md:flex-row justify-between gap-2 mb-3 items-center">
-                    <div class="flex items-center gap-3 w-full md:w-auto flex-1">
-                        <!-- معاينة وصورة البند -->
-                        <div class="relative w-12 h-12 rounded-lg border border-slate-700 bg-slate-950 flex items-center justify-center overflow-hidden shrink-0 group">
-                            <img id="img-preview-${item.id}" src="${itemImg}" class="${itemImg ? '' : 'hidden'} w-full h-full object-cover">
-                            <i id="img-icon-${item.id}" class="fas fa-image text-slate-600 text-lg ${itemImg ? 'hidden' : ''}"></i>
-                            <label for="file-input-${item.id}" class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition text-white text-xs">
-                                <i class="fas fa-camera"></i>
-                            </label>
-                            <input type="file" id="file-input-${item.id}" accept="image/*" class="hidden" onchange="handleItemImageUpload('${item.id}', this)">
-                        </div>
-
-                        <!-- اسم البند -->
-                        <input type="text" value="${itemName}" data-type="name" data-id="${item.id}" onchange="saveItemName('${item.id}', this.value)"
-                               class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full flex-1">
-                    </div>
-
-                    <span class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold self-start md:self-center">
-                        ${currentLang === 'ar' ? 'متر مربع' : 'Sqm'}
-                    </span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-                    <div class="md:col-span-2">
-                        <input type="number" step="any" data-id="${item.id}" data-type="area" placeholder="${i18n[currentLang].placeholderArea}" 
-                               style="font-variant-numeric: tabular-nums; font-family: monospace;"
-                               class="area-input w-full p-2.5 bg-slate-950 border border-slate-800 rounded-lg outline-none focus:border-indigo-500 font-bold text-center text-slate-100">
-                    </div>
-                    <div class="grid grid-cols-2 gap-1 text-xs">
-                        <div class="flex flex-col">
-                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'خامات:' : 'Mat:'}</span>
-                            <input type="number" step="any" value="${item.mat_cost}" data-type="mat" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
-                        </div>
-                        <div class="flex flex-col">
-                            <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'مصنعية:' : 'Labor:'}</span>
-                            <input type="number" step="any" value="${item.lab_cost}" data-type="lab" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', itemHTML);
-    });
-}
-
-// دالة حفظ تغيير اسم البند تلقائياً في الذاكرة
-function saveItemName(itemId, newName) {
-    if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
-    itemDetailsCache[itemId].name = newName;
-    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
-}
-
-// دالة حفظ تغيير صورة البند تلقائياً في الذاكرة
-function handleItemImageUpload(itemId, inputElement) {
-    const file = inputElement.files ? inputElement.files[0] : null;
-    if (!file) return;
-
-    compressAndBase64(file, (base64Img) => {
-        if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
-        itemDetailsCache[itemId].img = base64Img;
-        localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
-
-        const previewImg = document.getElementById(`img-preview-${itemId}`);
-        const icon = document.getElementById(`img-icon-${itemId}`);
-        if (previewImg) {
-            previewImg.src = base64Img;
-            previewImg.classList.remove('hidden');
-        }
-        if (icon) icon.classList.add('hidden');
-    });
-}
-
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
+    renderSavedQuotationsUI();
 
     if (!companyData) {
         if(document.getElementById('setup-screen')) document.getElementById('setup-screen').classList.remove('hidden');
@@ -402,54 +559,6 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    const addBtn = document.getElementById('add-new-item-btn');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            document.getElementById('add-item-modal').classList.remove('hidden');
-        });
-    }
-    
-    const closeBtn = document.getElementById('close-modal-btn');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => {
-            document.getElementById('add-item-modal').classList.add('hidden');
-        });
-    }
-
-    // حفظ بند جديد مخصص مع صورته الختامية
-    const saveItemBtn = document.getElementById('save-new-item-btn');
-    if (saveItemBtn) {
-        saveItemBtn.addEventListener('click', () => {
-            const name = document.getElementById('new-item-name').value.trim();
-            const mat = parseFloat(document.getElementById('new-item-mat-cost').value);
-            const lab = parseFloat(document.getElementById('new-item-lab-cost').value);
-            const imgFile = document.getElementById('new-item-img') && document.getElementById('new-item-img').files ? document.getElementById('new-item-img').files[0] : null;
-            
-            if (!name || isNaN(mat) || isNaN(lab)) { alert('بيانات خاطئة'); return; }
-
-            const newItemId = "custom_" + Date.now();
-
-            compressAndBase64(imgFile, (base64Img) => {
-                const newItem = { id: newItemId, name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab };
-                customItems.push(newItem);
-                localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
-
-                if (base64Img) {
-                    itemDetailsCache[newItemId] = { name: name, img: base64Img };
-                    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
-                }
-
-                document.getElementById('add-item-modal').classList.add('hidden');
-                document.getElementById('new-item-name').value = '';
-                document.getElementById('new-item-mat-cost').value = '';
-                document.getElementById('new-item-lab-cost').value = '';
-                if(document.getElementById('new-item-img')) document.getElementById('new-item-img').value = '';
-
-                renderItems();
-            });
-        });
-    }
-
     const pdfBtn = document.getElementById('generate-pdf-btn');
     if (pdfBtn) {
         pdfBtn.addEventListener('click', () => {
@@ -460,6 +569,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     await checkActivation();
 });
 
+// 📄 طباعة وتأكيدات الـ PDF المحدثة مع التوصيف والوحدات الفردية
 function generateQuotationPDF() {
     const clientNameInput = document.getElementById('client-name');
     const cName = clientNameInput && clientNameInput.value.trim() ? clientNameInput.value.trim() : (currentLang === 'ar' ? 'عميل كريم' : 'Valued Client');
@@ -478,15 +588,18 @@ function generateQuotationPDF() {
     allItems.forEach(item => {
         const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
         const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
+        const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${item.id}"]`);
+        const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${item.id}"]`);
         const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
         const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
 
         const area = areaInput ? parseFloat(areaInput.value) : 0;
         const currentItemName = nameInput ? nameInput.value.trim() : (currentLang === 'ar' ? item.name_ar : item.name_en);
+        const currentItemDesc = descInput ? descInput.value.trim() : '';
+        const currentUnit = unitSelect ? unitSelect.value : (item.unit || 'm2');
         const currentMatCost = matInput ? parseFloat(matInput.value) : item.mat_cost;
         const currentLabCost = labInput ? parseFloat(labInput.value) : item.lab_cost;
 
-        // جلب صورة البند المقترنة
         const cached = itemDetailsCache[item.id] || {};
         const itemImg = cached.img || item.img || '';
         
@@ -501,12 +614,17 @@ function generateQuotationPDF() {
             rowsHTML += `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 10px; text-align: start; vertical-align: middle;">
-                        <div style="display: flex; items-center: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
                             ${itemImg ? `<img src="${itemImg}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; shrink: 0;">` : ''}
-                            <span style="font-weight: 700; align-self: center;">${currentItemName}</span>
+                            <div>
+                                <span style="font-weight: 700; display: block; font-size: 14px; color: #0f172a;">${currentItemName}</span>
+                                ${currentItemDesc ? `<span style="font-size: 11px; color: #64748b; font-weight: 500; display: block; margin-top: 2px;">${currentItemDesc}</span>` : ''}
+                            </div>
                         </div>
                     </td>
-                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${area.toLocaleString('en-US')} M²</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle; font-weight: 700;">
+                        ${area.toLocaleString('en-US')} <br><span style="font-size: 10px; color: #475569; font-family: 'Cairo', sans-serif;">${getUnitLabel(currentUnit)}</span>
+                    </td>
                     <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace; vertical-align: middle;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 </tr>
@@ -515,7 +633,7 @@ function generateQuotationPDF() {
     });
     
     if (grandTotal === 0) {
-        alert(currentLang === 'ar' ? 'برجاء إدخال مساحة بند واحد على الأقل!' : 'Please enter area for at least one item!');
+        alert(currentLang === 'ar' ? 'برجاء إدخال كمية/مساحة بند واحد على الأقل!' : 'Please enter quantity/area for at least one item!');
         return;
     }
 
@@ -564,8 +682,8 @@ function generateQuotationPDF() {
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 14px;">
                     <thead>
                         <tr style="background-color: #1e3a8a; color: white;">
-                            <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والبند' : 'Description / Item'}</th>
-                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/المساحة' : 'Quantity / Area'}</th>
+                            <th style="padding: 12px; text-align: start;">${currentLang === 'ar' ? 'البيان والتوصيف الفني' : 'Description & Specs'}</th>
+                            <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'الكمية/الوحدة' : 'Qty / Unit'}</th>
                             <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'سعر الفئة التقريبي' : 'Unit Price'}</th>
                             <th style="padding: 12px; text-align: center;">${currentLang === 'ar' ? 'إجمالي البند' : 'Total Price'}</th>
                         </tr>
