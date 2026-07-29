@@ -107,7 +107,7 @@ function compressAndBase64(file, callback) {
     reader.readAsDataURL(file);
 }
 
-// 🎯 التقاط قيم المدخلات الحالية مباشرة من الـ DOM لحظياً
+// 🎯 أخذ لقطة حية لكل المدخلات المكتوبة بالـ DOM
 function snapshotCurrentInputs() {
     const allItems = [...defaultItems, ...customItems];
     allItems.forEach(item => {
@@ -141,12 +141,15 @@ function getUnitLabel(unitKey) {
     return unitsMap[unitKey] || unitsMap['m2'];
 }
 
-function renderItems() {
+// 🎯 رسم بنود المقايسة وتعبئتها بالبيانات المسترجعة
+function renderItems(skipSnapshot = false) {
     const container = document.getElementById('dynamic-items-list');
     if (!container) return;
     
-    // التقاط أي تعديل يدوي قبل إعادة الرندر
-    snapshotCurrentInputs();
+    if (!skipSnapshot) {
+        snapshotCurrentInputs();
+    }
+    
     container.innerHTML = '';
     const allItems = [...defaultItems, ...customItems];
 
@@ -303,9 +306,7 @@ async function saveCurrentQuotationToCloud() {
     btn.disabled = true;
     btn.innerText = "جاري الحفظ بالسحابة...";
 
-    // 🎯 أخذ لقطة فورية من كافة خانات المدخلات بالـ DOM قبل تجهيز الرفع
     snapshotCurrentInputs();
-
     const deviceId = getDeviceID();
     const qDataObj = {
         clientName: clientName,
@@ -399,7 +400,7 @@ function loadSavedQuotationFromCloud(rowId) {
     const q = record.quotation_data;
     if (confirm(`هل تريد استرجاع المقايسة السحابية للعميل (${record.client_name}) بالكامل؟`)) {
         
-        // 1. تعبئة بيانات العميل والنسب
+        // 1. استرجاع بيانات العميل والنسب
         document.getElementById('client-name').value = q.clientName || record.client_name || '';
         document.getElementById('client-phone').value = q.clientPhone || record.client_phone || '';
         
@@ -422,8 +423,28 @@ function loadSavedQuotationFromCloud(rowId) {
         // 4. استرجاع أرقام المساحات والخامات والمصنعيات لكل بند
         activeInputValues = q.inputs || {};
 
-        // 5. إعادة بناء كروت البنود بالواجهة بالقيم الجديدة مباشرة
-        renderItems();
+        // 5. 🎯 إعادة بناء الكروت فوراً بدون أخذ Snapshot للقيم الفاضية
+        renderItems(true);
+
+        // 6. 🎯 ضخ القيمة بالـ DOM وتعبئة كل حقل رقمي مباشرة على الشاشة
+        Object.keys(activeInputValues).forEach(itemId => {
+            const vals = activeInputValues[itemId];
+            if (!vals) return;
+
+            const areaInput = document.querySelector(`input[data-type="area"][data-id="${itemId}"]`);
+            const nameInput = document.querySelector(`input[data-type="name"][data-id="${itemId}"]`);
+            const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${itemId}"]`);
+            const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${itemId}"]`);
+            const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
+            const labInput = document.querySelector(`input[data-type="lab"][data-id="${itemId}"]`);
+
+            if (areaInput && vals.area !== undefined) areaInput.value = vals.area;
+            if (nameInput && vals.name !== undefined) nameInput.value = vals.name;
+            if (descInput && vals.desc !== undefined) descInput.value = vals.desc;
+            if (unitSelect && vals.unit !== undefined) unitSelect.value = vals.unit;
+            if (matInput && vals.mat !== undefined) matInput.value = vals.mat;
+            if (labInput && vals.lab !== undefined) labInput.value = vals.lab;
+        });
 
         alert(`✅ تم استرجاع كافة أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
     }
@@ -821,3 +842,4 @@ function hideSplashScreen() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
