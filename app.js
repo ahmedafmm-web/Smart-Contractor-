@@ -107,6 +107,7 @@ function compressAndBase64(file, callback) {
     reader.readAsDataURL(file);
 }
 
+// 🎯 التقاط قيم المدخلات الحالية مباشرة من الـ DOM لحظياً
 function snapshotCurrentInputs() {
     const allItems = [...defaultItems, ...customItems];
     allItems.forEach(item => {
@@ -117,14 +118,14 @@ function snapshotCurrentInputs() {
         const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
         const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
 
-        activeInputValues[item.id] = {
-            area: areaInput ? areaInput.value : '',
-            name: nameInput ? nameInput.value : '',
-            desc: descInput ? descInput.value : '',
-            unit: unitSelect ? unitSelect.value : (item.unit || 'm2'),
-            mat: matInput ? matInput.value : item.mat_cost,
-            lab: labInput ? labInput.value : item.lab_cost
-        };
+        if (!activeInputValues[item.id]) activeInputValues[item.id] = {};
+
+        if (areaInput) activeInputValues[item.id].area = areaInput.value;
+        if (nameInput) activeInputValues[item.id].name = nameInput.value;
+        if (descInput) activeInputValues[item.id].desc = descInput.value;
+        if (unitSelect) activeInputValues[item.id].unit = unitSelect.value;
+        if (matInput) activeInputValues[item.id].mat = matInput.value;
+        if (labInput) activeInputValues[item.id].lab = labInput.value;
     });
 }
 
@@ -144,6 +145,7 @@ function renderItems() {
     const container = document.getElementById('dynamic-items-list');
     if (!container) return;
     
+    // التقاط أي تعديل يدوي قبل إعادة الرندر
     snapshotCurrentInputs();
     container.innerHTML = '';
     const allItems = [...defaultItems, ...customItems];
@@ -152,13 +154,13 @@ function renderItems() {
         const cached = itemDetailsCache[item.id] || {};
         const activeVals = activeInputValues[item.id] || {};
 
-        const itemName = activeVals.name !== undefined ? activeVals.name : (cached.name || (currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name)));
+        const itemName = activeVals.name !== undefined && activeVals.name !== '' ? activeVals.name : (cached.name || (currentLang === 'ar' ? (item.name_ar || item.name) : (item.name_en || item.name)));
         const itemImg = cached.img || item.img || '';
         const itemDesc = activeVals.desc !== undefined ? activeVals.desc : (cached.desc || '');
         const itemUnit = activeVals.unit || cached.unit || item.unit || 'm2';
         const itemArea = activeVals.area !== undefined ? activeVals.area : '';
-        const itemMat = activeVals.mat !== undefined ? activeVals.mat : item.mat_cost;
-        const itemLab = activeVals.lab !== undefined ? activeVals.lab : item.lab_cost;
+        const itemMat = activeVals.mat !== undefined && activeVals.mat !== '' ? activeVals.mat : item.mat_cost;
+        const itemLab = activeVals.lab !== undefined && activeVals.lab !== '' ? activeVals.lab : item.lab_cost;
 
         const itemHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group" id="card-${item.id}">
@@ -301,7 +303,9 @@ async function saveCurrentQuotationToCloud() {
     btn.disabled = true;
     btn.innerText = "جاري الحفظ بالسحابة...";
 
+    // 🎯 أخذ لقطة فورية من كافة خانات المدخلات بالـ DOM قبل تجهيز الرفع
     snapshotCurrentInputs();
+
     const deviceId = getDeviceID();
     const qDataObj = {
         clientName: clientName,
@@ -418,31 +422,10 @@ function loadSavedQuotationFromCloud(rowId) {
         // 4. استرجاع أرقام المساحات والخامات والمصنعيات لكل بند
         activeInputValues = q.inputs || {};
 
-        // 5. إعادة بناء كروت البنود بالواجهة
+        // 5. إعادة بناء كروت البنود بالواجهة بالقيم الجديدة مباشرة
         renderItems();
 
-        // 6. 🎯 ضخ القيم والأرقام والمساحات فوراً بداخل خانات المدخلات بالواجهة
-        setTimeout(() => {
-            Object.keys(activeInputValues).forEach(itemId => {
-                const vals = activeInputValues[itemId];
-                if (!vals) return;
-
-                const areaInput = document.querySelector(`input[data-type="area"][data-id="${itemId}"]`);
-                const nameInput = document.querySelector(`input[data-type="name"][data-id="${itemId}"]`);
-                const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${itemId}"]`);
-                const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${itemId}"]`);
-                const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
-                const labInput = document.querySelector(`input[data-type="lab"][data-id="${itemId}"]`);
-
-                if (areaInput && vals.area !== undefined) areaInput.value = vals.area;
-                if (nameInput && vals.name !== undefined) nameInput.value = vals.name;
-                if (descInput && vals.desc !== undefined) descInput.value = vals.desc;
-                if (unitSelect && vals.unit !== undefined) unitSelect.value = vals.unit;
-                if (matInput && vals.mat !== undefined) matInput.value = vals.mat;
-                if (labInput && vals.lab !== undefined) labInput.value = vals.lab;
-            });
-            alert(`✅ تم استرجاع كافة أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
-        }, 100);
+        alert(`✅ تم استرجاع كافة أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
     }
 }
 
