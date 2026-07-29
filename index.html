@@ -129,6 +129,23 @@
             </div>
         </header>
 
+        <!-- 📂 شريط أرشيف المقايسات المضافة حديثاً -->
+        <section class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm mb-6">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                    <i class="fas fa-folder-open text-amber-400"></i>
+                    <span id="txt-saved-quotations">المقايسات المحفوظة (الأرشيف)</span>
+                </h3>
+                <button id="save-current-q-btn" onclick="saveCurrentQuotation()" class="bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5">
+                    <i class="fas fa-save"></i>
+                    <span id="txt-btn-save-q">حفظ المقايسة الحالية</span>
+                </button>
+            </div>
+            <div id="saved-quotations-list" class="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
+                <p id="no-saved-q-msg" class="text-xs text-slate-500 italic">لا توجد مقايسات محفوظة بعد.</p>
+            </div>
+        </section>
+
         <!-- Sections & Inputs -->
         <section class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm mb-6 space-y-4">
             <h3 id="sec-client-info" class="font-bold text-base text-slate-200 mb-2 border-b border-slate-800 pb-2">بيانات العميل والمشروع</h3>
@@ -159,13 +176,42 @@
             </div>
         </section>
 
+        <!-- ➕ كارت الإضافة المباشرة المدمجة لعدم حجب الشاشة -->
+        <section id="inline-add-container" class="bg-slate-900 border border-indigo-500/30 p-4 rounded-2xl shadow-lg mb-6 hidden transition-all duration-300">
+            <h4 id="inline-add-title" class="font-bold text-sm text-indigo-400 mb-3 flex items-center gap-2">
+                <i class="fas fa-plus-circle"></i> إدخال بند جديد للمقايسة
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                <input type="text" id="inline-item-name" placeholder="اسم البند (مثال: عزل أسطح)" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
+                <select id="inline-item-unit" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500 font-semibold">
+                    <option value="m2">متر مسطح (م²)</option>
+                    <option value="m3">متر مكعب (م³)</option>
+                    <option value="m">متر طولي (م)</option>
+                    <option value="ls">مقطوعية (L.S)</option>
+                    <option value="pcs">بالعدد (عدد)</option>
+                    <option value="weight">بالوزن (كجم/طن)</option>
+                </select>
+            </div>
+            <textarea id="inline-item-desc" rows="2" placeholder="التوصيف الفني للبند (اختياري)" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500 mb-3"></textarea>
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <input type="number" id="inline-item-mat" placeholder="سعر الخامات للوحدة" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
+                <input type="number" id="inline-item-lab" placeholder="سعر المصنعية للوحدة" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="commitInlineNewItem()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1">
+                    <i class="fas fa-check"></i> تأكيد إضافة البند
+                </button>
+                <button onclick="toggleInlineAddCard(false)" class="bg-slate-800 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs">إلغاء</button>
+            </div>
+        </section>
+
         <section class="space-y-4 mb-8" id="items-container">
             <h3 id="sec-items" class="font-bold text-base text-slate-200 mb-2">بنود الأعمال والمساحات</h3>
             <div id="dynamic-items-list" class="space-y-3"></div>
         </section>
 
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-md flex gap-4 mt-6">
-            <button id="add-new-item-btn" class="bg-slate-800 text-slate-200 font-semibold px-4 py-3 rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-1 shrink-0 text-sm">
+            <button id="add-new-item-btn" onclick="toggleInlineAddCard(true)" class="bg-slate-800 text-slate-200 font-semibold px-4 py-3 rounded-xl hover:bg-slate-700 transition flex items-center justify-center gap-1 shrink-0 text-sm">
                 <span>➕</span> <span id="btn-text-add">بند جديد</span>
             </button>
             <button id="generate-pdf-btn" class="flex-1 bg-emerald-600 text-white font-bold py-3 rounded-xl hover:bg-emerald-500 transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 text-sm">
@@ -174,40 +220,11 @@
         </div>
     </div>
 
-    <!-- Modal إضافة بند -->
-    <div id="add-item-modal" class="hidden fixed inset-0 bg-slate-950/80 z-50 flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full">
-            <h3 id="modal-add-title" class="font-bold text-lg mb-4 text-slate-100">إضافة بند جديد مخصص</h3>
-            <div class="space-y-3">
-                <div>
-                    <label id="lbl-new-name" class="block text-xs font-semibold text-slate-400 mb-1">اسم البند</label>
-                    <input type="text" id="new-item-name" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
-                </div>
-                <div>
-                    <label id="lbl-new-mat" class="block text-xs font-semibold text-slate-400 mb-1">تكلفة المواد للمتر</label>
-                    <input type="number" id="new-item-mat-cost" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
-                </div>
-                <div>
-                    <label id="lbl-new-lab" class="block text-xs font-semibold text-slate-400 mb-1">تكلفة المصنعية للمتر</label>
-                    <input type="number" id="new-item-lab-cost" class="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg outline-none text-slate-100">
-                </div>
-                <div>
-                    <label id="lbl-new-img" class="block text-xs font-semibold text-slate-400 mb-1">صورة البند (اختياري)</label>
-                    <input type="file" id="new-item-img" accept="image/*" class="w-full text-xs text-slate-400 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-indigo-600/20 file:text-indigo-400">
-                </div>
-                <div class="flex gap-2 pt-2">
-                    <button id="close-modal-btn" class="flex-1 bg-slate-800 text-slate-300 font-semibold py-2 rounded-lg">إلغاء</button>
-                    <button id="save-new-item-btn" class="flex-1 bg-indigo-600 text-white font-semibold py-2 rounded-lg">حفظ البند</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-900">
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=80.0"></script>
+    <script src="app.js?v=85.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
@@ -226,3 +243,4 @@
     </script>
 </body>
 </html>
+ 
