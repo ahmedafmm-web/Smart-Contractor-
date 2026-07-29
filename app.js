@@ -387,33 +387,62 @@ function renderCloudQuotationsUI() {
     });
 }
 
-// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة بجميع أرقامها وتفاصيلها
+// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة بجميع أرقامها وتفاصيلها المكتوبة
 function loadSavedQuotationFromCloud(rowId) {
     const record = cloudSavedQuotations.find(r => r.id === rowId);
     if (!record || !record.quotation_data) return;
 
     const q = record.quotation_data;
     if (confirm(`هل تريد استرجاع المقايسة السحابية للعميل (${record.client_name}) بالكامل؟`)) {
+        
+        // 1. تعبئة بيانات العميل والنسب
         document.getElementById('client-name').value = q.clientName || record.client_name || '';
         document.getElementById('client-phone').value = q.clientPhone || record.client_phone || '';
         
-        if (q.markup) document.getElementById('markup-rate').value = q.markup;
-        if (q.contingency) document.getElementById('contingency-rate').value = q.contingency;
-        if (q.waste) document.getElementById('waste-rate').value = q.waste;
+        if (q.markup !== undefined) document.getElementById('markup-rate').value = q.markup;
+        if (q.contingency !== undefined) document.getElementById('contingency-rate').value = q.contingency;
+        if (q.waste !== undefined) document.getElementById('waste-rate').value = q.waste;
 
-        if (q.customItems) {
+        // 2. استرجاع البنود المخصصة وتأكيد حفظها بالـ LocalStorage
+        if (q.customItems && Array.isArray(q.customItems)) {
             customItems = q.customItems;
             localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
         }
 
+        // 3. استرجاع تفاصيل وصور البنود
         if (q.itemDetailsCache) {
             itemDetailsCache = q.itemDetailsCache;
             localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
         }
 
+        // 4. استرجاع أرقام المساحات والخامات والمصنعيات لكل بند
         activeInputValues = q.inputs || {};
+
+        // 5. إعادة بناء كروت البنود بالواجهة
         renderItems();
-        alert(`✅ تم استرجاع كافة بيانات أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
+
+        // 6. 🎯 ضخ القيم والأرقام والمساحات فوراً بداخل خانات المدخلات بالواجهة
+        setTimeout(() => {
+            Object.keys(activeInputValues).forEach(itemId => {
+                const vals = activeInputValues[itemId];
+                if (!vals) return;
+
+                const areaInput = document.querySelector(`input[data-type="area"][data-id="${itemId}"]`);
+                const nameInput = document.querySelector(`input[data-type="name"][data-id="${itemId}"]`);
+                const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${itemId}"]`);
+                const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${itemId}"]`);
+                const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
+                const labInput = document.querySelector(`input[data-type="lab"][data-id="${itemId}"]`);
+
+                if (areaInput && vals.area !== undefined) areaInput.value = vals.area;
+                if (nameInput && vals.name !== undefined) nameInput.value = vals.name;
+                if (descInput && vals.desc !== undefined) descInput.value = vals.desc;
+                if (unitSelect && vals.unit !== undefined) unitSelect.value = vals.unit;
+                if (matInput && vals.mat !== undefined) matInput.value = vals.mat;
+                if (labInput && vals.lab !== undefined) labInput.value = vals.lab;
+            });
+            alert(`✅ تم استرجاع كافة أرقام ومساحات مقايسة (${record.client_name}) بنجاح!`);
+        }, 100);
     }
 }
 
@@ -796,15 +825,16 @@ function generateQuotationPDF() {
     printWindow.document.close();
 }
 
-// 🚀 إخفاء الـ Splash Screen الفخمة تلقائياً بعد التحميل
-window.addEventListener('load', () => {
+// 🚀 آلية إخفاء مضاعفة لضمان إخفاء شاشة الـ Splash بعد ثانيتين
+function hideSplashScreen() {
     const splash = document.getElementById('splash-screen');
-    if (splash) {
+    if (splash && !splash.classList.contains('opacity-0')) {
+        splash.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
         setTimeout(() => {
-            splash.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-            setTimeout(() => {
-                splash.remove(); 
-            }, 700);
-        }, 1500);
+            if (splash) splash.remove();
+        }, 700);
     }
-});
+}
+
+setTimeout(hideSplashScreen, 2000);
+window.addEventListener('load', hideSplashScreen);
