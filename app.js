@@ -1,4 +1,4 @@
-const i18n = {
+Const i18n = {
     ar: {
         appTitle: "The Smart Contractor",
         setupTitle: "إعدادات النظام أول مرة",
@@ -393,7 +393,7 @@ function renderCloudQuotationsUI() {
         btn.addEventListener('touchstart', (e) => {
             pressTimer = setTimeout(() => {
                 openDeleteCloudModal(row.id, row.client_name);
-            }, 650); // 650 مللي ثانية للضغطة الطويلة
+            }, 650);
         }, { passive: true });
 
         btn.addEventListener('touchend', () => { clearTimeout(pressTimer); });
@@ -665,10 +665,106 @@ function updateUILanguage() {
     });
 }
 
+// ==========================================
+// 🛡️ نظام الفحص الذكي للـ Offline وعداد الـ 48 ساعة
+// ==========================================
+
+const OFFLINE_LIMIT_MS = 48 * 60 * 60 * 1000; // 48 ساعة بالميللي ثانية
+
+function initSubscriptionGuard() {
+    const expiryDateStr = localStorage.getItem('contractor_subscription_expiry_cache');
+    
+    // 1. فحص وجود التفعيل المبدئي
+    if (!expiryDateStr) {
+        showLockScreen("لم يتم تفعيل التطبيق بعد. يرجى الاشتراك أو التفعيل أولاً.");
+        return;
+    }
+
+    const expiryDate = new Date(expiryDateStr);
+    const now = new Date();
+
+    // 2. فحص التاريخ الأساسي
+    if (now > expiryDate) {
+        showLockScreen("انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.");
+        return;
+    }
+
+    // 3. فحص ومتابعة حالة الأوفلاين والمهلة
+    checkOfflineGracePeriod();
+    
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOfflineStatus);
+}
+
+function handleOfflineStatus() {
+    if (!localStorage.getItem('sc_offline_start_time')) {
+        localStorage.setItem('sc_offline_start_time', new Date().getTime().toString());
+    }
+    checkOfflineGracePeriod();
+}
+
+function handleOnlineStatus() {
+    localStorage.removeItem('sc_offline_start_time');
+    const banner = document.getElementById('offlineTimerBanner');
+    if (banner) banner.remove();
+}
+
+function checkOfflineGracePeriod() {
+    if (!navigator.onLine) {
+        let offlineStart = localStorage.getItem('sc_offline_start_time');
+        
+        if (!offlineStart) {
+            offlineStart = new Date().getTime().toString();
+            localStorage.setItem('sc_offline_start_time', offlineStart);
+        }
+
+        const elapsed = new Date().getTime() - parseInt(offlineStart, 10);
+        const remainingMs = OFFLINE_LIMIT_MS - elapsed;
+
+        if (remainingMs <= 0) {
+            showLockScreen("⚠️ انتهت مهلة العمل بدون إنترنت (48 ساعة). يرجى الاتصال بالإنترنت للتحقق من التفعيل.");
+        } else {
+            showOfflineBanner(remainingMs);
+        }
+    } else {
+        handleOnlineStatus();
+    }
+}
+
+function showOfflineBanner(remainingMs) {
+    let banner = document.getElementById('offlineTimerBanner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'offlineTimerBanner';
+        banner.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%;
+            background: #b45309; color: #ffffff; text-align: center;
+            padding: 6px 12px; font-size: 12px; font-weight: bold;
+            z-index: 9999; display: flex; align-items: center;
+            justify-content: center; gap: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-family: system-ui, sans-serif;
+        `;
+        document.body.prepend(banner);
+    }
+
+    const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    banner.innerHTML = `
+        <span>📡 وضع أوفلاين: متبقي <b>${hoursLeft} ساعة و ${minutesLeft} دقيقة</b> للاتصال بالنت والتحقق</span>
+    `;
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
     fetchCloudQuotations();
+
+    // تشغيل حارس التفعيل ومراقبة مهلة الأوفلاين
+    initSubscriptionGuard();
+    setInterval(() => {
+        if (!navigator.onLine) checkOfflineGracePeriod();
+    }, 60000);
 
     // ربط زر تأكيد الحذف السحابي
     const confirmDeleteBtn = document.getElementById('confirm-delete-cloud-btn');
@@ -765,8 +861,6 @@ window.addEventListener('DOMContentLoaded', async () => {
             generateQuotationPDF();
         });
     }
-
-    await checkActivation();
 });
 
 function generateQuotationPDF() {
