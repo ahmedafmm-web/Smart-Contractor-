@@ -1,4 +1,4 @@
-Const i18n = {
+const i18n = {
     ar: {
         appTitle: "The Smart Contractor",
         setupTitle: "إعدادات النظام أول مرة",
@@ -755,6 +755,17 @@ function showOfflineBanner(remainingMs) {
     `;
 }
 
+// 🚀 آلية إخفاء مضاعفة لضمان إخفاء شاشة الـ Splash بعد ثانيتين
+function hideSplashScreen() {
+    const splash = document.getElementById('splash-screen');
+    if (splash && !splash.classList.contains('opacity-0')) {
+        splash.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+        setTimeout(() => {
+            if (splash) splash.remove();
+        }, 700);
+    }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
     renderItems();
@@ -765,6 +776,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     setInterval(() => {
         if (!navigator.onLine) checkOfflineGracePeriod();
     }, 60000);
+
+    // إخفاء الـ Splash Screen
+    hideSplashScreen();
 
     // ربط زر تأكيد الحذف السحابي
     const confirmDeleteBtn = document.getElementById('confirm-delete-cloud-btn');
@@ -1004,17 +1018,6 @@ function generateQuotationPDF() {
         </html>
     `);
     printWindow.document.close();
-}
-
-// 🚀 آلية إخفاء مضاعفة لضمان إخفاء شاشة الـ Splash بعد ثانيتين
-function hideSplashScreen() {
-    const splash = document.getElementById('splash-screen');
-    if (splash && !splash.classList.contains('opacity-0')) {
-        splash.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-        setTimeout(() => {
-            if (splash) splash.remove();
-        }, 700);
-    }
 }
 
 setTimeout(hideSplashScreen, 2000);
