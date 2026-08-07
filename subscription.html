@@ -102,7 +102,7 @@
             <h3 class="font-bold text-gray-200">الاشتراك الشهري</h3>
             <div class="text-2xl font-black text-blue-400 mt-1">250 <span class="text-xs font-normal text-gray-400">جنيه/شهرياً</span></div>
           </div>
-          <button onclick="startDynamicPayment('monthly')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+          <button onclick="openPaymentModal('monthly')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
             <i class="fas fa-bolt"></i>
             <span>ادفع الآن بالسعر المخفض (بدلاً من 500)</span>
           </button>
@@ -115,7 +115,7 @@
             <h3 class="font-bold text-amber-300">الاشتراك السنوي</h3>
             <div class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs font-normal text-gray-400">جنيه/سنوياً</span></div>
           </div>
-          <button onclick="startDynamicPayment('yearly')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
+          <button onclick="openPaymentModal('yearly')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
             <i class="fas fa-bolt"></i>
             <span>خصم لفترة محدودة (بدلاً من 4000) - اشترك الآن</span>
           </button>
@@ -140,6 +140,67 @@
     </section>
 
   </main>
+
+  <!-- Modal خيارات الدفع والتحويل -->
+  <div id="paymentOptionsModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4 z-50">
+    <div class="glass-card bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-md w-full space-y-5 relative shadow-2xl">
+      <button onclick="closePaymentModal()" class="absolute top-4 left-4 text-gray-400 hover:text-white transition">
+        <i class="fas fa-times text-lg"></i>
+      </button>
+
+      <div class="text-center space-y-1">
+        <h3 class="text-lg font-bold text-amber-400 flex items-center justify-center gap-2">
+          <i class="fas fa-wallet"></i>
+          <span>اختر طريقة الدفع المناسبة</span>
+        </h3>
+        <p id="modalSelectedPlanText" class="text-xs text-gray-300 font-medium"></p>
+      </div>
+
+      <div class="space-y-3 pt-2">
+        <!-- الخيار الأول: رابط InstaPay المباشر -->
+        <a href="https://ipn.eg/S/eg2400020548054885193/instapay/5xBjGv" target="_blank" class="w-full bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 p-4 rounded-xl flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-purple-600/30 flex items-center justify-center text-purple-300 font-bold">
+              <i class="fas fa-university"></i>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm">الدفع عبر InstaPay</div>
+              <div class="text-[11px] text-purple-300/80">انقر لفتح رابط الدفع المباشر</div>
+            </div>
+          </div>
+          <i class="fas fa-external-link-alt text-xs text-purple-400 group-hover:translate-x-[-2px] transition"></i>
+        </a>
+
+        <!-- الخيار الثاني: المحفظة الإلكترونية -->
+        <div onclick="copyWalletNumber()" class="w-full bg-amber-900/30 hover:bg-amber-800/50 border border-amber-500/40 text-amber-200 p-4 rounded-xl flex items-center justify-between transition cursor-pointer group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-amber-600/30 flex items-center justify-center text-amber-300 font-bold">
+              <i class="fas fa-mobile-alt"></i>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm">محفظة إلكترونية (فودافون كاش)</div>
+              <div class="text-[11px] text-amber-300/80 font-mono">01127834972 (اضغط للنسخ)</div>
+            </div>
+          </div>
+          <i class="fas fa-copy text-xs text-amber-400 group-hover:scale-110 transition"></i>
+        </div>
+
+        <!-- الخيار الثالث: التواصل للتفعيل عبر الواتساب -->
+        <button onclick="goToWhatsAppForActivation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl flex items-center justify-between transition shadow-lg shadow-emerald-600/20 group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
+              <i class="fab fa-whatsapp text-lg"></i>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm">التفعيل المباشر بعد الدفع</div>
+              <div class="text-[11px] text-emerald-100/90">إرسال كود الجهاز والتأكيد على الواتساب</div>
+            </div>
+          </div>
+          <i class="fas fa-arrow-left text-xs group-hover:translate-x-[-3px] transition"></i>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- المساعد الذكي المطور مع الأسئلة السريعة -->
   <div id="aiAssistantWidget" class="fixed bottom-5 left-5 z-50">
@@ -192,6 +253,7 @@
 
   <script>
     const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
+    let activeSelectedPlanType = "";
 
     function showAlert(msg, type = "info") {
       const box = document.getElementById('alertBox');
@@ -239,37 +301,57 @@
       if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = val;
     });
 
-    // بدء الدفع الديناميكي عبر الـ Worker
-    async function startDynamicPayment(planType) {
+    // التحكم في الـ Modal والدفع
+    function openPaymentModal(planType) {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       
       if (!deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود جهازك أولاً لتتمكن من الدفع والتفعيل الفوري.", "error");
+        showAlert("⚠️ يرجى إدخال كود جهازك أولاً لتتمكن من متابعة الدفع والتفعيل.", "error");
         return;
       }
 
-      showAlert("⏳ جاري تحضير بوابة الدفع الفورية...", "info");
+      activeSelectedPlanType = planType;
+      const modalText = document.getElementById('modalSelectedPlanText');
+      if (modalText) {
+        modalText.innerText = planType === 'monthly' ? "باقة الاشتراك الشهري (250 جنيه)" : "باقة الاشتراك السنوي (2000 جنيه)";
+      }
 
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: "create_payment_intent", plan_type: planType, device_id: deviceCode })
-        });
-
-        const data = await response.json();
-        if (data.success && data.payment_url) {
-          window.location.href = data.payment_url;
-        } else {
-          showAlert(`⚠️ ${data.message || "تعذر فتح بوابة الدفع الفورية، يرجى المحاولة لاحقاً."}`, "error");
-        }
-      } catch (err) {
-        showAlert(`❌ خطأ في الاتصال بسيرفر الدفع: ${err.message}`, "error");
+      const modal = document.getElementById('paymentOptionsModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
       }
     }
 
-    // ✅ دالة التفعيل التجريبي المعدلة الحقيقية المربوطة بالسحابة بدون أي Fallback وهمي
+    function closePaymentModal() {
+      const modal = document.getElementById('paymentOptionsModal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      }
+    }
+
+    function copyWalletNumber() {
+      navigator.clipboard.writeText('01127834972');
+      showAlert("✅ تم نسخ رقم المحفظة (01127834972) بنجاح!", "success");
+    }
+
+    function goToWhatsAppForActivation() {
+      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
+                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase() || 
+                         "غير محدد";
+      
+      const planName = activeSelectedPlanType === 'monthly' ? "الاشتراك الشهري (250 ج.م)" : "الاشتراك السنوي (2000 ج.م)";
+      
+      const message = `السلام عليكم، أرغب في تفعيل أداة المقاول الذكي.\n\n📌 نوع الباقة المطلوب تفعيلها: ${planName}\n💻 كود الجهاز: ${deviceCode}\n\n(مرفق سكرين شوت إشعار التحويل للتأكيد)`;
+      
+      const encodedMsg = encodeURIComponent(message);
+      window.open(`https://wa.me/201127834972?text=${encodedMsg}`, '_blank');
+      closePaymentModal();
+    }
+
+    // ✅ دالة التفعيل التجريبي
     async function activateTrial() {
       const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
@@ -302,10 +384,10 @@
       }
     }
 
-    // ✅ دالة الفحص اليدوي المحدثة لإيصالات الدفع
+    // ✅ دالة الفحص اليدوي
     async function verifyTransaction() {
       const rawTxId = document.getElementById('manualTxId')?.value || "";
-      const txId = rawTxId.replace(/\D/g, '').trim(); // استخراج الأرقام فقط من الإيصال
+      const txId = rawTxId.replace(/\D/g, '').trim();
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
 
