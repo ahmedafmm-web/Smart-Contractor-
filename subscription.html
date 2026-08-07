@@ -123,8 +123,8 @@
       </div>
     </section>
 
-    <!-- Manual Verification Section -->
-    <section class="glass-card p-6 rounded-2xl space-y-4">
+    <!-- Manual Verification Section (مخفي حالياً) -->
+    <section class="glass-card p-6 rounded-2xl space-y-4 hidden">
       <div class="flex items-center gap-2 text-gray-300 font-semibold text-base">
         <i class="fas fa-receipt"></i>
         <h3>الفحص اليدوي وتفعيل الاشتراك</h3>
@@ -486,7 +486,7 @@
         } else if (lower.includes('تجريب') || lower.includes('48') || lower.includes('مجاني')) {
           appendAIMessage('bot', 'لتفعيل التجربة المجانية: أدخل كود جهازك في الخانة الأولى بالأعلى واضغط زر "تفعيل 48 ساعة".');
         } else if (lower.includes('فحص') || lower.includes('عملية') || lower.includes('تحقق') || lower.includes('دفع')) {
-          appendAIMessage('bot', 'بعد الدفع، أدخل رقم العملية (Transaction ID) المكون من أرقام في قسم الفحص اليدوي واضغط "تحقق وتفعيل".');
+          appendAIMessage('bot', 'بعد الدفع، يمكنك اختيار التواصل المباشر عبر الواتساب مع صورة التحويل لتفعيل حسابك فوراً.');
         } else {
           appendAIMessage('bot', 'أنا هنا لمساعدتك في تفعيل البرنامج. يمكنك اختيار أحد الأسئلة السريعة أو إدخال كود جهازك للبدء.');
         }
