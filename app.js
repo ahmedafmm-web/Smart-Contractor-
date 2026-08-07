@@ -666,34 +666,91 @@ function updateUILanguage() {
 }
 
 // ==========================================
-// 🛡️ نظام الفحص الذكي للـ Offline وعداد الـ 48 ساعة
+// 🛡️ نظام الفحص الحي المباشر والحماية من السحابة (48 ساعة أوفلاين)
 // ==========================================
 
 const OFFLINE_LIMIT_MS = 48 * 60 * 60 * 1000; // 48 ساعة بالميللي ثانية
 
-function initSubscriptionGuard() {
+async function initSubscriptionGuard() {
+    // 1. إذا كان الجهاز أونلاين -> إجراء فحص حي ومباشر مع السحابة فوراً
+    if (navigator.onLine) {
+        try {
+            const fingerprint = getDeviceID();
+            const now = new Date();
+
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${fingerprint}`, {
+                headers: { "apikey": SUPABASE_KEY, "Authorization": `Bearer ${SUPABASE_KEY}` }
+            });
+            const data = await response.json();
+
+            // أ: الجهاز تم حذفه تماماً من السحابة -> قفل فوراً ومسح الكاش
+            if (!data || data.length === 0) {
+                localStorage.removeItem('contractor_subscription_expiry_cache');
+                localStorage.removeItem('contractor_last_online_check');
+                showLockScreen("⚠️ تم إلغاء تفعيل هذا الجهاز من السحابة. يرجى التواصل مع الدعم أو التجديد.");
+                return;
+            }
+
+            const user = data[0];
+            let isAccessGranted = false;
+            let rawExpiryString = null;
+
+            // ب: فحص حالة الاشتراك المباشرة من السحابة
+            if (user.is_subscribed === true || user.is_subscribed === "true") {
+                if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
+                    isAccessGranted = true;
+                    rawExpiryString = user.subscription_expires_at;
+                }
+            } else if (user.trial_expires_at && new Date(user.trial_expires_at) > now) {
+                isAccessGranted = true;
+                rawExpiryString = user.trial_expires_at;
+            }
+
+            // ج: إذا كان الاشتراك منتهي أو غير مفعل بالسحابة -> قفل فوراً
+            if (!isAccessGranted) {
+                localStorage.removeItem('contractor_subscription_expiry_cache');
+                localStorage.removeItem('contractor_last_online_check');
+                showLockScreen("🔒 انتهت فترة اشتراكك أو تجريبتك المجانية بالسحابة. يرجى التجديد للتفعيل.");
+                return;
+            }
+
+            // د: التفعيل ساري -> تحديث الكاش المحلي بالتاريخ الجديد ومسح عداد الأوفلاين
+            localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
+            localStorage.setItem('contractor_last_online_check', now.toISOString());
+            handleOnlineStatus();
+
+        } catch (err) {
+            console.warn("تعذر الفحص الحي، الاعتماد على الفحص المحلي:", err);
+            verifyLocalCacheGuard();
+        }
+    } else {
+        // 2. إذا كان الجهاز أوفلاين -> الاعتماد على فحص الكاش المحلي والـ 48 ساعة
+        verifyLocalCacheGuard();
+    }
+
+    // متابعة أحداث الاتصال والانقطاع
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOfflineStatus);
+}
+
+// فحص الكاش المحلي في حالة الأوفلاين
+function verifyLocalCacheGuard() {
     const expiryDateStr = localStorage.getItem('contractor_subscription_expiry_cache');
     
-    // 1. فحص وجود التفعيل المبدئي
     if (!expiryDateStr) {
-        showLockScreen("لم يتم تفعيل التطبيق بعد. يرجى الاشتراك أو التفعيل أولاً.");
+        showLockScreen("لم يتم تفعيل التطبيق بعد. يرجى الاتصال بالإنترنت والاشتراك أولاً.");
         return;
     }
 
     const expiryDate = new Date(expiryDateStr);
     const now = new Date();
 
-    // 2. فحص التاريخ الأساسي
     if (now > expiryDate) {
-        showLockScreen("انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.");
+        showLockScreen("انتهت مدة اشتراكك المعتمدة. يرجى الاتصال بالإنترنت للتجديد.");
         return;
     }
 
-    // 3. فحص ومتابعة حالة الأوفلاين والمهلة
     checkOfflineGracePeriod();
-    
-    window.addEventListener('online', handleOnlineStatus);
-    window.addEventListener('offline', handleOfflineStatus);
 }
 
 function handleOfflineStatus() {
@@ -771,13 +828,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderItems();
     fetchCloudQuotations();
 
-    // تشغيل حارس التفعيل ومراقبة مهلة الأوفلاين
-    initSubscriptionGuard();
+    // تشغيل حارس التفعيل والتحقق الحي المباشر من السحابة
+    await initSubscriptionGuard();
     setInterval(() => {
         if (!navigator.onLine) checkOfflineGracePeriod();
     }, 60000);
 
-    // إخفاء الـ Splash Screen
+    // إخفاء شاشة التحميل الـ Splash Screen
     hideSplashScreen();
 
     // ربط زر تأكيد الحذف السحابي
