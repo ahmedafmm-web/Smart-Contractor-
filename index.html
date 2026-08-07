@@ -29,7 +29,7 @@
                 background-color: #ffffff !important;
                 border: 1px solid #ccc !important;
             }
-            #activation-screen, #setup-screen, header, button, .no-print {
+            #activation-screen, #setup-screen, header, button, .no-print, #offlineTimerBanner {
                 display: none !important;
             }
         }
@@ -279,9 +279,17 @@
             navigator.serviceWorker.register("./sw.js");
         }
 
+        // إظهار بصمة الجهاز تلقائياً في شاشة القفل
+        window.addEventListener('DOMContentLoaded', () => {
+            const devBox = document.getElementById('device-id-box');
+            if (devBox && typeof getDeviceID === 'function') {
+                devBox.innerText = getDeviceID();
+            }
+        });
+
         function goToSubscriptionPage() {
             const deviceBox = document.getElementById('device-id-box');
-            const deviceId = deviceBox ? deviceBox.innerText.trim() : localStorage.getItem('sc_device_code') || '';
+            const deviceId = (deviceBox && deviceBox.innerText.trim()) ? deviceBox.innerText.trim() : (typeof getDeviceID === 'function' ? getDeviceID() : localStorage.getItem('sc_device_code') || '');
             if (deviceId) {
                 localStorage.setItem('sc_device_code', deviceId);
                 window.location.href = `subscription.html?device_id=${encodeURIComponent(deviceId)}`;
@@ -292,3 +300,4 @@
     </script>
 </body>
 </html>
+ 
