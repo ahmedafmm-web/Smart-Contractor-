@@ -123,7 +123,7 @@
       </div>
     </section>
 
-    <!-- Manual Verification Section (مخفي حالياً) -->
+    <!-- Manual Verification Section (مخفي ومؤمن) -->
     <section class="glass-card p-6 rounded-2xl space-y-4 hidden">
       <div class="flex items-center gap-2 text-gray-300 font-semibold text-base">
         <i class="fas fa-receipt"></i>
@@ -373,6 +373,8 @@
         if (response.ok && data.success) {
           if (data.trial_expires_at || data.expires_at) {
             localStorage.setItem('contractor_subscription_expiry_cache', data.trial_expires_at || data.expires_at);
+            localStorage.setItem('contractor_last_online_check', new Date().toISOString());
+            localStorage.removeItem('sc_offline_start_time');
           }
           showAlert(`✅ ${data.message || `تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`}`, "success");
         } else {
@@ -409,6 +411,8 @@
         if (data.success) {
           if (data.expires_at) {
             localStorage.setItem('contractor_subscription_expiry_cache', data.expires_at);
+            localStorage.setItem('contractor_last_online_check', new Date().toISOString());
+            localStorage.removeItem('sc_offline_start_time');
           }
           showAlert(`✅ ${data.message || "تم التحقق من العملية وتفعيل الحساب بنجاح!"}`, "success");
         } else {
