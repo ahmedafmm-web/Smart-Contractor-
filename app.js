@@ -389,7 +389,6 @@ function renderCloudQuotationsUI() {
 
         let pressTimer = null;
 
-        // أحداث اللمس والموبايل
         btn.addEventListener('touchstart', (e) => {
             pressTimer = setTimeout(() => {
                 openDeleteCloudModal(row.id, row.client_name);
@@ -399,7 +398,6 @@ function renderCloudQuotationsUI() {
         btn.addEventListener('touchend', () => { clearTimeout(pressTimer); });
         btn.addEventListener('touchmove', () => { clearTimeout(pressTimer); });
 
-        // أحداث الماوس للكمبيوتر
         btn.addEventListener('mousedown', () => {
             pressTimer = setTimeout(() => {
                 openDeleteCloudModal(row.id, row.client_name);
@@ -409,13 +407,11 @@ function renderCloudQuotationsUI() {
         btn.addEventListener('mouseup', () => { clearTimeout(pressTimer); });
         btn.addEventListener('mouseleave', () => { clearTimeout(pressTimer); });
 
-        // إلغاء القائمة الافتراضية والضغط الأيمن بالماوس
         btn.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             openDeleteCloudModal(row.id, row.client_name);
         });
 
-        // الضغطة العادية للاسترجاع
         btn.addEventListener('click', () => {
             loadSavedQuotationFromCloud(row.id);
         });
@@ -527,6 +523,7 @@ function loadSavedQuotationFromCloud(rowId) {
     }
 }
 
+// 🔒 دالة التحقق اليدوي المحدثة (مؤمنة بالكامل - قراءة فقط دون تجديد تجارب منتهية)
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -538,10 +535,12 @@ async function checkSubscriptionManually() {
     const expiryBox = document.getElementById('expiry-display-box');
     const expiryDateText = document.getElementById('expiry-date-text');
 
-    btn.disabled = true;
-    btnText.innerText = "جاري فحص السحابة والتواريخ...";
-    btnIcon.innerText = "⏳";
-    btn.classList.add('opacity-80');
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add('opacity-80');
+    }
+    if (btnText) btnText.innerText = "جاري مطابقة بيانات السيرفر...";
+    if (btnIcon) btnIcon.innerText = "⏳";
 
     try {
         if (!navigator.onLine) {
@@ -553,14 +552,19 @@ async function checkSubscriptionManually() {
         });
         const data = await response.json();
 
+        // 1. الجهاز غير موجود بالسحابة
         if (!data || data.length === 0) {
-            lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو لم يتم تفعيله بعد. يرجى الانتقال لصفحة الاشتراكات.";
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            localStorage.removeItem('contractor_last_online_check');
+            if (lockMsg) lockMsg.innerText = "⚠️ هذا الجهاز غير مسجل بالسحابة أو تم حذفه. يرجى الاشتراك لتفعيل الأداة.";
             if (expiryBox) expiryBox.classList.add('hidden');
-            btnText.innerText = "فشل التحقق (غير مفعل)";
-            btnIcon.innerText = "❌";
-            btn.style.background = "#ef4444"; 
-            btn.disabled = false;
-            btn.classList.remove('opacity-80');
+            if (btnText) btnText.innerText = "فشل التحقق (الجهاز غير مسجل)";
+            if (btnIcon) btnIcon.innerText = "❌";
+            if (btn) {
+                btn.style.background = "#ef4444";
+                btn.disabled = false;
+                btn.classList.remove('opacity-80');
+            }
             return;
         }
 
@@ -569,65 +573,71 @@ async function checkSubscriptionManually() {
         let expiryDateFormatted = "";
         let rawExpiryString = null;
 
+        // 2. فحص الاشتراك المدفوع
         if (user.is_subscribed === true || user.is_subscribed === "true") {
             if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
                 isAccessGranted = true;
                 rawExpiryString = user.subscription_expires_at;
                 const subExpiry = new Date(user.subscription_expires_at);
                 expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
-            } else {
-                lockMsg.innerText = "💡 انتهت مدة اشتراكك الحالي. يرجى التجديد للاستمرار في استخدام الأداة.";
-                localStorage.removeItem('contractor_subscription_expiry_cache');
-                localStorage.removeItem('contractor_last_online_check');
             }
         }
+        // 3. فحص التجربة المجانية (فقط إذا كانت سارية ولم تنتهِ)
         else if (user.trial_expires_at) {
             const trialExpiry = new Date(user.trial_expires_at);
             if (now < trialExpiry) {
                 isAccessGranted = true;
                 rawExpiryString = user.trial_expires_at;
                 expiryDateFormatted = "الفترة التجريبية تنتهي في: " + trialExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
-            } else {
-                lockMsg.innerText = "🔒 انتهت الفترة التجريبية المجانية (48 ساعة). اشترك الآن لفتح الأداة فوراً.";
-                localStorage.removeItem('contractor_subscription_expiry_cache');
-                localStorage.removeItem('contractor_last_online_check');
             }
         }
 
-        if (isAccessGranted) {
+        // 4. في حالة القبول والتفعيل الساري
+        if (isAccessGranted && rawExpiryString) {
             localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
             localStorage.setItem('contractor_last_online_check', now.toISOString());
+            handleOnlineStatus();
 
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
                 expiryBox.classList.remove('hidden');
             }
 
-            btnText.innerText = "تم التحقق والفتح بنجاح";
-            btnIcon.innerText = "✓";
-            btn.style.background = "#10b981"; 
+            if (btnText) btnText.innerText = "تم التحقق والفتح بنجاح";
+            if (btnIcon) btnIcon.innerText = "✓";
+            if (btn) btn.style.background = "#10b981";
 
             setTimeout(() => {
                 const actScreen = document.getElementById('activation-screen');
                 if (actScreen) actScreen.classList.add('hidden');
                 window.location.reload(); 
-            }, 1800);
-        } else {
+            }, 1200);
+        } 
+        // 5. في حالة انتهاء الاشتراك أو انتهاء التجربة
+        else {
+            localStorage.removeItem('contractor_subscription_expiry_cache');
+            localStorage.removeItem('contractor_last_online_check');
+
             if (expiryBox) expiryBox.classList.add('hidden');
-            btnText.innerText = "فشل التحقق (الاشتراك منتهي)";
-            btnIcon.innerText = "❌";
-            btn.style.background = "#ef4444"; 
-            btn.disabled = false;
-            btn.classList.remove('opacity-80');
+            if (lockMsg) lockMsg.innerText = "🔒 انتهت فترة صلاحية هذا الجهاز. يرجى تجديد الاشتراك لفتح الأداة فوراً.";
+            if (btnText) btnText.innerText = "فشل التحقق (الاشتراك منتهي)";
+            if (btnIcon) btnIcon.innerText = "❌";
+            if (btn) {
+                btn.style.background = "#ef4444";
+                btn.disabled = false;
+                btn.classList.remove('opacity-80');
+            }
         }
 
     } catch (error) {
         console.error(error);
-        btnText.innerText = "لا يوجد إنترنت! فشل التفعيل";
-        btnIcon.innerText = "🌐";
-        btn.disabled = false;
-        btn.classList.remove('opacity-80');
-        alert("❌ خطأ: يجب توفير اتصال فعال بالإنترنت للتحقق وتنشيط الأداة من قاعدة البيانات السحابية!");
+        if (btnText) btnText.innerText = "خطأ في الاتصال بالإنترنت";
+        if (btnIcon) btnIcon.innerText = "🌐";
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-80');
+        }
+        alert("❌ تعذر الاتصال بالسيرفر، يرجى التأكد من توفر اتصال بالإنترنت للتحقق من التفعيل.");
     }
 }
 
@@ -706,7 +716,7 @@ async function initSubscriptionGuard() {
                 rawExpiryString = user.trial_expires_at;
             }
 
-            // ج: إذا كان الاشتراك منتهي أو غير مفعل بالسحابة -> قفل فوراً
+            // ج: إذا كان الاشتراك منتهي أو غير مفعل بالسحابة -> قفل فوراً ومسح الكاش
             if (!isAccessGranted) {
                 localStorage.removeItem('contractor_subscription_expiry_cache');
                 localStorage.removeItem('contractor_last_online_check');
@@ -812,7 +822,7 @@ function showOfflineBanner(remainingMs) {
     `;
 }
 
-// 🚀 آلية إخفاء مضاعفة لضمان إخفاء شاشة الـ Splash بعد ثانيتين
+// 🚀 آلية إخفاء شاشة الـ Splash
 function hideSplashScreen() {
     const splash = document.getElementById('splash-screen');
     if (splash && !splash.classList.contains('opacity-0')) {
