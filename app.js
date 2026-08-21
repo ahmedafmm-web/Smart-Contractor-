@@ -311,6 +311,7 @@ async function saveCurrentQuotationToCloud() {
     const qDataObj = {
         clientName: clientName,
         clientPhone: document.getElementById('client-phone').value.trim(),
+        currency: document.getElementById('projectCurrency') ? document.getElementById('projectCurrency').value : 'AED',
         markup: document.getElementById('markup-rate').value,
         contingency: document.getElementById('contingency-rate').value,
         waste: document.getElementById('waste-rate').value,
@@ -482,6 +483,10 @@ function loadSavedQuotationFromCloud(rowId) {
         document.getElementById('client-name').value = q.clientName || record.client_name || '';
         document.getElementById('client-phone').value = q.clientPhone || record.client_phone || '';
         
+        if (q.currency && document.getElementById('projectCurrency')) {
+            document.getElementById('projectCurrency').value = q.currency;
+        }
+
         if (q.markup !== undefined) document.getElementById('markup-rate').value = q.markup;
         if (q.contingency !== undefined) document.getElementById('contingency-rate').value = q.contingency;
         if (q.waste !== undefined) document.getElementById('waste-rate').value = q.waste;
@@ -682,7 +687,6 @@ function updateUILanguage() {
 const OFFLINE_LIMIT_MS = 48 * 60 * 60 * 1000; // 48 ساعة بالميللي ثانية
 
 async function initSubscriptionGuard() {
-    // 1. إذا كان الجهاز أونلاين -> إجراء فحص حي ومباشر مع السحابة فوراً
     if (navigator.onLine) {
         try {
             const fingerprint = getDeviceID();
@@ -693,7 +697,6 @@ async function initSubscriptionGuard() {
             });
             const data = await response.json();
 
-            // أ: الجهاز تم حذفه تماماً من السحابة -> قفل فوراً ومسح الكاش
             if (!data || data.length === 0) {
                 localStorage.removeItem('contractor_subscription_expiry_cache');
                 localStorage.removeItem('contractor_last_online_check');
@@ -705,7 +708,6 @@ async function initSubscriptionGuard() {
             let isAccessGranted = false;
             let rawExpiryString = null;
 
-            // ب: فحص حالة الاشتراك المباشرة من السحابة
             if (user.is_subscribed === true || user.is_subscribed === "true") {
                 if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
                     isAccessGranted = true;
@@ -716,7 +718,6 @@ async function initSubscriptionGuard() {
                 rawExpiryString = user.trial_expires_at;
             }
 
-            // ج: إذا كان الاشتراك منتهي أو غير مفعل بالسحابة -> قفل فوراً ومسح الكاش
             if (!isAccessGranted) {
                 localStorage.removeItem('contractor_subscription_expiry_cache');
                 localStorage.removeItem('contractor_last_online_check');
@@ -724,7 +725,6 @@ async function initSubscriptionGuard() {
                 return;
             }
 
-            // د: التفعيل ساري -> تحديث الكاش المحلي بالتاريخ الجديد ومسح عداد الأوفلاين
             localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
             localStorage.setItem('contractor_last_online_check', now.toISOString());
             handleOnlineStatus();
@@ -734,16 +734,13 @@ async function initSubscriptionGuard() {
             verifyLocalCacheGuard();
         }
     } else {
-        // 2. إذا كان الجهاز أوفلاين -> الاعتماد على فحص الكاش المحلي والـ 48 ساعة
         verifyLocalCacheGuard();
     }
 
-    // متابعة أحداث الاتصال والانقطاع
     window.addEventListener('online', handleOnlineStatus);
     window.addEventListener('offline', handleOfflineStatus);
 }
 
-// فحص الكاش المحلي في حالة الأوفلاين
 function verifyLocalCacheGuard() {
     const expiryDateStr = localStorage.getItem('contractor_subscription_expiry_cache');
     
@@ -822,7 +819,6 @@ function showOfflineBanner(remainingMs) {
     `;
 }
 
-// 🚀 آلية إخفاء شاشة الـ Splash
 function hideSplashScreen() {
     const splash = document.getElementById('splash-screen');
     if (splash && !splash.classList.contains('opacity-0')) {
@@ -838,16 +834,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderItems();
     fetchCloudQuotations();
 
-    // تشغيل حارس التفعيل والتحقق الحي المباشر من السحابة
     await initSubscriptionGuard();
     setInterval(() => {
         if (!navigator.onLine) checkOfflineGracePeriod();
     }, 60000);
 
-    // إخفاء شاشة التحميل الـ Splash Screen
     hideSplashScreen();
 
-    // ربط زر تأكيد الحذف السحابي
     const confirmDeleteBtn = document.getElementById('confirm-delete-cloud-btn');
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', executeDeleteCloudQuotation);
@@ -951,6 +944,9 @@ function generateQuotationPDF() {
     const clientPhoneInput = document.getElementById('client-phone');
     const cPhone = clientPhoneInput && clientPhoneInput.value.trim() ? clientPhoneInput.value.trim() : '---';
     
+    const currencySelect = document.getElementById('projectCurrency');
+    const currentCurrency = currencySelect ? currencySelect.value : 'AED';
+
     const markup = parseFloat(document.getElementById('markup-rate').value) / 100;
     const contingency = parseFloat(document.getElementById('contingency-rate').value) / 100;
     const waste = parseFloat(document.getElementById('waste-rate').value) / 100;
@@ -999,8 +995,8 @@ function generateQuotationPDF() {
                     <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle; font-weight: 700;">
                         ${area.toLocaleString('en-US')} <br><span style="font-size: 10px; color: #475569; font-family: 'Cairo', sans-serif;">${getUnitLabel(currentUnit)}</span>
                     </td>
-                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace; vertical-align: middle;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td style="padding: 12px; text-align: center; font-family: 'Courier New', monospace; vertical-align: middle;">${(finalPrice / area).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span style="font-size: 10px; color: #64748b;">${currentCurrency}</span></td>
+                    <td style="padding: 12px; text-align: center; font-weight: bold; color: #1e3a8a; font-family: 'Courier New', monospace; vertical-align: middle;">${finalPrice.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span style="font-size: 10px; color: #1e3a8a;">${currentCurrency}</span></td>
                 </tr>
             `;
         }
@@ -1068,7 +1064,7 @@ function generateQuotationPDF() {
                 </table>
                 
                 <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
-                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} EGP
+                    ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${currentCurrency}
                 </div>
                 
                 <div style="font-size: 12px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; line-height: 1.8;">
