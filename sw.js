@@ -1,11 +1,13 @@
-const CACHE_NAME = "contractor-v4";
+const CACHE_NAME = "contractor-v5";
 const ASSETS = [
   "./",
   "./index.html",
+  "./subscriptions.html",
   "./app.js",
   "./manifest.json",
   "https://cdn.tailwindcss.com",
   "https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap",
+  "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css",
   "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"
 ];
 
@@ -36,7 +38,7 @@ self.addEventListener("activate", (e) => {
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   
-  if (url.origin === self.location.origin && (url.pathname === "/" || url.pathname.endsWith("index.html"))) {
+  if (url.origin === self.location.origin && (url.pathname === "/" || url.pathname.endsWith("index.html") || url.pathname.endsWith("subscriptions.html"))) {
     e.respondWith(
       fetch(e.request)
         .then((networkResponse) => {
@@ -49,7 +51,7 @@ self.addEventListener("fetch", (e) => {
           return networkResponse;
         })
         .catch(() => {
-          return caches.match("./index.html") || caches.match("./");
+          return caches.match(e.request) || caches.match("./index.html") || caches.match("./");
         })
     );
   } else {
