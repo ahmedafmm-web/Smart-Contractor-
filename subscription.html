@@ -18,7 +18,6 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     
-    /* عزل خطوط وألوان المساعد الذكي */
     #aiAssistantWidget {
       color: #f3f4f6;
     }
@@ -138,7 +137,6 @@
         <div class="flex items-center gap-2 mb-3">
           <span class="text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-md">🇪🇬 باقات السوق المصري (EGP)</span>
         </div>
-        <!-- Pricing Grid -->
         <div class="grid md:grid-cols-2 gap-4">
           <!-- Monthly EGP -->
           <div class="border border-gray-800 bg-gray-900/40 p-5 rounded-xl flex justify-between items-center hover:border-gray-700 transition">
@@ -168,22 +166,6 @@
       </div>
     </section>
 
-    <!-- Manual Verification Section -->
-    <section class="glass-card p-6 rounded-2xl space-y-4 hidden">
-      <div class="flex items-center gap-2 text-gray-300 font-semibold text-base">
-        <i class="fas fa-receipt"></i>
-        <h3>الفحص اليدوي وتفعيل الاشتراك</h3>
-      </div>
-      <p class="text-xs text-gray-400">إذا قمت بالدفع بالفعل، قم بإدخال رقم العملية (Transaction ID) هنا للتفعيل الفوري.</p>
-      <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" id="manualTxId" placeholder="رقم العملية (Transaction ID)" class="flex-1 bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center font-mono text-sm focus:outline-none focus:border-blue-500 text-white">
-        <button onclick="verifyTransaction()" class="bg-gray-800 hover:bg-gray-700 border border-gray-600 text-gray-200 font-semibold px-6 py-3 rounded-xl transition flex items-center justify-center gap-2">
-          <i class="fas fa-check-circle"></i>
-          <span>تحقق وتفعيل</span>
-        </button>
-      </div>
-    </section>
-
   </main>
 
   <!-- Modal خيارات الدفع والتحويل -->
@@ -203,21 +185,21 @@
 
       <div class="space-y-3 pt-2">
         <!-- خيار الدفع الإلكتروني المباشر بالبطاقة / Apple Pay عبر Gumroad -->
-        <button onclick="payViaCardOrGumroad()" class="w-full bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 p-4 rounded-xl flex items-center justify-between transition group">
+        <button id="cardOptionBtn" onclick="payViaCardOrGumroad()" class="w-full bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 p-4 rounded-xl flex items-center justify-between transition group">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-blue-600/40 flex items-center justify-center text-blue-300 font-bold">
               <i class="fas fa-credit-card"></i>
             </div>
             <div class="text-right">
-              <div class="font-bold text-sm">بطاقة بنكية / Apple Pay (دولي وإماراتي)</div>
-              <div class="text-[11px] text-blue-300/80">دفع فوري آمن عبر Gumroad</div>
+              <div class="font-bold text-sm">الدفع بالبطاقة البنكية / Apple Pay</div>
+              <div class="text-[11px] text-blue-300/80">دفع فوري آمن ومباشر عبر Gumroad</div>
             </div>
           </div>
           <i class="fas fa-arrow-left text-xs text-blue-400 group-hover:translate-x-[-3px] transition"></i>
         </button>
 
-        <!-- الخيار الأول: رابط InstaPay المباشر -->
-        <a href="https://ipn.eg/S/eg2400020548054885193/instapay/5xBjGv" target="_blank" class="w-full bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 p-4 rounded-xl flex items-center justify-between transition group">
+        <!-- الخيار الأول: رابط InstaPay المباشر (خاص بمصر فقط) -->
+        <a id="instapayOptionBtn" href="https://ipn.eg/S/eg2400020548054885193/instapay/5xBjGv" target="_blank" class="w-full bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 p-4 rounded-xl flex items-center justify-between transition group">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-purple-600/30 flex items-center justify-center text-purple-300 font-bold">
               <i class="fas fa-university"></i>
@@ -230,8 +212,8 @@
           <i class="fas fa-external-link-alt text-xs text-purple-400 group-hover:translate-x-[-2px] transition"></i>
         </a>
 
-        <!-- الخيار الثاني: المحفظة الإلكترونية -->
-        <div onclick="copyWalletNumber()" class="w-full bg-amber-900/30 hover:bg-amber-800/50 border border-amber-500/40 text-amber-200 p-4 rounded-xl flex items-center justify-between transition cursor-pointer group">
+        <!-- الخيار الثاني: المحفظة الإلكترونية (خاص بمصر فقط) -->
+        <div id="vodafoneOptionBtn" onclick="copyWalletNumber()" class="w-full bg-amber-900/30 hover:bg-amber-800/50 border border-amber-500/40 text-amber-200 p-4 rounded-xl flex items-center justify-between transition cursor-pointer group">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-amber-600/30 flex items-center justify-center text-amber-300 font-bold">
               <i class="fas fa-mobile-alt"></i>
@@ -245,14 +227,14 @@
         </div>
 
         <!-- الخيار الثالث: التواصل للتفعيل عبر الواتساب -->
-        <button onclick="goToWhatsAppForActivation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl flex items-center justify-between transition shadow-lg shadow-emerald-600/20 group">
+        <button id="whatsappOptionBtn" onclick="goToWhatsAppForActivation()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl flex items-center justify-between transition shadow-lg shadow-emerald-600/20 group">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center text-white font-bold">
               <i class="fab fa-whatsapp text-lg"></i>
             </div>
             <div class="text-right">
-              <div class="font-bold text-sm">التفعيل المباشر بعد الدفع</div>
-              <div class="text-[11px] text-emerald-100/90">إرسال كود الجهاز والتأكيد على الواتساب</div>
+              <div class="font-bold text-sm">التواصل والدعم عبر الواتساب</div>
+              <div class="text-[11px] text-emerald-100/90">إرسال كود الجهاز والتأكيد المباشر</div>
             </div>
           </div>
           <i class="fas fa-arrow-left text-xs group-hover:translate-x-[-3px] transition"></i>
@@ -261,7 +243,7 @@
     </div>
   </div>
 
-  <!-- المساعد الذكي المطور مع الأسئلة السريعة -->
+  <!-- المساعد الذكي -->
   <div id="aiAssistantWidget" class="fixed bottom-5 left-5 z-50">
     <button id="aiToggleBtn" onclick="toggleAIChat()" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 text-white rounded-full flex items-center justify-center shadow-2xl transition transform hover:scale-105 border border-blue-400/30">
       <i class="fas fa-robot text-2xl"></i>
@@ -286,17 +268,13 @@
         </button>
       </div>
 
-      <!-- Messages Area -->
       <div id="aiChatMessages" class="flex-1 p-3 overflow-y-auto space-y-3 text-xs"></div>
 
-      <!-- Quick Questions Area -->
       <div id="aiQuickQuestions" class="p-2 border-t border-gray-800 bg-gray-900/60 flex flex-wrap gap-1.5">
         <button onclick="askQuickQuestion('كيف أجد كود جهازي؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">❓ أين كود جهازي؟</button>
         <button onclick="askQuickQuestion('كيف أفعّل الفترة التجريبية؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">⚡ التجربة المجانية</button>
-        <button onclick="askQuickQuestion('كيف أتحقق من عملية الدفع؟')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded-lg border border-gray-700 transition">🧾 فحص الدفع</button>
       </div>
 
-      <!-- Input Area -->
       <div class="p-2.5 border-t border-gray-800 bg-gray-900/90 flex gap-2">
         <input type="text" id="aiUserInput" onkeypress="handleAIKeyPress(event)" placeholder="اسأل المساعد الذكي..." class="flex-1 border border-gray-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500">
         <button onclick="sendAIMessage()" class="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-xl text-xs transition">
@@ -311,8 +289,9 @@
   </footer>
 
   <script>
-    // ✅ الرابط المحدث ليتطابق تماماً مع اسم المشروع الحالي في Cloudflare
-    const WORKER_URL = "https://smart-contractor.ahmed-af-mm.workers.dev";
+    const SUPABASE_REST_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co/rest/v1/users";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTAzMTA5NywiZXhwIjoyMDk2NjA3MDk3fQ.83qD96bOyk7BYY6WZGpIBKg3V84qsBACfhfFyjQ1HyE";
+
     let activeSelectedPlanType = "";
 
     function showAlert(msg, type = "info") {
@@ -332,7 +311,6 @@
       box.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-    // كتابة كود الجهاز تلقائياً من الـ URL أو الـ LocalStorage
     function autoDetectDeviceCode() {
       const params = new URLSearchParams(window.location.search);
       const codeFromUrl = params.get('device_id') || params.get('device') || params.get('code') || params.get('deviceCode') || params.get('id');
@@ -351,7 +329,6 @@
       return null;
     }
 
-    // مزامنة الأكواد
     document.getElementById('trialDeviceCode')?.addEventListener('input', (e) => {
       const val = e.target.value.toUpperCase();
       if(document.getElementById('subDeviceCode')) document.getElementById('subDeviceCode').value = val;
@@ -361,7 +338,7 @@
       if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = val;
     });
 
-    // التحكم في الـ Modal والدفع
+    // التحكم في خيارات المودال بناءً على الدولة المختارة
     function openPaymentModal(planType) {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
@@ -373,15 +350,26 @@
 
       activeSelectedPlanType = planType;
       const modalText = document.getElementById('modalSelectedPlanText');
-      if (modalText) {
-        if (planType === 'uae_monthly') {
-          modalText.innerText = "باقة الشركات الشهرية - الإمارات (99 درهم إماراتي)";
-        } else if (planType === 'uae_yearly') {
-          modalText.innerText = "باقة الشركات السنوية - الإمارات (799 درهم إماراتي)";
-        } else if (planType === 'monthly') {
-          modalText.innerText = "باقة الاشتراك الشهري - مصر (250 جنيه)";
-        } else {
-          modalText.innerText = "باقة الاشتراك السنوي - مصر (2000 جنيه)";
+      const instapayBtn = document.getElementById('instapayOptionBtn');
+      const vodafoneBtn = document.getElementById('vodafoneOptionBtn');
+
+      if (planType === 'uae_monthly' || planType === 'uae_yearly') {
+        // إخفاء وسائل الدفع المصرية لباقات الإمارات
+        if (instapayBtn) instapayBtn.classList.add('hidden');
+        if (vodafoneBtn) vodafoneBtn.classList.add('hidden');
+        if (modalText) {
+          modalText.innerText = planType === 'uae_monthly' 
+            ? "باقة الشركات الشهرية - الإمارات (99 درهم إماراتي)" 
+            : "باقة الشركات السنوية - الإمارات (799 درهم إماراتي)";
+        }
+      } else {
+        // إظهار كافة وسائل الدفع للباقات المصرية
+        if (instapayBtn) instapayBtn.classList.remove('hidden');
+        if (vodafoneBtn) vodafoneBtn.classList.remove('hidden');
+        if (modalText) {
+          modalText.innerText = planType === 'monthly' 
+            ? "باقة الاشتراك الشهري - مصر (250 جنيه)" 
+            : "باقة الاشتراك السنوي - مصر (2000 جنيه)";
         }
       }
 
@@ -405,7 +393,6 @@
       showAlert("✅ تم نسخ رقم المحفظة (01127834972) بنجاح!", "success");
     }
 
-    // ✅ دالة الدفع بالبطاقة البنكية / Gumroad وتمرير كود الجهاز بكافة الصيغ لضمان قراءته
     function payViaCardOrGumroad() {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase() || 
@@ -419,8 +406,6 @@
       let baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
       if (activeSelectedPlanType === 'uae_yearly' || activeSelectedPlanType === 'yearly') {
         baseUrl = "https://devexttech.gumroad.com/l/sc-yearly";
-      } else {
-        baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
       }
 
       const enc = encodeURIComponent(deviceCode);
@@ -447,7 +432,7 @@
       closePaymentModal();
     }
 
-    // ✅ دالة التفعيل التجريبي
+    // ✅ دالة التفعيل التجريبي 48 ساعة مع التحقق الصارم من عدم التكرار
     async function activateTrial() {
       const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
@@ -455,67 +440,68 @@
         return;
       }
 
-      showAlert("⏳ جاري التسجيل والتفعيل في السحابة...", "info");
+      showAlert("⏳ جاري فحص حالة الجهاز والتسجيل في السحابة...", "info");
 
       try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: "activate_trial", device_id: deviceCode })
+        const headers = {
+          "apikey": SUPABASE_ANON_KEY,
+          "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json"
+        };
+
+        // 1. فحص هل الجهاز مسجل مسبقاً ولديه فترة تجريبية أو اشتراك
+        const checkRes = await fetch(`${SUPABASE_REST_URL}?device_id=eq.${encodeURIComponent(deviceCode)}&select=*`, {
+          method: "GET",
+          headers: headers
         });
 
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          if (data.trial_expires_at || data.expires_at) {
-            localStorage.setItem('contractor_subscription_expiry_cache', data.trial_expires_at || data.expires_at);
-            localStorage.setItem('contractor_last_online_check', new Date().toISOString());
-            localStorage.removeItem('sc_offline_start_time');
-          }
-          showAlert(`✅ ${data.message || `تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`}`, "success");
-        } else {
-          const detailsStr = data.details ? ` (${JSON.stringify(data.details)})` : '';
-          showAlert(`❌ ${data.error || data.message || "فشل التفعيل التجريبي من السحابة."}${detailsStr}`, "error");
+        if (!checkRes.ok) {
+          throw new Error("تعذر التحقق من حالة الجهاز من السحابة.");
         }
-      } catch (err) {
-        showAlert(`❌ تعذر الاتصال بسيرفر التفعيل: ${err.message}`, "error");
-      }
-    }
 
-    // ✅ دالة الفحص اليدوي
-    async function verifyTransaction() {
-      const rawTxId = document.getElementById('manualTxId')?.value || "";
-      const txId = rawTxId.replace(/\D/g, '').trim();
-      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
-                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
+        const existingUsers = await checkRes.json();
 
-      if (!txId || !deviceCode) {
-        showAlert("⚠️ يرجى إدخال كود الجهاز ورقم العملية الصحيح المكون من أرقام.", "error");
-        return;
-      }
+        if (existingUsers && existingUsers.length > 0) {
+          const user = existingUsers[0];
+          // إذا كان الجهاز لديه تاريخ تجربة سابق أو اشتراك نشط
+          if (user.trial_expires_at || user.is_subscribed) {
+            showAlert("⚠️ لقد استنفذت الفترة التجريبية لهذا الجهاز مسبقاً، يرجى الترقية إلى إحدى الباقات المدفوعة.", "error");
+            return;
+          }
+        }
 
-      showAlert("⏳ جاري مطابقة بيانات الإيصال مع السيرفر والتفعيل...", "info");
+        // 2. تفعيل 48 ساعة للجهاز الجديد
+        const trialExpiry = new Date();
+        trialExpiry.setHours(trialExpiry.getHours() + 48);
 
-      try {
-        const response = await fetch(WORKER_URL, {
-          method: 'POST',
-          headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: "verify_payment", transaction_id: txId, device_id: deviceCode })
+        const insertRes = await fetch(`${SUPABASE_REST_URL}?on_conflict=device_id`, {
+          method: "POST",
+          headers: {
+            ...headers,
+            "Prefer": "resolution=merge-duplicates,return=representation"
+          },
+          body: JSON.stringify([{
+            device_id: deviceCode,
+            is_subscribed: false,
+            trial_expires_at: trialExpiry.toISOString(),
+            subscription_expires_at: null,
+            failed_attempts: 0
+          }])
         });
 
-        const data = await response.json();
-        if (data.success) {
-          if (data.expires_at) {
-            localStorage.setItem('contractor_subscription_expiry_cache', data.expires_at);
-            localStorage.setItem('contractor_last_online_check', new Date().toISOString());
-            localStorage.removeItem('sc_offline_start_time');
-          }
-          showAlert(`✅ ${data.message || "تم التحقق من العملية وتفعيل الحساب بنجاح!"}`, "success");
+        if (insertRes.ok) {
+          const expiryIso = trialExpiry.toISOString();
+          localStorage.setItem('contractor_subscription_expiry_cache', expiryIso);
+          localStorage.setItem('contractor_last_online_check', new Date().toISOString());
+          localStorage.removeItem('sc_offline_start_time');
+          showAlert(`✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceCode}`, "success");
         } else {
-          showAlert(`❌ ${data.message || "لم يتم العثور على الإيصال أو العملية قيد الانتظار."}`, "error");
+          const errData = await insertRes.text();
+          showAlert(`❌ فشل حفظ التفعيل التجريبي: ${errData}`, "error");
         }
+
       } catch (err) {
-        showAlert("❌ تعذر الاتصال بسيرفر الفحص، يرجى المحاولة لاحقاً.", "error");
+        showAlert(`❌ خطأ أثناء الاتصال: ${err.message}`, "error");
       }
     }
 
@@ -585,8 +571,6 @@
           }
         } else if (lower.includes('تجريب') || lower.includes('48') || lower.includes('مجاني')) {
           appendAIMessage('bot', 'لتفعيل التجربة المجانية: أدخل كود جهازك في الخانة الأولى بالأعلى واضغط زر "تفعيل 48 ساعة".');
-        } else if (lower.includes('فحص') || lower.includes('عملية') || lower.includes('تحقق') || lower.includes('دفع')) {
-          appendAIMessage('bot', 'بعد الدفع، يمكنك اختيار التواصل المباشر عبر الواتساب مع صورة التحويل لتفعيل حسابك فوراً.');
         } else {
           appendAIMessage('bot', 'أنا هنا لمساعدتك في تفعيل البرنامج. يمكنك اختيار أحد الأسئلة السريعة أو إدخال كود جهازك للبدء.');
         }
@@ -604,3 +588,4 @@
   </script>
 </body>
 </html>
+ 
