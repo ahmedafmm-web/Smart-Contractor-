@@ -168,7 +168,7 @@
       </div>
     </section>
 
-    <!-- Manual Verification Section (مخفي ومؤمن) -->
+    <!-- Manual Verification Section -->
     <section class="glass-card p-6 rounded-2xl space-y-4 hidden">
       <div class="flex items-center gap-2 text-gray-300 font-semibold text-base">
         <i class="fas fa-receipt"></i>
@@ -311,7 +311,8 @@
   </footer>
 
   <script>
-    const WORKER_URL = "https://contractor.ahmed-af-mm.workers.dev";
+    // ✅ الرابط المحدث ليتطابق تماماً مع اسم المشروع الحالي في Cloudflare
+    const WORKER_URL = "https://smart-contractor.ahmed-af-mm.workers.dev";
     let activeSelectedPlanType = "";
 
     function showAlert(msg, type = "info") {
@@ -404,7 +405,7 @@
       showAlert("✅ تم نسخ رقم المحفظة (01127834972) بنجاح!", "success");
     }
 
-    // ✅ الدفع بالبطاقة البنكية / Gumroad وتمرير كود الجهاز تلقائياً
+    // ✅ دالة الدفع بالبطاقة البنكية / Gumroad وتمرير كود الجهاز بكافة الصيغ لضمان قراءته
     function payViaCardOrGumroad() {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase() || 
@@ -422,7 +423,8 @@
         baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
       }
 
-      const finalPaymentUrl = `${baseUrl}?Device%20ID=${encodeURIComponent(deviceCode)}&device_id=${encodeURIComponent(deviceCode)}`;
+      const enc = encodeURIComponent(deviceCode);
+      const finalPaymentUrl = `${baseUrl}?wanted=true&custom_fields[Device ID]=${enc}&custom_fields[device_id]=${enc}&Device%20ID=${enc}&device_id=${enc}`;
       window.open(finalPaymentUrl, '_blank');
       closePaymentModal();
     }
@@ -602,4 +604,3 @@
   </script>
 </body>
 </html>
- 
