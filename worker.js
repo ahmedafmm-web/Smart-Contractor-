@@ -33,18 +33,15 @@ export default {
         }
       }
 
-      // طباعة كامل البيانات في الـ Logs لتراها في Cloudflare
-      console.log("--- GUMROAD RAW BODY RECEIVED ---");
-      console.log(rawText);
-      console.log("--- PARSED BODY KEYS ---", Object.keys(body));
-
-      // 1. استقبال طلبات Gumroad
+      // ----------------------------------------------------
+      // 1. استقبال وتفعيل إشعار الدفع من Gumroad
+      // ----------------------------------------------------
       const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || rawText.includes("seller_id") || rawText.includes("product_permalink");
 
       if (isGumroad) {
         let deviceId = "";
 
-        // فحص المفاتيح
+        // فحص المفاتيح المقروءة
         for (const [key, value] of Object.entries(body)) {
           const lowerKey = key.toLowerCase();
           if (lowerKey.includes("device") || lowerKey.includes("جهاز")) {
@@ -55,20 +52,28 @@ export default {
 
         // فحص الـ Regex
         if (!deviceId) {
-          const match = rawText.match(/custom_fields%5BDevice\+ID%5D=([^&]+)/i) || 
-                        rawText.match(/custom_fields\[Device ID\]=([^&]+)/i) ||
-                        rawText.match(/Device\+ID=([^&]+)/i) ||
-                        rawText.match(/device_id=([^&]+)/i);
-          if (match && match[1]) {
-            deviceId = decodeURIComponent(match[1].replace(/\+/g, " "));
+          const regexes = [
+            /custom_fields%5BDevice\+ID%5D=([^&]+)/i,
+            /custom_fields%5Bdevice_id%5D=([^&]+)/i,
+            /custom_fields\[Device ID\]=([^&]+)/i,
+            /custom_fields\[device_id\]=([^&]+)/i,
+            /Device\+ID=([^&]+)/i,
+            /device_id=([^&]+)/i,
+            /Device%20ID=([^&]+)/i
+          ];
+
+          for (const reg of regexes) {
+            const match = rawText.match(reg);
+            if (match && match[1]) {
+              deviceId = decodeURIComponent(match[1].replace(/\+/g, " "));
+              break;
+            }
           }
         }
 
-        const saleId = body.sale_id || body.order_number || `SALE_${Date.now()}`;
-
-        // إذا لم يعثر على كود جهاز، يسجل رقم العملية كمعرف مؤقت بدلاً من التجاهل
+        const saleId = body.sale_id || body.order_number || `GUM_${Date.now()}`;
         if (!deviceId) {
-          deviceId = `GUMROAD-AUTO-${saleId}`;
+          deviceId = `GUMROAD-${saleId}`;
         }
 
         deviceId = String(deviceId).trim().toUpperCase();
@@ -98,17 +103,15 @@ export default {
             is_subscribed: true,
             subscription_expires_at: subExpiry,
             trial_expires_at: null,
-            last_transaction_id: String(saleId)
+            last_transaction_id: String(saleId),
+            failed_attempts: 0
           }])
         });
 
         const resData = await supabaseRes.text();
-        console.log(`[Supabase Response (${supabaseRes.status})]:`, resData);
-
         return new Response(JSON.stringify({ 
           success: supabaseRes.ok, 
           saved_device: deviceId, 
-          status: supabaseRes.status,
           supabase_response: resData 
         }), {
           status: 200,
@@ -116,7 +119,9 @@ export default {
         });
       }
 
+      // ----------------------------------------------------
       // 2. تفعيل التجربة المجانية (48 ساعة)
+      // ----------------------------------------------------
       if (body.action === "activate_trial") {
         const deviceId = (body.device_id || "").trim().toUpperCase();
         if (!deviceId) {
@@ -143,7 +148,8 @@ export default {
             device_id: deviceId,
             is_subscribed: false,
             subscription_expires_at: null,
-            trial_expires_at: trialExpiry
+            trial_expires_at: trialExpiry,
+            failed_attempts: 0
           }])
         });
 
@@ -160,7 +166,6 @@ export default {
       });
 
     } catch (err) {
-      console.log("[Worker Error]:", err.message);
       return new Response(JSON.stringify({ success: false, error: err.message }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
