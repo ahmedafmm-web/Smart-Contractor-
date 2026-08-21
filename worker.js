@@ -22,40 +22,37 @@ export default {
       const SUPABASE_URL = (env.SUPABASE_URL || "https://lwffkzdkvafyuwrcbzl.supabase.co").trim();
       const SUPABASE_SERVICE_ROLE_KEY = (env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDM4NDk3NSwiZXhwIjoyMDk5OTYwOTc1fQ.Kg8RxKkkkHI6WAKUg1FDrc9t5hQEG68Hu46p5pHxbvw").trim();
 
-      const contentType = request.headers.get("content-type") || "";
+      // قراءة الطلب الخام لضمان عدم فقدان أي حقل قادم من Gumroad
+      const rawText = await request.text();
       let body = {};
 
-      if (contentType.includes("application/x-www-form-urlencoded") || contentType.includes("multipart/form-data")) {
-        const formData = await request.formData();
-        for (const [key, value] of formData.entries()) {
+      try {
+        body = JSON.parse(rawText);
+      } catch (e) {
+        const params = new URLSearchParams(rawText);
+        for (const [key, value] of params.entries()) {
           body[key] = value;
-        }
-      } else {
-        try {
-          body = await request.json();
-        } catch (e) {
-          body = {};
         }
       }
 
       // ----------------------------------------------------
       // 1. استقبال وتفعيل إشعارات الدفع من Gumroad تلقائياً
       // ----------------------------------------------------
-      const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || body.custom_fields || body.url_params;
+      const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || rawText.includes("seller_id") || rawText.includes("product_permalink");
 
       if (isGumroad) {
         let deviceId = "";
 
-        // فحص شامل لجميع المفاتيح والقيم الواردة من Gumroad
+        // فحص المفاتيح المباشرة
         for (const key of Object.keys(body)) {
           const lowerKey = key.toLowerCase();
-          if (lowerKey.includes("device") || lowerKey.includes("device id") || lowerKey.includes("custom_fields")) {
+          if (lowerKey.includes("device") || lowerKey.includes("جهاز")) {
             deviceId = body[key];
             if (deviceId) break;
           }
         }
 
-        // فحص إضافي في حالة وجود الحقل داخل url_params
+        // فحص الحقول المخصصة الممررة في URL
         if (!deviceId && body.url_params) {
           try {
             const urlParams = typeof body.url_params === "string" ? new URLSearchParams(body.url_params) : new URLSearchParams(JSON.stringify(body.url_params));
@@ -76,9 +73,20 @@ export default {
           } catch (e) {}
         }
 
+        // فحص بالـ Regex داخل النص الخام في حال تم ترميز المفاتيح
+        if (!deviceId) {
+          const match = rawText.match(/custom_fields%5BDevice\+ID%5D=([^&]+)/i) || 
+                        rawText.match(/custom_fields\[Device ID\]=([^&]+)/i) ||
+                        rawText.match(/Device\+ID=([^&]+)/i) ||
+                        rawText.match(/device_id=([^&]+)/i);
+          if (match && match[1]) {
+            deviceId = decodeURIComponent(match[1].replace(/\+/g, " "));
+          }
+        }
+
         deviceId = String(deviceId || "").trim().toUpperCase();
         const saleId = body.sale_id || body.order_number || `GUM_${Date.now()}`;
-        const permalink = (body.product_permalink || body.permalink || body.product_name || "").toLowerCase();
+        const permalink = (body.product_permalink || body.permalink || body.product_name || rawText || "").toLowerCase();
 
         if (deviceId) {
           const now = new Date();
@@ -111,7 +119,7 @@ export default {
           const resData = await supabaseRes.text();
           return new Response(JSON.stringify({ 
             success: supabaseRes.ok, 
-            device_id: deviceId, 
+            processed_device: deviceId, 
             supabase_response: resData 
           }), {
             status: 200,
@@ -119,7 +127,11 @@ export default {
           });
         }
 
-        return new Response(JSON.stringify({ success: false, message: "Device ID was not found in payload" }), {
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: "Device ID was not found in payload", 
+          raw_keys_received: Object.keys(body) 
+        }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -255,4 +267,3 @@ export default {
     }
   }
 };
- 
