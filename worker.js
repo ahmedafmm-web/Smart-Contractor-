@@ -21,21 +21,16 @@ export default {
       const rawText = await request.text();
       const params = new URLSearchParams(rawText);
 
-      // استخراج sale_id
       const saleId = params.get("sale_id");
       const isRefunded = params.get("refunded");
 
       if (!saleId || isRefunded === "true") {
-        return new Response(JSON.stringify({ success: false, message: "Ignored: No valid sale" }), {
-          status: 200,
-          headers: corsHeaders
-        });
+        console.log("Ignored: Invalid sale_id or refunded");
+        return new Response(JSON.stringify({ success: false, message: "Ignored" }), { status: 200, headers: corsHeaders });
       }
 
-      // استخراج Device ID الدقيق من صيغة Gumroad الرسمية: custom_fields[Device ID]
+      // استخراج Device ID من custom_fields[Device ID]
       let deviceId = "";
-
-      // 1. فحص مباشر من الـ params
       for (const [key, value] of params.entries()) {
         if (key.toLowerCase().includes("device") || key.includes("custom_fields")) {
           if (value && value.trim()) {
@@ -45,7 +40,6 @@ export default {
         }
       }
 
-      // 2. فحص عبر Regex من النص الأصلي المشفر
       if (!deviceId) {
         const match = rawText.match(/custom_fields(?:%5B|\[)(?:Device(?:\+|\%20|_)ID|device_id)(?:%5D|\])=([^&]+)/i) ||
                       rawText.match(/(?:Device(?:\+|\%20|_)ID|device_id)=([^&]+)/i);
@@ -54,16 +48,14 @@ export default {
         }
       }
 
+      console.log("Extracted Device ID:", deviceId);
+
       if (!deviceId) {
-        return new Response(JSON.stringify({ success: false, message: "Missing device_id" }), {
-          status: 200,
-          headers: corsHeaders
-        });
+        return new Response(JSON.stringify({ success: false, message: "Missing device_id" }), { status: 200, headers: corsHeaders });
       }
 
       deviceId = deviceId.toUpperCase();
 
-      // تحديد المدة بناءً على نوع الخطة (سنة أو شهر)
       const now = new Date();
       const rawLower = rawText.toLowerCase();
       if (rawLower.includes("yearly") || rawLower.includes("799") || rawLower.includes("sc-yearly")) {
@@ -72,7 +64,7 @@ export default {
         now.setMonth(now.getMonth() + 1);
       }
 
-      // التحديث والتفعيل في Supabase
+      // الإرسال لـ Supabase
       const supabaseRes = await fetch(`${SUPABASE_URL}/rest/v1/users?on_conflict=device_id`, {
         method: "POST",
         headers: {
@@ -92,21 +84,21 @@ export default {
       });
 
       const resText = await supabaseRes.text();
+      console.log("Supabase Status:", supabaseRes.status);
+      console.log("Supabase Response:", resText);
 
       return new Response(JSON.stringify({
         success: supabaseRes.ok,
         device: deviceId,
-        supabase: resText
+        supabase_res: resText
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
 
     } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
+      console.error("Worker Error:", err.message);
+      return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders });
     }
   }
 };
