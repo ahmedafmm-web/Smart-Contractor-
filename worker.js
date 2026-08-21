@@ -41,21 +41,29 @@ export default {
       // ----------------------------------------------------
       // 1. استقبال وتفعيل إشعارات الدفع من Gumroad تلقائياً
       // ----------------------------------------------------
-      const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || body.custom_fields;
+      const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || body.custom_fields || body.url_params;
 
       if (isGumroad) {
         let deviceId = "";
 
-        // البحث عن كود الجهاز في كافة الحقول المحتملة
+        // فحص شامل لجميع المفاتيح والقيم الواردة من Gumroad
         for (const key of Object.keys(body)) {
           const lowerKey = key.toLowerCase();
-          if (lowerKey.includes("device") || lowerKey.includes("custom_fields")) {
+          if (lowerKey.includes("device") || lowerKey.includes("device id") || lowerKey.includes("custom_fields")) {
             deviceId = body[key];
             if (deviceId) break;
           }
         }
 
-        // فحص في حال كانت custom_fields نص JSON
+        // فحص إضافي في حالة وجود الحقل داخل url_params
+        if (!deviceId && body.url_params) {
+          try {
+            const urlParams = typeof body.url_params === "string" ? new URLSearchParams(body.url_params) : new URLSearchParams(JSON.stringify(body.url_params));
+            deviceId = urlParams.get("Device ID") || urlParams.get("device_id") || urlParams.get("device") || "";
+          } catch (e) {}
+        }
+
+        // فحص إذا كان custom_fields نص JSON
         if (!deviceId && body.custom_fields) {
           try {
             const parsed = typeof body.custom_fields === 'string' ? JSON.parse(body.custom_fields) : body.custom_fields;
@@ -83,7 +91,7 @@ export default {
           const subExpiry = now.toISOString();
           const supabaseEndpoint = `${SUPABASE_URL}/rest/v1/users?on_conflict=device_id`;
 
-          await fetch(supabaseEndpoint, {
+          const supabaseRes = await fetch(supabaseEndpoint, {
             method: "POST",
             headers: {
               "apikey": SUPABASE_SERVICE_ROLE_KEY,
@@ -99,9 +107,19 @@ export default {
               last_transaction_id: String(saleId)
             }])
           });
+
+          const resData = await supabaseRes.text();
+          return new Response(JSON.stringify({ 
+            success: supabaseRes.ok, 
+            device_id: deviceId, 
+            supabase_response: resData 
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" }
+          });
         }
 
-        return new Response(JSON.stringify({ success: true, processed_device: deviceId }), {
+        return new Response(JSON.stringify({ success: false, message: "Device ID was not found in payload" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
