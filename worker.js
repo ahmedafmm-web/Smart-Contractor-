@@ -18,11 +18,10 @@ export default {
         });
       }
 
-      // 🎯 روابط ومفاتيح Supabase الجديدة
+      // 🎯 روابط ومفاتيح Supabase
       const SUPABASE_URL = (env.SUPABASE_URL || "https://lwffkzdkvafyuwrcbzl.supabase.co").trim();
       const SUPABASE_SERVICE_ROLE_KEY = (env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDM4NDk3NSwiZXhwIjoyMDk5OTYwOTc1fQ.Kg8RxKkkkHI6WAKUg1FDrc9t5hQEG68Hu46p5pHxbvw").trim();
 
-      // قراءة بيانات الطلب (سواء كانت JSON أو Form-Data من Gumroad)
       const contentType = request.headers.get("content-type") || "";
       let body = {};
 
@@ -42,27 +41,39 @@ export default {
       // ----------------------------------------------------
       // 1. استقبال وتفعيل إشعارات الدفع من Gumroad تلقائياً
       // ----------------------------------------------------
-      if (body.seller_id || body.product_permalink || body.sale_id) {
-        let deviceId = body["custom_fields[Device ID]"] || 
-                       body["custom_fields[device_id]"] || 
-                       body.device_id || 
-                       body.Device_ID || 
-                       "";
+      const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || body.custom_fields;
 
+      if (isGumroad) {
+        let deviceId = "";
+
+        // البحث عن كود الجهاز في كافة الحقول المحتملة
+        for (const key of Object.keys(body)) {
+          const lowerKey = key.toLowerCase();
+          if (lowerKey.includes("device") || lowerKey.includes("custom_fields")) {
+            deviceId = body[key];
+            if (deviceId) break;
+          }
+        }
+
+        // فحص في حال كانت custom_fields نص JSON
         if (!deviceId && body.custom_fields) {
           try {
-            const customFields = typeof body.custom_fields === "string" ? JSON.parse(body.custom_fields) : body.custom_fields;
-            deviceId = customFields["Device ID"] || customFields["device_id"] || customFields["Device ID "] || "";
+            const parsed = typeof body.custom_fields === 'string' ? JSON.parse(body.custom_fields) : body.custom_fields;
+            for (const k of Object.keys(parsed)) {
+              if (k.toLowerCase().includes("device")) {
+                deviceId = parsed[k];
+                break;
+              }
+            }
           } catch (e) {}
         }
 
-        deviceId = String(deviceId).trim().toUpperCase();
+        deviceId = String(deviceId || "").trim().toUpperCase();
         const saleId = body.sale_id || body.order_number || `GUM_${Date.now()}`;
         const permalink = (body.product_permalink || body.permalink || body.product_name || "").toLowerCase();
 
         if (deviceId) {
           const now = new Date();
-          // تحديد الصلاحية: سنة للباقة السنوية، شهر للباقة الشهرية
           if (permalink.includes("yearly") || permalink.includes("799") || permalink.includes("sc-yearly")) {
             now.setFullYear(now.getFullYear() + 1);
           } else {
@@ -90,7 +101,7 @@ export default {
           });
         }
 
-        return new Response(JSON.stringify({ success: true, message: "Gumroad activation processed" }), {
+        return new Response(JSON.stringify({ success: true, processed_device: deviceId }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
@@ -108,7 +119,6 @@ export default {
           }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // فحص مسبق لمنع تكرار الفترة التجريبية
         const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/users?device_id=eq.${encodeURIComponent(deviceId)}&select=*`, {
           method: "GET",
           headers: {
@@ -173,7 +183,7 @@ export default {
       }
 
       // ----------------------------------------------------
-      // 3. التحقق اليدوي المباشر لحسابات InstaPay والتحويلات
+      // 3. التحقق اليدوي المباشر
       // ----------------------------------------------------
       if (body.action === "verify_payment") {
         const { transaction_id, device_id } = body;
@@ -187,7 +197,6 @@ export default {
           }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
         }
 
-        // فحص قاعدة البيانات للتأكد من تسجيل العملية مسبقاً
         const checkTxRes = await fetch(`${SUPABASE_URL}/rest/v1/users?last_transaction_id=eq.${encodeURIComponent(cleanTxId)}&select=*`, {
           method: "GET",
           headers: {
@@ -228,3 +237,4 @@ export default {
     }
   }
 };
+ 
