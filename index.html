@@ -179,7 +179,7 @@
         <!-- Sections & Inputs -->
         <section class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm mb-6 space-y-4">
             <h3 id="sec-client-info" class="font-bold text-base text-slate-200 mb-2 border-b border-slate-800 pb-2">بيانات العميل والمشروع</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                     <label id="lbl-customer-name" class="block text-xs font-semibold mb-1 text-slate-400">اسم العميل</label>
                     <input type="text" id="client-name" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100">
@@ -187,6 +187,20 @@
                 <div>
                     <label id="lbl-customer-phone" class="block text-xs font-semibold mb-1 text-slate-400">رقم الهاتف</label>
                     <input type="text" id="client-phone" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100">
+                </div>
+                <div>
+                    <label id="lbl-project-currency" class="block text-xs font-semibold mb-1 text-amber-400">عملة المقايسة</label>
+                    <select id="projectCurrency" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-bold text-xs">
+                        <option value="AED">درهم إماراتي (AED)</option>
+                        <option value="USD">دولار أمريكي (USD)</option>
+                        <option value="SAR">ريال سعودي (SAR)</option>
+                        <option value="EGP" selected>جنيه مصري (EGP)</option>
+                        <option value="QAR">ريال قطري (QAR)</option>
+                        <option value="KWD">دينار كويتي (KWD)</option>
+                        <option value="BHD">دينار بحريني (BHD)</option>
+                        <option value="OMR">ريال عماني (OMR)</option>
+                        <option value="EUR">يورو (EUR)</option>
+                    </select>
                 </div>
             </div>
 
@@ -300,4 +314,3 @@
     </script>
 </body>
 </html>
- 
