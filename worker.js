@@ -15,8 +15,9 @@ export default {
         return new Response(JSON.stringify({ success: false }), { status: 405, headers: corsHeaders });
       }
 
-      const SUPABASE_URL = "https://lwffkzdkvafyuwrcbzl.supabase.co";
-      const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDM4NDk3NSwiZXhwIjoyMDk5OTYwOTc1fQ.Kg8RxKkkkHI6WAKUg1FDrc9t5hQEG68Hu46p5pHxbvw";
+      // بيانات Supabase الصحيحة
+      const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
+      const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTAzMTA5NywiZXhwIjoyMDk2NjA3MDk3fQ.83qD96bOyk7BYY6WZGpIBKg3V84qsBACfhfFyjQ1HyE";
 
       const rawText = await request.text();
       const params = new URLSearchParams(rawText);
@@ -29,7 +30,7 @@ export default {
         return new Response(JSON.stringify({ success: false, message: "Ignored" }), { status: 200, headers: corsHeaders });
       }
 
-      // استخراج Device ID من custom_fields[Device ID]
+      // استخراج Device ID
       let deviceId = "";
       for (const [key, value] of params.entries()) {
         if (key.toLowerCase().includes("device") || key.includes("custom_fields")) {
@@ -56,6 +57,7 @@ export default {
 
       deviceId = deviceId.toUpperCase();
 
+      // تحديد مدة الصلاحية
       const now = new Date();
       const rawLower = rawText.toLowerCase();
       if (rawLower.includes("yearly") || rawLower.includes("799") || rawLower.includes("sc-yearly")) {
@@ -64,7 +66,7 @@ export default {
         now.setMonth(now.getMonth() + 1);
       }
 
-      // الإرسال لـ Supabase
+      // الإرسال والتسجيل في Supabase
       const supabaseRes = await fetch(`${SUPABASE_URL}/rest/v1/users?on_conflict=device_id`, {
         method: "POST",
         headers: {
