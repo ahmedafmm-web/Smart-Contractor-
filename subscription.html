@@ -94,31 +94,76 @@
         <input type="text" id="subDeviceCode" placeholder="كود الجهاز الخاص بك" class="w-full bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-amber-500 text-white">
       </div>
 
-      <!-- Pricing Grid -->
-      <div class="grid md:grid-cols-2 gap-4">
-        <!-- Monthly -->
-        <div class="border border-gray-800 bg-gray-900/40 p-5 rounded-xl flex justify-between items-center hover:border-gray-700 transition">
-          <div>
-            <h3 class="font-bold text-gray-200">الاشتراك الشهري</h3>
-            <div class="text-2xl font-black text-blue-400 mt-1">250 <span class="text-xs font-normal text-gray-400">جنيه/شهرياً</span></div>
-          </div>
-          <button onclick="openPaymentModal('monthly')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
-            <i class="fas fa-bolt"></i>
-            <span>ادفع الآن بالسعر المخفض (بدلاً من 500)</span>
-          </button>
+      <!-- ================= باقات دولة الإمارات العربية المتحدة (AED / Gumroad) ================= -->
+      <div class="pt-2">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-md">🇦🇪 باقات الشركات والمكاتب في الإمارات (AED / بطاقة بنكية & Apple Pay)</span>
         </div>
-
-        <!-- Yearly -->
-        <div class="border border-amber-500/30 bg-amber-500/5 p-5 rounded-xl flex justify-between items-center relative overflow-hidden">
-          <div class="absolute -left-8 -top-8 bg-amber-500 text-black text-[10px] font-bold py-1 px-8 rotate-[-45deg]">الأوفر</div>
-          <div>
-            <h3 class="font-bold text-amber-300">الاشتراك السنوي</h3>
-            <div class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs font-normal text-gray-400">جنيه/سنوياً</span></div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- Monthly UAE -->
+          <div class="border border-emerald-500/30 bg-emerald-950/20 p-5 rounded-xl flex flex-col justify-between hover:border-emerald-500/50 transition gap-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-gray-100">الاشتراك الشهري (الإمارات)</h3>
+                <div class="text-2xl font-black text-emerald-400 mt-1">99 <span class="text-xs font-normal text-gray-400">درهم إماراتي / شهرياً</span></div>
+                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 199 AED</div>
+              </div>
+            </div>
+            <button onclick="openPaymentModal('uae_monthly')" class="w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2">
+              <i class="fas fa-credit-card"></i>
+              <span>ترقية فورية (99 AED / شهرياً)</span>
+            </button>
           </div>
-          <button onclick="openPaymentModal('yearly')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
-            <i class="fas fa-bolt"></i>
-            <span>خصم لفترة محدودة (بدلاً من 4000) - اشترك الآن</span>
-          </button>
+
+          <!-- Yearly UAE -->
+          <div class="border border-amber-500/40 bg-amber-500/10 p-5 rounded-xl flex flex-col justify-between relative overflow-hidden gap-4">
+            <div class="absolute -left-8 -top-8 bg-amber-500 text-black text-[10px] font-bold py-1 px-8 rotate-[-45deg]">الأوفر للشركات</div>
+            <div class="flex justify-between items-start">
+              <div>
+                <h3 class="font-bold text-amber-300">الاشتراك السنوي (الإمارات)</h3>
+                <div class="text-2xl font-black text-amber-400 mt-1">799 <span class="text-xs font-normal text-gray-400">درهم إماراتي / سنوياً</span></div>
+                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 1500 AED</div>
+              </div>
+            </div>
+            <button onclick="openPaymentModal('uae_yearly')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+              <i class="fas fa-crown"></i>
+              <span>اشتراك سنوي كامل (799 AED)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= باقات جمهورية مصر العربية (EGP) ================= -->
+      <div class="pt-4 border-t border-gray-800">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-md">🇪🇬 باقات السوق المصري (EGP)</span>
+        </div>
+        <!-- Pricing Grid -->
+        <div class="grid md:grid-cols-2 gap-4">
+          <!-- Monthly EGP -->
+          <div class="border border-gray-800 bg-gray-900/40 p-5 rounded-xl flex justify-between items-center hover:border-gray-700 transition">
+            <div>
+              <h3 class="font-bold text-gray-200">الاشتراك الشهري</h3>
+              <div class="text-2xl font-black text-blue-400 mt-1">250 <span class="text-xs font-normal text-gray-400">جنيه/شهرياً</span></div>
+            </div>
+            <button onclick="openPaymentModal('monthly')" class="bg-blue-600/20 text-blue-400 border border-blue-500/30 hover:bg-blue-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+              <i class="fas fa-bolt"></i>
+              <span>ادفع الآن بالسعر المخفض (بدلاً من 500)</span>
+            </button>
+          </div>
+
+          <!-- Yearly EGP -->
+          <div class="border border-amber-500/30 bg-amber-500/5 p-5 rounded-xl flex justify-between items-center relative overflow-hidden">
+            <div class="absolute -left-8 -top-8 bg-amber-500 text-black text-[10px] font-bold py-1 px-8 rotate-[-45deg]">الأوفر</div>
+            <div>
+              <h3 class="font-bold text-amber-300">الاشتراك السنوي</h3>
+              <div class="text-2xl font-black text-amber-400 mt-1">2000 <span class="text-xs font-normal text-gray-400">جنيه/سنوياً</span></div>
+            </div>
+            <button onclick="openPaymentModal('yearly')" class="bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center gap-2 shadow-lg shadow-amber-500/20">
+              <i class="fas fa-bolt"></i>
+              <span>خصم لفترة محدودة (بدلاً من 4000) - اشترك الآن</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -157,6 +202,20 @@
       </div>
 
       <div class="space-y-3 pt-2">
+        <!-- خيار الدفع الإلكتروني المباشر بالبطاقة / Apple Pay عبر Gumroad -->
+        <button onclick="payViaCardOrGumroad()" class="w-full bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 p-4 rounded-xl flex items-center justify-between transition group">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-600/40 flex items-center justify-center text-blue-300 font-bold">
+              <i class="fas fa-credit-card"></i>
+            </div>
+            <div class="text-right">
+              <div class="font-bold text-sm">بطاقة بنكية / Apple Pay (دولي وإماراتي)</div>
+              <div class="text-[11px] text-blue-300/80">دفع فوري آمن عبر Gumroad</div>
+            </div>
+          </div>
+          <i class="fas fa-arrow-left text-xs text-blue-400 group-hover:translate-x-[-3px] transition"></i>
+        </button>
+
         <!-- الخيار الأول: رابط InstaPay المباشر -->
         <a href="https://ipn.eg/S/eg2400020548054885193/instapay/5xBjGv" target="_blank" class="w-full bg-purple-900/40 hover:bg-purple-800/60 border border-purple-500/40 text-purple-200 p-4 rounded-xl flex items-center justify-between transition group">
           <div class="flex items-center gap-3">
@@ -164,7 +223,7 @@
               <i class="fas fa-university"></i>
             </div>
             <div class="text-right">
-              <div class="font-bold text-sm">الدفع عبر InstaPay</div>
+              <div class="font-bold text-sm">الدفع عبر InstaPay (مصر)</div>
               <div class="text-[11px] text-purple-300/80">انقر لفتح رابط الدفع المباشر</div>
             </div>
           </div>
@@ -314,7 +373,15 @@
       activeSelectedPlanType = planType;
       const modalText = document.getElementById('modalSelectedPlanText');
       if (modalText) {
-        modalText.innerText = planType === 'monthly' ? "باقة الاشتراك الشهري (250 جنيه)" : "باقة الاشتراك السنوي (2000 جنيه)";
+        if (planType === 'uae_monthly') {
+          modalText.innerText = "باقة الشركات الشهرية - الإمارات (99 درهم إماراتي)";
+        } else if (planType === 'uae_yearly') {
+          modalText.innerText = "باقة الشركات السنوية - الإمارات (799 درهم إماراتي)";
+        } else if (planType === 'monthly') {
+          modalText.innerText = "باقة الاشتراك الشهري - مصر (250 جنيه)";
+        } else {
+          modalText.innerText = "باقة الاشتراك السنوي - مصر (2000 جنيه)";
+        }
       }
 
       const modal = document.getElementById('paymentOptionsModal');
@@ -337,12 +404,39 @@
       showAlert("✅ تم نسخ رقم المحفظة (01127834972) بنجاح!", "success");
     }
 
+    // ✅ الدفع بالبطاقة البنكية / Gumroad وتمرير كود الجهاز تلقائياً
+    function payViaCardOrGumroad() {
+      const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
+                         document.getElementById('trialDeviceCode')?.value.trim().toUpperCase() || 
+                         "";
+
+      if (!deviceCode) {
+        showAlert("⚠️ يرجى إدخال كود جهازك أولاً لتتمكن من متابعة الدفع.", "error");
+        return;
+      }
+
+      let baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
+      if (activeSelectedPlanType === 'uae_yearly' || activeSelectedPlanType === 'yearly') {
+        baseUrl = "https://devexttech.gumroad.com/l/sc-yearly";
+      } else {
+        baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
+      }
+
+      const finalPaymentUrl = `${baseUrl}?Device%20ID=${encodeURIComponent(deviceCode)}&device_id=${encodeURIComponent(deviceCode)}`;
+      window.open(finalPaymentUrl, '_blank');
+      closePaymentModal();
+    }
+
     function goToWhatsAppForActivation() {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase() || 
                          "غير محدد";
       
-      const planName = activeSelectedPlanType === 'monthly' ? "الاشتراك الشهري (250 ج.م)" : "الاشتراك السنوي (2000 ج.م)";
+      let planName = "";
+      if (activeSelectedPlanType === 'uae_monthly') planName = "الاشتراك الشهري للإمارات (99 AED)";
+      else if (activeSelectedPlanType === 'uae_yearly') planName = "الاشتراك السنوي للإمارات (799 AED)";
+      else if (activeSelectedPlanType === 'monthly') planName = "الاشتراك الشهري (250 ج.م)";
+      else planName = "الاشتراك السنوي (2000 ج.م)";
       
       const message = `السلام عليكم، أرغب في تفعيل أداة المقاول الذكي.\n\n📌 نوع الباقة المطلوب تفعيلها: ${planName}\n💻 كود الجهاز: ${deviceCode}\n\n(مرفق سكرين شوت إشعار التحويل للتأكيد)`;
       
@@ -508,3 +602,4 @@
   </script>
 </body>
 </html>
+ 
