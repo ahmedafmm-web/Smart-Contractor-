@@ -93,40 +93,40 @@
         <input type="text" id="subDeviceCode" placeholder="كود الجهاز الخاص بك" class="w-full bg-gray-900/80 border border-gray-700 rounded-xl px-4 py-3 text-center tracking-widest font-mono text-sm focus:outline-none focus:border-amber-500 text-white">
       </div>
 
-      <!-- ================= باقات دولة الإمارات العربية المتحدة (AED / Gumroad) ================= -->
+      <!-- ================= باقات الاشتراك الدولي (USD / جميع الدول) ================= -->
       <div class="pt-2">
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-md">🇦🇪 باقات الشركات والمكاتب في الإمارات (AED / بطاقة بنكية & Apple Pay)</span>
+          <span class="text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-md">🌐 باقات الاشتراك الدولي (USD / بطاقة بنكية & Apple Pay)</span>
         </div>
         <div class="grid md:grid-cols-2 gap-4">
-          <!-- Monthly UAE -->
+          <!-- Monthly Global -->
           <div class="border border-emerald-500/30 bg-emerald-950/20 p-5 rounded-xl flex flex-col justify-between hover:border-emerald-500/50 transition gap-4">
             <div class="flex justify-between items-start">
               <div>
-                <h3 class="font-bold text-gray-100">الاشتراك الشهري (الإمارات)</h3>
-                <div class="text-2xl font-black text-emerald-400 mt-1">99 <span class="text-xs font-normal text-gray-400">درهم إماراتي / شهرياً</span></div>
-                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 199 AED</div>
+                <h3 class="font-bold text-gray-100">الاشتراك الشهري الدولي</h3>
+                <div class="text-2xl font-black text-emerald-400 mt-1">27 <span class="text-xs font-normal text-gray-400">USD / شهرياً</span></div>
+                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 50 USD</div>
               </div>
             </div>
-            <button onclick="openPaymentModal('uae_monthly')" class="w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2">
+            <button onclick="openPaymentModal('global_monthly')" class="w-full bg-emerald-600/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-600 hover:text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2">
               <i class="fas fa-credit-card"></i>
-              <span>ترقية فورية (99 AED / شهرياً)</span>
+              <span>ترقية فورية (27 USD / شهرياً)</span>
             </button>
           </div>
 
-          <!-- Yearly UAE -->
+          <!-- Yearly Global -->
           <div class="border border-amber-500/40 bg-amber-500/10 p-5 rounded-xl flex flex-col justify-between relative overflow-hidden gap-4">
             <div class="absolute -left-8 -top-8 bg-amber-500 text-black text-[10px] font-bold py-1 px-8 rotate-[-45deg]">الأوفر للشركات</div>
             <div class="flex justify-between items-start">
               <div>
-                <h3 class="font-bold text-amber-300">الاشتراك السنوي (الإمارات)</h3>
-                <div class="text-2xl font-black text-amber-400 mt-1">799 <span class="text-xs font-normal text-gray-400">درهم إماراتي / سنوياً</span></div>
-                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 1500 AED</div>
+                <h3 class="font-bold text-amber-300">الاشتراك السنوي الدولي</h3>
+                <div class="text-2xl font-black text-amber-400 mt-1">218 <span class="text-xs font-normal text-gray-400">USD / سنوياً</span></div>
+                <div class="text-[11px] text-gray-400 line-through mt-0.5">بدلاً من 400 USD</div>
               </div>
             </div>
-            <button onclick="openPaymentModal('uae_yearly')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
+            <button onclick="openPaymentModal('global_yearly')" class="w-full bg-amber-500 hover:bg-amber-400 text-black font-bold px-4 py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20">
               <i class="fas fa-crown"></i>
-              <span>اشتراك سنوي كامل (799 AED)</span>
+              <span>اشتراك سنوي كامل (218 USD)</span>
             </button>
           </div>
         </div>
@@ -338,7 +338,7 @@
       if(document.getElementById('trialDeviceCode')) document.getElementById('trialDeviceCode').value = val;
     });
 
-    // التحكم في خيارات المودال بناءً على الدولة المختارة
+    // التحكم في خيارات المودال بناءً على نوع الباقة
     function openPaymentModal(planType) {
       const deviceCode = document.getElementById('subDeviceCode')?.value.trim().toUpperCase() || 
                          document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
@@ -353,14 +353,14 @@
       const instapayBtn = document.getElementById('instapayOptionBtn');
       const vodafoneBtn = document.getElementById('vodafoneOptionBtn');
 
-      if (planType === 'uae_monthly' || planType === 'uae_yearly') {
-        // إخفاء وسائل الدفع المصرية لباقات الإمارات
+      if (planType === 'global_monthly' || planType === 'global_yearly') {
+        // إخفاء وسائل الدفع المصرية للباقات الدولية
         if (instapayBtn) instapayBtn.classList.add('hidden');
         if (vodafoneBtn) vodafoneBtn.classList.add('hidden');
         if (modalText) {
-          modalText.innerText = planType === 'uae_monthly' 
-            ? "باقة الشركات الشهرية - الإمارات (99 درهم إماراتي)" 
-            : "باقة الشركات السنوية - الإمارات (799 درهم إماراتي)";
+          modalText.innerText = planType === 'global_monthly' 
+            ? "باقة الاشتراك الشهري الدولي (27 USD)" 
+            : "باقة الاشتراك السنوي الدولي (218 USD)";
         }
       } else {
         // إظهار كافة وسائل الدفع للباقات المصرية
@@ -404,7 +404,7 @@
       }
 
       let baseUrl = "https://devexttech.gumroad.com/l/sc-monthly";
-      if (activeSelectedPlanType === 'uae_yearly' || activeSelectedPlanType === 'yearly') {
+      if (activeSelectedPlanType === 'global_yearly' || activeSelectedPlanType === 'yearly') {
         baseUrl = "https://devexttech.gumroad.com/l/sc-yearly";
       }
 
@@ -420,8 +420,8 @@
                          "غير محدد";
       
       let planName = "";
-      if (activeSelectedPlanType === 'uae_monthly') planName = "الاشتراك الشهري للإمارات (99 AED)";
-      else if (activeSelectedPlanType === 'uae_yearly') planName = "الاشتراك السنوي للإمارات (799 AED)";
+      if (activeSelectedPlanType === 'global_monthly') planName = "الاشتراك الشهري الدولي (27 USD)";
+      else if (activeSelectedPlanType === 'global_yearly') planName = "الاشتراك السنوي الدولي (218 USD)";
       else if (activeSelectedPlanType === 'monthly') planName = "الاشتراك الشهري (250 ج.م)";
       else planName = "الاشتراك السنوي (2000 ج.م)";
       
@@ -432,7 +432,7 @@
       closePaymentModal();
     }
 
-    // ✅ دالة التفعيل التجريبي 48 ساعة مع التحقق الصارم من عدم التكرار
+    // ✅ دالة التفعيل التجريبي 48 ساعة
     async function activateTrial() {
       const deviceCode = document.getElementById('trialDeviceCode')?.value.trim().toUpperCase();
       if (!deviceCode) {
@@ -463,7 +463,6 @@
 
         if (existingUsers && existingUsers.length > 0) {
           const user = existingUsers[0];
-          // إذا كان الجهاز لديه تاريخ تجربة سابق أو اشتراك نشط
           if (user.trial_expires_at || user.is_subscribed) {
             showAlert("⚠️ لقد استنفذت الفترة التجريبية لهذا الجهاز مسبقاً، يرجى الترقية إلى إحدى الباقات المدفوعة.", "error");
             return;
@@ -588,4 +587,3 @@
   </script>
 </body>
 </html>
- 
