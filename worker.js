@@ -18,11 +18,10 @@ export default {
         });
       }
 
-      // 🎯 روابط ومفاتيح Supabase
       const SUPABASE_URL = (env.SUPABASE_URL || "https://lwffkzdkvafyuwrcbzl.supabase.co").trim();
       const SUPABASE_SERVICE_ROLE_KEY = (env.SUPABASE_SERVICE_ROLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZmZra3pka3ZhZnl1d3JjYnpsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDM4NDk3NSwiZXhwIjoyMDk5OTYwOTc1fQ.Kg8RxKkkkHI6WAKUg1FDrc9t5hQEG68Hu46p5pHxbvw").trim();
 
-      // قراءة الطلب الخام لضمان عدم فقدان أي حقل قادم من Gumroad
+      // قراءة الطلب كنص خام أولاً
       const rawText = await request.text();
       let body = {};
 
@@ -36,23 +35,23 @@ export default {
       }
 
       // ----------------------------------------------------
-      // 1. استقبال وتفعيل إشعارات الدفع من Gumroad تلقائياً
+      // 1. معالجة إشعار Gumroad واستخراج كود الجهاز بكل الطرق الممكنة
       // ----------------------------------------------------
       const isGumroad = body.seller_id || body.product_permalink || body.sale_id || body.order_number || rawText.includes("seller_id") || rawText.includes("product_permalink");
 
       if (isGumroad) {
         let deviceId = "";
 
-        // فحص المفاتيح المباشرة
-        for (const key of Object.keys(body)) {
+        // أ) البحث داخل المفاتيح المقروءة
+        for (const [key, value] of Object.entries(body)) {
           const lowerKey = key.toLowerCase();
           if (lowerKey.includes("device") || lowerKey.includes("جهاز")) {
-            deviceId = body[key];
+            deviceId = value;
             if (deviceId) break;
           }
         }
 
-        // فحص الحقول المخصصة الممررة في URL
+        // ب) فحص url_params إن وجد
         if (!deviceId && body.url_params) {
           try {
             const urlParams = typeof body.url_params === "string" ? new URLSearchParams(body.url_params) : new URLSearchParams(JSON.stringify(body.url_params));
@@ -60,36 +59,33 @@ export default {
           } catch (e) {}
         }
 
-        // فحص إذا كان custom_fields نص JSON
-        if (!deviceId && body.custom_fields) {
-          try {
-            const parsed = typeof body.custom_fields === 'string' ? JSON.parse(body.custom_fields) : body.custom_fields;
-            for (const k of Object.keys(parsed)) {
-              if (k.toLowerCase().includes("device")) {
-                deviceId = parsed[k];
-                break;
-              }
-            }
-          } catch (e) {}
-        }
-
-        // فحص بالـ Regex داخل النص الخام في حال تم ترميز المفاتيح
+        // ج) استخراج مباشر بالـ Regex من النص الخام المشفر القادم من Gumroad
         if (!deviceId) {
-          const match = rawText.match(/custom_fields%5BDevice\+ID%5D=([^&]+)/i) || 
-                        rawText.match(/custom_fields\[Device ID\]=([^&]+)/i) ||
-                        rawText.match(/Device\+ID=([^&]+)/i) ||
-                        rawText.match(/device_id=([^&]+)/i);
-          if (match && match[1]) {
-            deviceId = decodeURIComponent(match[1].replace(/\+/g, " "));
+          const regexes = [
+            /custom_fields%5BDevice\+ID%5D=([^&]+)/i,
+            /custom_fields%5Bdevice_id%5D=([^&]+)/i,
+            /custom_fields\[Device ID\]=([^&]+)/i,
+            /custom_fields\[device_id\]=([^&]+)/i,
+            /Device\+ID=([^&]+)/i,
+            /device_id=([^&]+)/i,
+            /Device%20ID=([^&]+)/i
+          ];
+
+          for (const reg of regexes) {
+            const match = rawText.match(reg);
+            if (match && match[1]) {
+              deviceId = decodeURIComponent(match[1].replace(/\+/g, " "));
+              break;
+            }
           }
         }
 
         deviceId = String(deviceId || "").trim().toUpperCase();
-        const saleId = body.sale_id || body.order_number || `GUM_${Date.now()}`;
-        const permalink = (body.product_permalink || body.permalink || body.product_name || rawText || "").toLowerCase();
 
         if (deviceId) {
           const now = new Date();
+          const permalink = (body.product_permalink || body.permalink || body.product_name || rawText || "").toLowerCase();
+
           if (permalink.includes("yearly") || permalink.includes("799") || permalink.includes("sc-yearly")) {
             now.setFullYear(now.getFullYear() + 1);
           } else {
@@ -97,6 +93,9 @@ export default {
           }
 
           const subExpiry = now.toISOString();
+          const saleId = body.sale_id || body.order_number || `GUM_${Date.now()}`;
+
+          // الإرسال لقاعدة البيانات Supabase
           const supabaseEndpoint = `${SUPABASE_URL}/rest/v1/users?on_conflict=device_id`;
 
           const supabaseRes = await fetch(supabaseEndpoint, {
@@ -117,9 +116,11 @@ export default {
           });
 
           const resData = await supabaseRes.text();
+          console.log(`[Supabase Insert Success] Device: ${deviceId}`, resData);
+
           return new Response(JSON.stringify({ 
             success: supabaseRes.ok, 
-            processed_device: deviceId, 
+            detected_device: deviceId, 
             supabase_response: resData 
           }), {
             status: 200,
@@ -127,9 +128,10 @@ export default {
           });
         }
 
+        console.log("[Gumroad Warning] No Device ID found in payload keys:", Object.keys(body));
         return new Response(JSON.stringify({ 
           success: false, 
-          message: "Device ID was not found in payload", 
+          message: "No device ID detected in Gumroad payload", 
           raw_keys_received: Object.keys(body) 
         }), {
           status: 200,
@@ -196,20 +198,12 @@ export default {
         let parsedData;
         try { parsedData = JSON.parse(resText); } catch (e) { parsedData = resText; }
 
-        if (supabaseRes.ok) {
-          return new Response(JSON.stringify({
-            success: true,
-            message: `✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceId}`,
-            trial_expires_at: trialExpiry,
-            data: parsedData
-          }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        } else {
-          return new Response(JSON.stringify({
-            success: false,
-            message: `فشل الحفظ في قاعدة البيانات (${supabaseRes.status})`,
-            details: parsedData
-          }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        }
+        return new Response(JSON.stringify({
+          success: supabaseRes.ok,
+          message: `✅ تم تفعيل التجربة المجانية بنجاح لمدة 48 ساعة للجهاز: ${deviceId}`,
+          trial_expires_at: trialExpiry,
+          data: parsedData
+        }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
 
       // ----------------------------------------------------
@@ -267,3 +261,4 @@ export default {
     }
   }
 };
+ 
