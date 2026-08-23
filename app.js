@@ -51,23 +51,22 @@ const defaultItems = [
     { id: "plastering", name_ar: "أعمال المحارة والياسة الجدارية", name_en: "Wall Plastering Works", mat_cost: 65, lab_cost: 35, unit: "m2" }
 ];
 
-// نسب الخلطات والمكونات القياسية لكل وحدة (Material Recipes)
-const itemRecipes = {
-    "plastering": { cement: 0.20, sand: 0.03, gypsum: 0, adhesive: 0 },
-    "painting": { cement: 0, sand: 0, gypsum: 0.15, adhesive: 0 },
-    "epoxy": { cement: 0.10, sand: 0.01, gypsum: 0, adhesive: 0 }
+// 🧱 نظام الخلطات الهندسية المخصصة وأسعار السوق الدائمة
+const initialCustomRecipes = [
+    { id: "rec_plaster", name: "خلطة محارة ولياسة", cement: 0.20, sand: 0.03, adhesive: 0, gypsum: 0 },
+    { id: "rec_ceramic", name: "خلطة تركيب سيراميك", cement: 0.25, sand: 0.04, adhesive: 0.15, gypsum: 0 },
+    { id: "rec_paint", name: "خلطة معجون ودهانات", cement: 0, sand: 0, adhesive: 0, gypsum: 0.15 }
+];
+
+const initialMarketRates = {
+    cement: 140,    // شيكارة
+    sand: 110,      // متر مكعب
+    adhesive: 95,   // شيكارة
+    gypsum: 80      // شيكارة
 };
 
-// أسعار المواد الأولية الافتراضية
-const defaultMaterialRates = {
-    cement: 140,
-    sand: 110,
-    gypsum: 80,
-    adhesive: 95,
-    laborDaily: 350
-};
-
-let currentMaterialRates = JSON.parse(localStorage.getItem('contractor_material_rates')) || defaultMaterialRates;
+let userCustomRecipes = JSON.parse(localStorage.getItem('contractor_custom_recipes')) || initialCustomRecipes;
+let userMarketRates = JSON.parse(localStorage.getItem('contractor_market_rates')) || initialMarketRates;
 
 let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
@@ -133,6 +132,7 @@ function snapshotCurrentInputs() {
         const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
         const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${item.id}"]`);
         const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${item.id}"]`);
+        const recipeSelect = document.querySelector(`select[data-type="recipe"][data-id="${item.id}"]`);
         const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
         const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
 
@@ -142,6 +142,7 @@ function snapshotCurrentInputs() {
         if (nameInput) activeInputValues[item.id].name = nameInput.value;
         if (descInput) activeInputValues[item.id].desc = descInput.value;
         if (unitSelect) activeInputValues[item.id].unit = unitSelect.value;
+        if (recipeSelect) activeInputValues[item.id].recipe = recipeSelect.value;
         if (matInput) activeInputValues[item.id].mat = matInput.value;
         if (labInput) activeInputValues[item.id].lab = labInput.value;
     });
@@ -159,54 +160,171 @@ function getUnitLabel(unitKey) {
     return unitsMap[unitKey] || unitsMap['m2'];
 }
 
-function openMaterialRatesModal() {
-    const modal = document.getElementById('materials-modal');
+// 🧱 دوال إدارة الخلطات وأسعار السوق
+function openRecipesModal() {
+    const modal = document.getElementById('recipes-manager-modal');
     if (!modal) return;
     
-    document.getElementById('rate-cement').value = currentMaterialRates.cement || 0;
-    document.getElementById('rate-sand').value = currentMaterialRates.sand || 0;
-    document.getElementById('rate-gypsum').value = currentMaterialRates.gypsum || 0;
-    document.getElementById('rate-adhesive').value = currentMaterialRates.adhesive || 0;
-    document.getElementById('rate-labor-daily').value = currentMaterialRates.laborDaily || 0;
+    document.getElementById('market-rate-cement').value = userMarketRates.cement || 0;
+    document.getElementById('market-rate-sand').value = userMarketRates.sand || 0;
+    document.getElementById('market-rate-adhesive').value = userMarketRates.adhesive || 0;
+    document.getElementById('market-rate-gypsum').value = userMarketRates.gypsum || 0;
     
+    renderRecipesCatalog();
     modal.classList.remove('hidden');
 }
 
-function closeMaterialRatesModal() {
-    const modal = document.getElementById('materials-modal');
+function closeRecipesModal() {
+    const modal = document.getElementById('recipes-manager-modal');
     if (modal) modal.classList.add('hidden');
 }
 
-function saveMaterialRates() {
-    currentMaterialRates = {
-        cement: parseFloat(document.getElementById('rate-cement').value) || 0,
-        sand: parseFloat(document.getElementById('rate-sand').value) || 0,
-        gypsum: parseFloat(document.getElementById('rate-gypsum').value) || 0,
-        adhesive: parseFloat(document.getElementById('rate-adhesive').value) || 0,
-        laborDaily: parseFloat(document.getElementById('rate-labor-daily').value) || 0
-    };
-    
-    localStorage.setItem('contractor_material_rates', JSON.stringify(currentMaterialRates));
-    
-    applyRecipesToItems();
-    closeMaterialRatesModal();
-    renderItems(true);
-    alert('✅ تم تحديث أسعار الخامات وإعادة حساب تكلفة البنود تلقائياً!');
+function renderRecipesCatalog() {
+    const list = document.getElementById('recipes-catalog-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    if (userCustomRecipes.length === 0) {
+        list.innerHTML = `<p class="text-xs text-slate-500 italic">لا توجد خلطات مسجلة بعد، يمكنك إضافة خلطتك الأولى بالأعلى.</p>`;
+        return;
+    }
+
+    userCustomRecipes.forEach(rec => {
+        const itemCost = calculateRecipeUnitCost(rec);
+        const card = document.createElement('div');
+        card.className = "flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs";
+        card.innerHTML = `
+            <div>
+                <strong class="text-slate-200 block">${rec.name}</strong>
+                <span class="text-[10px] text-slate-400">
+                    أسمنت: ${rec.cement || 0} ش • رمل: ${rec.sand || 0} م³ • لصق: ${rec.adhesive || 0} ش • جبس: ${rec.gypsum || 0} ش
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-cyan-400 font-bold font-mono">≈ ${itemCost} خامات</span>
+                <button onclick="deleteCustomRecipe('${rec.id}')" class="text-slate-500 hover:text-red-400 p-1 transition"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        `;
+        list.appendChild(card);
+    });
 }
 
-function applyRecipesToItems() {
-    Object.keys(itemRecipes).forEach(itemId => {
-        const recipe = itemRecipes[itemId];
-        const calcMat = (recipe.cement * currentMaterialRates.cement) +
-                        (recipe.sand * currentMaterialRates.sand) +
-                        (recipe.gypsum * currentMaterialRates.gypsum) +
-                        (recipe.adhesive * currentMaterialRates.adhesive);
-                        
-        if (!activeInputValues[itemId]) activeInputValues[itemId] = {};
-        if (calcMat > 0) {
-            activeInputValues[itemId].mat = Math.round(calcMat);
+function calculateRecipeUnitCost(recipeObj) {
+    if (!recipeObj) return 0;
+    const c = (recipeObj.cement || 0) * (userMarketRates.cement || 0);
+    const s = (recipeObj.sand || 0) * (userMarketRates.sand || 0);
+    const a = (recipeObj.adhesive || 0) * (userMarketRates.adhesive || 0);
+    const g = (recipeObj.gypsum || 0) * (userMarketRates.gypsum || 0);
+    return Math.round(c + s + a + g);
+}
+
+function saveNewCustomRecipe() {
+    const title = document.getElementById('new-recipe-title').value.trim();
+    const cement = parseFloat(document.getElementById('new-recipe-cement').value) || 0;
+    const sand = parseFloat(document.getElementById('new-recipe-sand').value) || 0;
+    const adhesive = parseFloat(document.getElementById('new-recipe-adhesive').value) || 0;
+    const gypsum = parseFloat(document.getElementById('new-recipe-gypsum').value) || 0;
+
+    if (!title) { alert('برجاء كتابة اسم للخلطة'); return; }
+
+    const newRec = {
+        id: "rec_" + Date.now(),
+        name: title,
+        cement: cement,
+        sand: sand,
+        adhesive: adhesive,
+        gypsum: gypsum
+    };
+
+    userCustomRecipes.push(newRec);
+    localStorage.setItem('contractor_custom_recipes', JSON.stringify(userCustomRecipes));
+
+    document.getElementById('new-recipe-title').value = '';
+    document.getElementById('new-recipe-cement').value = '';
+    document.getElementById('new-recipe-sand').value = '';
+    document.getElementById('new-recipe-adhesive').value = '';
+    document.getElementById('new-recipe-gypsum').value = '';
+
+    renderRecipesCatalog();
+    updateRecipeSelectDropdowns();
+}
+
+function deleteCustomRecipe(recId) {
+    if (!confirm('هل تريد حذف هذه الخلطة من قائمتك؟')) return;
+    userCustomRecipes = userCustomRecipes.filter(r => r.id !== recId);
+    localStorage.setItem('contractor_custom_recipes', JSON.stringify(userCustomRecipes));
+    renderRecipesCatalog();
+    updateRecipeSelectDropdowns();
+}
+
+function commitRecipesManagerChanges() {
+    userMarketRates = {
+        cement: parseFloat(document.getElementById('market-rate-cement').value) || 0,
+        sand: parseFloat(document.getElementById('market-rate-sand').value) || 0,
+        adhesive: parseFloat(document.getElementById('market-rate-adhesive').value) || 0,
+        gypsum: parseFloat(document.getElementById('market-rate-gypsum').value) || 0
+    };
+    localStorage.setItem('contractor_market_rates', JSON.stringify(userMarketRates));
+
+    // تحديث أسعار خامات البنود المربوطة بخلطات
+    const allItems = [...defaultItems, ...customItems];
+    allItems.forEach(item => {
+        const cached = itemDetailsCache[item.id] || {};
+        const activeVals = activeInputValues[item.id] || {};
+        const selectedRecipeId = activeVals.recipe || cached.recipe || 'none';
+
+        if (selectedRecipeId !== 'none') {
+            const recipeObj = userCustomRecipes.find(r => r.id === selectedRecipeId);
+            if (recipeObj) {
+                const newCost = calculateRecipeUnitCost(recipeObj);
+                if (!activeInputValues[item.id]) activeInputValues[item.id] = {};
+                activeInputValues[item.id].mat = newCost;
+            }
         }
     });
+
+    closeRecipesModal();
+    renderItems(true);
+    alert('✅ تم حفظ أسعار السوق والخلطات وتحديث بنود المقايسة بنجاح!');
+}
+
+function updateRecipeSelectDropdowns() {
+    const inlineSelect = document.getElementById('inline-item-recipe');
+    if (inlineSelect) {
+        inlineSelect.innerHTML = `<option value="none">بدون خلطة (تسعير يدوي)</option>`;
+        userCustomRecipes.forEach(r => {
+            inlineSelect.innerHTML += `<option value="${r.id}">${r.name}</option>`;
+        });
+    }
+}
+
+function handleInlineRecipeSelect(recipeId) {
+    const matInput = document.getElementById('inline-item-mat');
+    if (!matInput) return;
+    if (recipeId === 'none') {
+        matInput.value = '';
+    } else {
+        const rec = userCustomRecipes.find(r => r.id === recipeId);
+        if (rec) {
+            matInput.value = calculateRecipeUnitCost(rec);
+        }
+    }
+}
+
+function handleItemRecipeSelect(itemId, recipeId) {
+    saveItemDetail(itemId, 'recipe', recipeId);
+    if (!activeInputValues[itemId]) activeInputValues[itemId] = {};
+    activeInputValues[itemId].recipe = recipeId;
+
+    if (recipeId !== 'none') {
+        const rec = userCustomRecipes.find(r => r.id === recipeId);
+        if (rec) {
+            const cost = calculateRecipeUnitCost(rec);
+            activeInputValues[itemId].mat = cost;
+            const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
+            if (matInput) matInput.value = cost;
+        }
+    }
 }
 
 function renderItems(skipSnapshot = false) {
@@ -219,6 +337,7 @@ function renderItems(skipSnapshot = false) {
     
     container.innerHTML = '';
     const allItems = [...defaultItems, ...customItems];
+    updateRecipeSelectDropdowns();
 
     allItems.forEach(item => {
         const cached = itemDetailsCache[item.id] || {};
@@ -228,9 +347,16 @@ function renderItems(skipSnapshot = false) {
         const itemImg = cached.img || item.img || '';
         const itemDesc = activeVals.desc !== undefined ? activeVals.desc : (cached.desc || '');
         const itemUnit = activeVals.unit || cached.unit || item.unit || 'm2';
+        const itemRecipe = activeVals.recipe || cached.recipe || 'none';
         const itemArea = activeVals.area !== undefined ? activeVals.area : '';
         const itemMat = activeVals.mat !== undefined && activeVals.mat !== '' ? activeVals.mat : item.mat_cost;
         const itemLab = activeVals.lab !== undefined && activeVals.lab !== '' ? activeVals.lab : item.lab_cost;
+
+        // خيارات الخلطات المسجلة
+        let recipesOptionsHTML = `<option value="none" ${itemRecipe === 'none' ? 'selected' : ''}>بدون خلطة (يدوي)</option>`;
+        userCustomRecipes.forEach(r => {
+            recipesOptionsHTML += `<option value="${r.id}" ${itemRecipe === r.id ? 'selected' : ''}>${r.name}</option>`;
+        });
 
         const itemHTML = `
             <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group" id="card-${item.id}">
@@ -253,14 +379,20 @@ function renderItems(skipSnapshot = false) {
                                class="font-bold text-slate-100 text-sm md:text-base bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none px-1 py-0.5 w-full flex-1">
                     </div>
 
-                    <select data-type="unit" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'unit', this.value)" class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold outline-none focus:border-indigo-500 cursor-pointer">
-                        <option value="m2" ${itemUnit === 'm2' ? 'selected' : ''}>متر مسطح (م²)</option>
-                        <option value="m3" ${itemUnit === 'm3' ? 'selected' : ''}>متر مكعب (م³)</option>
-                        <option value="m" ${itemUnit === 'm' ? 'selected' : ''}>متر طولي (م)</option>
-                        <option value="ls" ${itemUnit === 'ls' ? 'selected' : ''}>مقطوعية (L.S)</option>
-                        <option value="pcs" ${itemUnit === 'pcs' ? 'selected' : ''}>بالعدد (عدد)</option>
-                        <option value="weight" ${itemUnit === 'weight' ? 'selected' : ''}>بالوزن (كجم/طن)</option>
-                    </select>
+                    <div class="flex items-center gap-1.5 w-full md:w-auto justify-end">
+                        <select data-type="recipe" data-id="${item.id}" onchange="handleItemRecipeSelect('${item.id}', this.value)" title="ربط البند بخلطة هندسية" class="text-xs text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-1 rounded font-semibold outline-none focus:border-cyan-400 cursor-pointer max-w-[140px] truncate">
+                            ${recipesOptionsHTML}
+                        </select>
+
+                        <select data-type="unit" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'unit', this.value)" class="text-xs text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2 py-1 rounded font-semibold outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="m2" ${itemUnit === 'm2' ? 'selected' : ''}>م²</option>
+                            <option value="m3" ${itemUnit === 'm3' ? 'selected' : ''}>م³</option>
+                            <option value="m" ${itemUnit === 'm' ? 'selected' : ''}>م.ط</option>
+                            <option value="ls" ${itemUnit === 'ls' ? 'selected' : ''}>مقطوعية</option>
+                            <option value="pcs" ${itemUnit === 'pcs' ? 'selected' : ''}>عدد</option>
+                            <option value="weight" ${itemUnit === 'weight' ? 'selected' : ''}>طن/كجم</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="mb-3">
@@ -329,6 +461,7 @@ function toggleInlineAddCard(show) {
     const card = document.getElementById('inline-add-container');
     if (!card) return;
     if (show) {
+        updateRecipeSelectDropdowns();
         card.classList.remove('hidden');
         document.getElementById('inline-item-name').focus();
     } else {
@@ -339,6 +472,7 @@ function toggleInlineAddCard(show) {
 function commitInlineNewItem() {
     const name = document.getElementById('inline-item-name').value.trim();
     const unit = document.getElementById('inline-item-unit').value;
+    const recipe = document.getElementById('inline-item-recipe').value;
     const desc = document.getElementById('inline-item-desc').value.trim();
     const mat = parseFloat(document.getElementById('inline-item-mat').value) || 0;
     const lab = parseFloat(document.getElementById('inline-item-lab').value) || 0;
@@ -346,25 +480,26 @@ function commitInlineNewItem() {
     if (!name) { alert('برجاء كتابة اسم البند'); return; }
 
     const newItemId = "custom_" + Date.now();
-    const newItem = { id: newItemId, name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab, unit: unit };
+    const newItem = { id: newItemId, name: name, name_ar: name, name_en: name, mat_cost: mat, lab_cost: lab, unit: unit, recipe: recipe };
 
     customItems.push(newItem);
     localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
 
     if (!itemDetailsCache[newItemId]) itemDetailsCache[newItemId] = {};
-    itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit };
+    itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit, recipe: recipe };
     localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
 
     document.getElementById('inline-item-name').value = '';
     document.getElementById('inline-item-desc').value = '';
     document.getElementById('inline-item-mat').value = '';
     document.getElementById('inline-item-lab').value = '';
+    document.getElementById('inline-item-recipe').value = 'none';
     toggleInlineAddCard(false);
 
     renderItems();
 }
 
-// 1. رفع وحفظ المقايسة على سحابة Supabase
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase
 async function saveCurrentQuotationToCloud() {
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
@@ -420,7 +555,7 @@ async function saveCurrentQuotationToCloud() {
     }
 }
 
-// 2. جلب وتنزيل أرشيف المقايسات السحابية
+// ☁️ 2. جلب وتنزيل أرشيف جميع المقايسات السحابية الخاصة بهذا الجهاز
 async function fetchCloudQuotations() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
@@ -444,7 +579,7 @@ async function fetchCloudQuotations() {
     }
 }
 
-// دعم الضغطة الطويلة للحذف
+// 🎯 دعم الضغطة الطويلة (Long Press) للحذف
 function renderCloudQuotationsUI() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
@@ -489,6 +624,7 @@ function renderCloudQuotationsUI() {
     });
 }
 
+// 🗑️ فتح نافذة الحذف المخصصة
 function openDeleteCloudModal(rowId, clientName) {
     targetDeleteRowId = rowId;
     const modal = document.getElementById('delete-cloud-modal');
@@ -506,6 +642,7 @@ function closeDeleteCloudModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+// 🗑️ تنفيذ دالة الحذف النهائي من Supabase
 async function executeDeleteCloudQuotation() {
     if (!targetDeleteRowId) return;
 
@@ -538,7 +675,7 @@ async function executeDeleteCloudQuotation() {
     }
 }
 
-// 3. استرجاع وتحميل المقايسة السحابية
+// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة
 function loadSavedQuotationFromCloud(rowId) {
     const record = cloudSavedQuotations.find(r => r.id === rowId);
     if (!record || !record.quotation_data) return;
@@ -579,6 +716,7 @@ function loadSavedQuotationFromCloud(rowId) {
             const nameInput = document.querySelector(`input[data-type="name"][data-id="${itemId}"]`);
             const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${itemId}"]`);
             const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${itemId}"]`);
+            const recipeSelect = document.querySelector(`select[data-type="recipe"][data-id="${itemId}"]`);
             const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
             const labInput = document.querySelector(`input[data-type="lab"][data-id="${itemId}"]`);
 
@@ -586,6 +724,7 @@ function loadSavedQuotationFromCloud(rowId) {
             if (nameInput && vals.name !== undefined) nameInput.value = vals.name;
             if (descInput && vals.desc !== undefined) descInput.value = vals.desc;
             if (unitSelect && vals.unit !== undefined) unitSelect.value = vals.unit;
+            if (recipeSelect && vals.recipe !== undefined) recipeSelect.value = vals.recipe;
             if (matInput && vals.mat !== undefined) matInput.value = vals.mat;
             if (labInput && vals.lab !== undefined) labInput.value = vals.lab;
         });
@@ -594,7 +733,7 @@ function loadSavedQuotationFromCloud(rowId) {
     }
 }
 
-// دالة التحقق اليدوي
+// 🔒 دالة التحقق اليدوي المحدثة (مؤمنة بالكامل)
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -650,7 +789,8 @@ async function checkSubscriptionManually() {
                 const subExpiry = new Date(user.subscription_expires_at);
                 expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             }
-        } else if (user.trial_expires_at) {
+        }
+        else if (user.trial_expires_at) {
             const trialExpiry = new Date(user.trial_expires_at);
             if (now < trialExpiry) {
                 isAccessGranted = true;
@@ -678,7 +818,8 @@ async function checkSubscriptionManually() {
                 if (actScreen) actScreen.classList.add('hidden');
                 window.location.reload(); 
             }, 1200);
-        } else {
+        } 
+        else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
             localStorage.removeItem('contractor_last_online_check');
 
@@ -887,7 +1028,6 @@ function hideSplashScreen() {
 
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
-    applyRecipesToItems();
     renderItems();
     fetchCloudQuotations();
 
@@ -1014,12 +1154,15 @@ function generateQuotationPDF() {
     
     let totalCementBags = 0;
     let totalSandCbm = 0;
+    let totalAdhesiveBags = 0;
+    let totalGypsumBags = 0;
     
     allItems.forEach(item => {
         const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
         const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
         const descInput = document.querySelector(`textarea[data-type="desc"][data-id="${item.id}"]`);
         const unitSelect = document.querySelector(`select[data-type="unit"][data-id="${item.id}"]`);
+        const recipeSelect = document.querySelector(`select[data-type="recipe"][data-id="${item.id}"]`);
         const matInput = document.querySelector(`input[data-type="mat"][data-id="${item.id}"]`);
         const labInput = document.querySelector(`input[data-type="lab"][data-id="${item.id}"]`);
 
@@ -1027,6 +1170,7 @@ function generateQuotationPDF() {
         const currentItemName = nameInput ? nameInput.value.trim() : (currentLang === 'ar' ? item.name_ar : item.name_en);
         const currentItemDesc = descInput ? descInput.value.trim() : '';
         const currentUnit = unitSelect ? unitSelect.value : (item.unit || 'm2');
+        const currentRecipeId = recipeSelect ? recipeSelect.value : (item.recipe || 'none');
         const currentMatCost = matInput ? parseFloat(matInput.value) : item.mat_cost;
         const currentLabCost = labInput ? parseFloat(labInput.value) : item.lab_cost;
 
@@ -1041,9 +1185,15 @@ function generateQuotationPDF() {
             
             grandTotal += finalPrice;
 
-            if (itemRecipes[item.id]) {
-                totalCementBags += area * (itemRecipes[item.id].cement || 0) * (1 + waste);
-                totalSandCbm += area * (itemRecipes[item.id].sand || 0) * (1 + waste);
+            // حساب التوريدات إذا كان البند مربوطاً بخلطة
+            if (currentRecipeId !== 'none') {
+                const recipeObj = userCustomRecipes.find(r => r.id === currentRecipeId);
+                if (recipeObj) {
+                    totalCementBags += area * (recipeObj.cement || 0) * (1 + waste);
+                    totalSandCbm += area * (recipeObj.sand || 0) * (1 + waste);
+                    totalAdhesiveBags += area * (recipeObj.adhesive || 0) * (1 + waste);
+                    totalGypsumBags += area * (recipeObj.gypsum || 0) * (1 + waste);
+                }
             }
             
             rowsHTML += `
@@ -1073,13 +1223,15 @@ function generateQuotationPDF() {
     }
 
     let materialTakeoffHTML = '';
-    if (totalCementBags > 0 || totalSandCbm > 0) {
+    if (totalCementBags > 0 || totalSandCbm > 0 || totalAdhesiveBags > 0 || totalGypsumBags > 0) {
         materialTakeoffHTML = `
             <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 25px; font-size: 13px;">
                 <strong style="color: #0f172a; display: block; margin-bottom: 6px;">📦 إجمالي الخامات التقديرية المطلوبة للمشروع (شامل الهالك):</strong>
-                <div style="display: flex; gap: 20px; color: #334155;">
+                <div style="display: flex; flex-wrap: wrap; gap: 15px; color: #334155;">
                     ${totalCementBags > 0 ? `<span>• الأسمنت: <b>${Math.ceil(totalCementBags)}</b> شيكارة</span>` : ''}
                     ${totalSandCbm > 0 ? `<span>• الرمل: <b>${totalSandCbm.toFixed(2)}</b> م³</span>` : ''}
+                    ${totalAdhesiveBags > 0 ? `<span>• مادة اللصق: <b>${Math.ceil(totalAdhesiveBags)}</b> شيكارة</span>` : ''}
+                    ${totalGypsumBags > 0 ? `<span>• الجبس/المعجون: <b>${Math.ceil(totalGypsumBags)}</b> شيكارة</span>` : ''}
                 </div>
             </div>
         `;
@@ -1165,4 +1317,3 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
- 
