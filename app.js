@@ -51,6 +51,16 @@ const defaultItems = [
     { id: "plastering", name_ar: "أعمال المحارة والياسة الجدارية", name_en: "Wall Plastering Works", mat_cost: 65, lab_cost: 35, unit: "m2" }
 ];
 
+// 🧱 الخلطة القياسية الافتراضية الثابتة للنظام
+const defaultSystemMix = {
+    id: "default_mix",
+    name: "الخلطة الافتراضية القياسية",
+    cement: 0.20,
+    sand: 0.03,
+    adhesive: 0,
+    gypsum: 0
+};
+
 // 🧱 نظام الخلطات الهندسية المخصصة وأسعار السوق الدائمة
 const initialCustomRecipes = [
     { id: "rec_plaster", name: "خلطة محارة ولياسة", cement: 0.20, sand: 0.03, adhesive: 0, gypsum: 0 },
@@ -179,15 +189,28 @@ function closeRecipesModal() {
     if (modal) modal.classList.add('hidden');
 }
 
+function getAllAvailableRecipes() {
+    return [defaultSystemMix, ...userCustomRecipes];
+}
+
 function renderRecipesCatalog() {
     const list = document.getElementById('recipes-catalog-list');
     if (!list) return;
     list.innerHTML = '';
 
-    if (userCustomRecipes.length === 0) {
-        list.innerHTML = `<p class="text-xs text-slate-500 italic">لا توجد خلطات مسجلة بعد، يمكنك إضافة خلطتك الأولى بالأعلى.</p>`;
-        return;
-    }
+    // عرض الخلطة الافتراضية
+    const defaultCost = calculateRecipeUnitCost(defaultSystemMix);
+    list.innerHTML += `
+        <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-cyan-500/30 text-xs">
+            <div>
+                <strong class="text-cyan-400 block">${defaultSystemMix.name} (أساسية)</strong>
+                <span class="text-[10px] text-slate-400">
+                    أسمنت: ${defaultSystemMix.cement} ش • رمل: ${defaultSystemMix.sand} م³
+                </span>
+            </div>
+            <span class="text-cyan-300 font-bold font-mono">≈ ${defaultCost} خامات</span>
+        </div>
+    `;
 
     userCustomRecipes.forEach(rec => {
         const itemCost = calculateRecipeUnitCost(rec);
@@ -266,7 +289,7 @@ function commitRecipesManagerChanges() {
     };
     localStorage.setItem('contractor_market_rates', JSON.stringify(userMarketRates));
 
-    // تحديث أسعار خامات البنود المربوطة بخلطات
+    const allAvailable = getAllAvailableRecipes();
     const allItems = [...defaultItems, ...customItems];
     allItems.forEach(item => {
         const cached = itemDetailsCache[item.id] || {};
@@ -274,7 +297,7 @@ function commitRecipesManagerChanges() {
         const selectedRecipeId = activeVals.recipe || cached.recipe || 'none';
 
         if (selectedRecipeId !== 'none') {
-            const recipeObj = userCustomRecipes.find(r => r.id === selectedRecipeId);
+            const recipeObj = allAvailable.find(r => r.id === selectedRecipeId);
             if (recipeObj) {
                 const newCost = calculateRecipeUnitCost(recipeObj);
                 if (!activeInputValues[item.id]) activeInputValues[item.id] = {};
@@ -291,7 +314,10 @@ function commitRecipesManagerChanges() {
 function updateRecipeSelectDropdowns() {
     const inlineSelect = document.getElementById('inline-item-recipe');
     if (inlineSelect) {
-        inlineSelect.innerHTML = `<option value="none">بدون خلطة (تسعير يدوي)</option>`;
+        inlineSelect.innerHTML = `
+            <option value="none">بدون خلطة (تسعير يدوي)</option>
+            <option value="default_mix">الخلطة الافتراضية القياسية</option>
+        `;
         userCustomRecipes.forEach(r => {
             inlineSelect.innerHTML += `<option value="${r.id}">${r.name}</option>`;
         });
@@ -300,13 +326,20 @@ function updateRecipeSelectDropdowns() {
 
 function handleInlineRecipeSelect(recipeId) {
     const matInput = document.getElementById('inline-item-mat');
+    const note = document.getElementById('inline-mat-lock-note');
     if (!matInput) return;
+
     if (recipeId === 'none') {
-        matInput.value = '';
+        matInput.readOnly = false;
+        matInput.placeholder = "سعر الخامات للوحدة";
+        if (note) note.classList.add('hidden');
     } else {
-        const rec = userCustomRecipes.find(r => r.id === recipeId);
+        const allAvailable = getAllAvailableRecipes();
+        const rec = allAvailable.find(r => r.id === recipeId);
         if (rec) {
             matInput.value = calculateRecipeUnitCost(rec);
+            matInput.readOnly = true;
+            if (note) note.classList.remove('hidden');
         }
     }
 }
@@ -316,13 +349,26 @@ function handleItemRecipeSelect(itemId, recipeId) {
     if (!activeInputValues[itemId]) activeInputValues[itemId] = {};
     activeInputValues[itemId].recipe = recipeId;
 
-    if (recipeId !== 'none') {
-        const rec = userCustomRecipes.find(r => r.id === recipeId);
+    const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
+    const lockNote = document.getElementById(`lock-note-${itemId}`);
+
+    if (recipeId === 'none') {
+        if (matInput) matInput.readOnly = false;
+        if (lockNote) lockNote.classList.add('hidden');
+    } else {
+        const allAvailable = getAllAvailableRecipes();
+        const rec = allAvailable.find(r => r.id === recipeId);
         if (rec) {
             const cost = calculateRecipeUnitCost(rec);
             activeInputValues[itemId].mat = cost;
-            const matInput = document.querySelector(`input[data-type="mat"][data-id="${itemId}"]`);
-            if (matInput) matInput.value = cost;
+            if (matInput) {
+                matInput.value = cost;
+                matInput.readOnly = true;
+            }
+            if (lockNote) {
+                lockNote.innerText = `🔒 السعر محمي ومحسوب آلياً بناءً على (${rec.name})`;
+                lockNote.classList.remove('hidden');
+            }
         }
     }
 }
@@ -352,8 +398,14 @@ function renderItems(skipSnapshot = false) {
         const itemMat = activeVals.mat !== undefined && activeVals.mat !== '' ? activeVals.mat : item.mat_cost;
         const itemLab = activeVals.lab !== undefined && activeVals.lab !== '' ? activeVals.lab : item.lab_cost;
 
-        // خيارات الخلطات المسجلة
-        let recipesOptionsHTML = `<option value="none" ${itemRecipe === 'none' ? 'selected' : ''}>بدون خلطة (يدوي)</option>`;
+        const isLocked = (itemRecipe !== 'none');
+        const allAvailable = getAllAvailableRecipes();
+        const activeRecObj = allAvailable.find(r => r.id === itemRecipe);
+
+        let recipesOptionsHTML = `
+            <option value="none" ${itemRecipe === 'none' ? 'selected' : ''}>بدون خلطة (يدوي)</option>
+            <option value="default_mix" ${itemRecipe === 'default_mix' ? 'selected' : ''}>الخلطة الافتراضية القياسية</option>
+        `;
         userCustomRecipes.forEach(r => {
             recipesOptionsHTML += `<option value="${r.id}" ${itemRecipe === r.id ? 'selected' : ''}>${r.name}</option>`;
         });
@@ -380,7 +432,7 @@ function renderItems(skipSnapshot = false) {
                     </div>
 
                     <div class="flex items-center gap-1.5 w-full md:w-auto justify-end">
-                        <select data-type="recipe" data-id="${item.id}" onchange="handleItemRecipeSelect('${item.id}', this.value)" title="ربط البند بخلطة هندسية" class="text-xs text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-1 rounded font-semibold outline-none focus:border-cyan-400 cursor-pointer max-w-[140px] truncate">
+                        <select data-type="recipe" data-id="${item.id}" onchange="handleItemRecipeSelect('${item.id}', this.value)" title="ربط البند بخلطة هندسية" class="text-xs text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 px-2 py-1 rounded font-semibold outline-none focus:border-cyan-400 cursor-pointer max-w-[155px] truncate">
                             ${recipesOptionsHTML}
                         </select>
 
@@ -408,7 +460,7 @@ function renderItems(skipSnapshot = false) {
                     <div class="grid grid-cols-2 gap-1 text-xs">
                         <div class="flex flex-col">
                             <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'خامات:' : 'Mat:'}</span>
-                            <input type="number" step="any" value="${itemMat}" data-type="mat" data-id="${item.id}" style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
+                            <input type="number" step="any" value="${itemMat}" data-type="mat" data-id="${item.id}" ${isLocked ? 'readonly' : ''} style="font-family: monospace;" class="p-1 border border-slate-800 rounded text-center font-semibold bg-slate-950 text-slate-100">
                         </div>
                         <div class="flex flex-col">
                             <span class="text-slate-400 text-[10px]">${currentLang === 'ar' ? 'مصنعية:' : 'Labor:'}</span>
@@ -416,6 +468,10 @@ function renderItems(skipSnapshot = false) {
                         </div>
                     </div>
                 </div>
+
+                <p id="lock-note-${item.id}" class="${isLocked ? '' : 'hidden'} text-[10px] text-cyan-400 font-semibold mt-2 pt-1 border-t border-slate-800/60 flex items-center gap-1.5">
+                    <i class="fas fa-lock text-[9px]"></i> 🔒 السعر محمي ومحسوب آلياً بناءً على (${activeRecObj ? activeRecObj.name : ''})
+                </p>
             </div>
         `;
         container.insertAdjacentHTML('beforeend', itemHTML);
@@ -494,6 +550,7 @@ function commitInlineNewItem() {
     document.getElementById('inline-item-mat').value = '';
     document.getElementById('inline-item-lab').value = '';
     document.getElementById('inline-item-recipe').value = 'none';
+    handleInlineRecipeSelect('none');
     toggleInlineAddCard(false);
 
     renderItems();
@@ -1157,6 +1214,8 @@ function generateQuotationPDF() {
     let totalAdhesiveBags = 0;
     let totalGypsumBags = 0;
     
+    const allAvailable = getAllAvailableRecipes();
+
     allItems.forEach(item => {
         const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
         const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
@@ -1187,7 +1246,7 @@ function generateQuotationPDF() {
 
             // حساب التوريدات إذا كان البند مربوطاً بخلطة
             if (currentRecipeId !== 'none') {
-                const recipeObj = userCustomRecipes.find(r => r.id === currentRecipeId);
+                const recipeObj = allAvailable.find(r => r.id === currentRecipeId);
                 if (recipeObj) {
                     totalCementBags += area * (recipeObj.cement || 0) * (1 + waste);
                     totalSandCbm += area * (recipeObj.sand || 0) * (1 + waste);
