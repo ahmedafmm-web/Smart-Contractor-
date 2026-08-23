@@ -51,6 +51,24 @@ const defaultItems = [
     { id: "plastering", name_ar: "أعمال المحارة والياسة الجدارية", name_en: "Wall Plastering Works", mat_cost: 65, lab_cost: 35, unit: "m2" }
 ];
 
+// نسب الخلطات والمكونات القياسية لكل وحدة (Material Recipes)
+const itemRecipes = {
+    "plastering": { cement: 0.20, sand: 0.03, gypsum: 0, adhesive: 0 },
+    "painting": { cement: 0, sand: 0, gypsum: 0.15, adhesive: 0 },
+    "epoxy": { cement: 0.10, sand: 0.01, gypsum: 0, adhesive: 0 }
+};
+
+// أسعار المواد الأولية الافتراضية
+const defaultMaterialRates = {
+    cement: 140,
+    sand: 110,
+    gypsum: 80,
+    adhesive: 95,
+    laborDaily: 350
+};
+
+let currentMaterialRates = JSON.parse(localStorage.getItem('contractor_material_rates')) || defaultMaterialRates;
+
 let currentLang = localStorage.getItem('contractor_lang') || 'ar';
 let companyData = JSON.parse(localStorage.getItem('contractor_company')) || null;
 let customItems = JSON.parse(localStorage.getItem('contractor_custom_items')) || [];
@@ -139,6 +157,56 @@ function getUnitLabel(unitKey) {
         'weight': currentLang === 'ar' ? 'بالوزن (كجم/طن)' : 'Weight (Kg/Ton)'
     };
     return unitsMap[unitKey] || unitsMap['m2'];
+}
+
+function openMaterialRatesModal() {
+    const modal = document.getElementById('materials-modal');
+    if (!modal) return;
+    
+    document.getElementById('rate-cement').value = currentMaterialRates.cement || 0;
+    document.getElementById('rate-sand').value = currentMaterialRates.sand || 0;
+    document.getElementById('rate-gypsum').value = currentMaterialRates.gypsum || 0;
+    document.getElementById('rate-adhesive').value = currentMaterialRates.adhesive || 0;
+    document.getElementById('rate-labor-daily').value = currentMaterialRates.laborDaily || 0;
+    
+    modal.classList.remove('hidden');
+}
+
+function closeMaterialRatesModal() {
+    const modal = document.getElementById('materials-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+function saveMaterialRates() {
+    currentMaterialRates = {
+        cement: parseFloat(document.getElementById('rate-cement').value) || 0,
+        sand: parseFloat(document.getElementById('rate-sand').value) || 0,
+        gypsum: parseFloat(document.getElementById('rate-gypsum').value) || 0,
+        adhesive: parseFloat(document.getElementById('rate-adhesive').value) || 0,
+        laborDaily: parseFloat(document.getElementById('rate-labor-daily').value) || 0
+    };
+    
+    localStorage.setItem('contractor_material_rates', JSON.stringify(currentMaterialRates));
+    
+    applyRecipesToItems();
+    closeMaterialRatesModal();
+    renderItems(true);
+    alert('✅ تم تحديث أسعار الخامات وإعادة حساب تكلفة البنود تلقائياً!');
+}
+
+function applyRecipesToItems() {
+    Object.keys(itemRecipes).forEach(itemId => {
+        const recipe = itemRecipes[itemId];
+        const calcMat = (recipe.cement * currentMaterialRates.cement) +
+                        (recipe.sand * currentMaterialRates.sand) +
+                        (recipe.gypsum * currentMaterialRates.gypsum) +
+                        (recipe.adhesive * currentMaterialRates.adhesive);
+                        
+        if (!activeInputValues[itemId]) activeInputValues[itemId] = {};
+        if (calcMat > 0) {
+            activeInputValues[itemId].mat = Math.round(calcMat);
+        }
+    });
 }
 
 function renderItems(skipSnapshot = false) {
@@ -296,7 +364,7 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase
+// 1. رفع وحفظ المقايسة على سحابة Supabase
 async function saveCurrentQuotationToCloud() {
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
@@ -352,7 +420,7 @@ async function saveCurrentQuotationToCloud() {
     }
 }
 
-// ☁️ 2. جلب وتنزيل أرشيف جميع المقايسات السحابية الخاصة بهذا الجهاز
+// 2. جلب وتنزيل أرشيف المقايسات السحابية
 async function fetchCloudQuotations() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
@@ -376,7 +444,7 @@ async function fetchCloudQuotations() {
     }
 }
 
-// 🎯 دعم الضغطة الطويلة (Long Press) للحذف
+// دعم الضغطة الطويلة للحذف
 function renderCloudQuotationsUI() {
     const listContainer = document.getElementById('saved-quotations-list');
     if (!listContainer) return;
@@ -421,7 +489,6 @@ function renderCloudQuotationsUI() {
     });
 }
 
-// 🗑️ فتح نافذة الحذف المخصصة
 function openDeleteCloudModal(rowId, clientName) {
     targetDeleteRowId = rowId;
     const modal = document.getElementById('delete-cloud-modal');
@@ -439,7 +506,6 @@ function closeDeleteCloudModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-// 🗑️ تنفيذ دالة الحذف النهائي من Supabase
 async function executeDeleteCloudQuotation() {
     if (!targetDeleteRowId) return;
 
@@ -472,7 +538,7 @@ async function executeDeleteCloudQuotation() {
     }
 }
 
-// ☁️ 3. استرجاع وتحميل المقايسة السحابية كاملة
+// 3. استرجاع وتحميل المقايسة السحابية
 function loadSavedQuotationFromCloud(rowId) {
     const record = cloudSavedQuotations.find(r => r.id === rowId);
     if (!record || !record.quotation_data) return;
@@ -528,7 +594,7 @@ function loadSavedQuotationFromCloud(rowId) {
     }
 }
 
-// 🔒 دالة التحقق اليدوي المحدثة (مؤمنة بالكامل - قراءة فقط دون تجديد تجارب منتهية)
+// دالة التحقق اليدوي
 async function checkSubscriptionManually() {
     const fingerprint = getDeviceID();
     const now = new Date();
@@ -557,7 +623,6 @@ async function checkSubscriptionManually() {
         });
         const data = await response.json();
 
-        // 1. الجهاز غير موجود بالسحابة
         if (!data || data.length === 0) {
             localStorage.removeItem('contractor_subscription_expiry_cache');
             localStorage.removeItem('contractor_last_online_check');
@@ -578,7 +643,6 @@ async function checkSubscriptionManually() {
         let expiryDateFormatted = "";
         let rawExpiryString = null;
 
-        // 2. فحص الاشتراك المدفوع
         if (user.is_subscribed === true || user.is_subscribed === "true") {
             if (user.subscription_expires_at && new Date(user.subscription_expires_at) > now) {
                 isAccessGranted = true;
@@ -586,9 +650,7 @@ async function checkSubscriptionManually() {
                 const subExpiry = new Date(user.subscription_expires_at);
                 expiryDateFormatted = "اشتراكك المدفوع ينتهي في: " + subExpiry.toLocaleString('ar-EG', { dateStyle: 'long', timeStyle: 'short' });
             }
-        }
-        // 3. فحص التجربة المجانية (فقط إذا كانت سارية ولم تنتهِ)
-        else if (user.trial_expires_at) {
+        } else if (user.trial_expires_at) {
             const trialExpiry = new Date(user.trial_expires_at);
             if (now < trialExpiry) {
                 isAccessGranted = true;
@@ -597,7 +659,6 @@ async function checkSubscriptionManually() {
             }
         }
 
-        // 4. في حالة القبول والتفعيل الساري
         if (isAccessGranted && rawExpiryString) {
             localStorage.setItem('contractor_subscription_expiry_cache', rawExpiryString);
             localStorage.setItem('contractor_last_online_check', now.toISOString());
@@ -617,9 +678,7 @@ async function checkSubscriptionManually() {
                 if (actScreen) actScreen.classList.add('hidden');
                 window.location.reload(); 
             }, 1200);
-        } 
-        // 5. في حالة انتهاء الاشتراك أو انتهاء التجربة
-        else {
+        } else {
             localStorage.removeItem('contractor_subscription_expiry_cache');
             localStorage.removeItem('contractor_last_online_check');
 
@@ -680,11 +739,8 @@ function updateUILanguage() {
     });
 }
 
-// ==========================================
 // 🛡️ نظام الفحص الحي المباشر والحماية من السحابة (48 ساعة أوفلاين)
-// ==========================================
-
-const OFFLINE_LIMIT_MS = 48 * 60 * 60 * 1000; // 48 ساعة بالميللي ثانية
+const OFFLINE_LIMIT_MS = 48 * 60 * 60 * 1000;
 
 async function initSubscriptionGuard() {
     if (navigator.onLine) {
@@ -831,6 +887,7 @@ function hideSplashScreen() {
 
 window.addEventListener('DOMContentLoaded', async () => {
     updateUILanguage();
+    applyRecipesToItems();
     renderItems();
     fetchCloudQuotations();
 
@@ -955,6 +1012,9 @@ function generateQuotationPDF() {
     let rowsHTML = '';
     let grandTotal = 0;
     
+    let totalCementBags = 0;
+    let totalSandCbm = 0;
+    
     allItems.forEach(item => {
         const areaInput = document.querySelector(`input[data-type="area"][data-id="${item.id}"]`);
         const nameInput = document.querySelector(`input[data-type="name"][data-id="${item.id}"]`);
@@ -980,6 +1040,11 @@ function generateQuotationPDF() {
             const finalPrice = baseCost * (1 + markup + contingency);
             
             grandTotal += finalPrice;
+
+            if (itemRecipes[item.id]) {
+                totalCementBags += area * (itemRecipes[item.id].cement || 0) * (1 + waste);
+                totalSandCbm += area * (itemRecipes[item.id].sand || 0) * (1 + waste);
+            }
             
             rowsHTML += `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -1005,6 +1070,19 @@ function generateQuotationPDF() {
     if (grandTotal === 0) {
         alert(currentLang === 'ar' ? 'برجاء إدخال كمية/مساحة بند واحد على الأقل!' : 'Please enter quantity/area for at least one item!');
         return;
+    }
+
+    let materialTakeoffHTML = '';
+    if (totalCementBags > 0 || totalSandCbm > 0) {
+        materialTakeoffHTML = `
+            <div style="background: #f1f5f9; padding: 12px 16px; border-radius: 8px; border: 1px dashed #cbd5e1; margin-bottom: 25px; font-size: 13px;">
+                <strong style="color: #0f172a; display: block; margin-bottom: 6px;">📦 إجمالي الخامات التقديرية المطلوبة للمشروع (شامل الهالك):</strong>
+                <div style="display: flex; gap: 20px; color: #334155;">
+                    ${totalCementBags > 0 ? `<span>• الأسمنت: <b>${Math.ceil(totalCementBags)}</b> شيكارة</span>` : ''}
+                    ${totalSandCbm > 0 ? `<span>• الرمل: <b>${totalSandCbm.toFixed(2)}</b> م³</span>` : ''}
+                </div>
+            </div>
+        `;
     }
 
     const direction = currentLang === 'ar' ? 'rtl' : 'ltr';
@@ -1062,6 +1140,8 @@ function generateQuotationPDF() {
                         ${rowsHTML}
                     </tbody>
                 </table>
+
+                ${materialTakeoffHTML}
                 
                 <div style="font-size: 18px; color: #15803d; font-weight: bold; background: #f0fdf4; padding: 15px; border: 1px solid #bbf7d0; border-radius: 8px; text-align: center; margin-bottom: 40px; font-family: 'Courier New', monospace;">
                     ${currentLang === 'ar' ? 'الإجمالي العام للمقايسة:' : 'Grand Total Amount:'} ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ${currentCurrency}
@@ -1085,3 +1165,4 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
