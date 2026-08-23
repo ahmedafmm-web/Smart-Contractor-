@@ -13,7 +13,6 @@
     <style>
         body { font-family: 'Cairo', sans-serif; }
         
-        /* ضمان وضوح الخطوط أثناء الكتابة والطباعة */
         input, select, textarea {
             color: #f8fafc !important;
             background-color: #020617 !important;
@@ -29,7 +28,7 @@
                 background-color: #ffffff !important;
                 border: 1px solid #ccc !important;
             }
-            #activation-screen, #setup-screen, header, button, .no-print, #offlineTimerBanner {
+            #activation-screen, #setup-screen, #materials-modal, header, button, .no-print, #offlineTimerBanner {
                 display: none !important;
             }
         }
@@ -37,7 +36,7 @@
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
 
-    <!-- 🚀 Splash Screen البراند الفخمة -->
+    <!-- Splash Screen البراند الفخمة -->
     <div id="splash-screen" class="fixed inset-0 bg-slate-950 z-[100] flex flex-col items-center justify-between p-8 transition-all duration-700 ease-out select-none overflow-hidden">
         <div class="absolute -top-24 -left-24 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
         <div class="absolute -bottom-24 -right-24 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -73,7 +72,7 @@
         </div>
     </div>
 
-    <!-- 🔒 شاشة التفعيل المطورة -->
+    <!-- شاشة التفعيل المطورة -->
     <div id="activation-screen" class="hidden fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 backdrop-blur-md">
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl text-center relative overflow-hidden">
             <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-2xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 mb-4 shadow-lg shadow-indigo-500/10">
@@ -153,12 +152,16 @@
                     <i class="fas fa-crown text-amber-400"></i>
                     <span>الاشتراكات والتفعيل</span>
                 </button>
+                <button id="materials-rates-btn" onclick="openMaterialRatesModal()" title="أسعار خامات اليوم" class="bg-indigo-950 hover:bg-indigo-900 border border-indigo-700/50 text-indigo-300 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1">
+                    <i class="fas fa-cubes text-cyan-400"></i>
+                    <span>أسعار الخامات</span>
+                </button>
                 <button id="lang-toggle-btn" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 text-xs rounded-xl font-bold transition"></button>
                 <button id="settings-btn" class="bg-slate-800 hover:bg-slate-700 p-2 rounded-xl text-xs transition">⚙️</button>
             </div>
         </header>
 
-        <!-- ☁️ شريط أرشيف المقايسات السحابية المربوط بـ Supabase -->
+        <!-- شريط أرشيف المقايسات السحابية -->
         <section class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-sm mb-6">
             <div class="flex justify-between items-center mb-3">
                 <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
@@ -220,7 +223,7 @@
             </div>
         </section>
 
-        <!-- ➕ كارت الإضافة المباشرة المدمجة لعدم حجب الشاشة -->
+        <!-- كارت الإضافة المباشرة المدمجة -->
         <section id="inline-add-container" class="bg-slate-900 border border-indigo-500/30 p-4 rounded-2xl shadow-lg mb-6 hidden transition-all duration-300">
             <h4 id="inline-add-title" class="font-bold text-sm text-indigo-400 mb-3 flex items-center gap-2">
                 <i class="fas fa-plus-circle"></i> إدخال بند جديد للمقايسة
@@ -264,7 +267,54 @@
         </div>
     </div>
 
-    <!-- 🗑️ نافذة تأكيد حذف المقايسة السحابية -->
+    <!-- نافذة ضبط أسعار خامات اليوم للمشروع -->
+    <div id="materials-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                    <i class="fas fa-cubes text-cyan-400"></i>
+                    <span>أسعار خامات اليوم بالسوق</span>
+                </h3>
+                <button onclick="closeMaterialRatesModal()" class="text-slate-400 hover:text-slate-200 text-sm">✕</button>
+            </div>
+            
+            <p class="text-xs text-slate-400 mb-4 leading-relaxed">
+                أدخل أسعار المواد والمصنعيات بالسوق ليتم تفقيط وتحديث تكلفة البنود المعتمدة عليها تلقائياً:
+            </p>
+
+            <div class="space-y-3 mb-5">
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">سعر شيكارة الأسمنت (50 كجم)</label>
+                    <input type="number" id="rate-cement" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-mono text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">سعر متر الرمل (م³)</label>
+                    <input type="number" id="rate-sand" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-mono text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">سعر شيكارة الجبس / البودرة (كجم)</label>
+                    <input type="number" id="rate-gypsum" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-mono text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">سعر شيكارة مادة اللصق / السيراميك</label>
+                    <input type="number" id="rate-adhesive" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-mono text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold mb-1 text-slate-300">يومية الصنايعي / الفني الافتراضية</label>
+                    <input type="number" id="rate-labor-daily" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl outline-none focus:border-indigo-500 text-slate-100 font-mono text-sm">
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="saveMaterialRates()" class="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/20">
+                    <i class="fas fa-check"></i> حفظ وتحديث التكاليف
+                </button>
+                <button onclick="closeMaterialRatesModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold px-4 py-2.5 rounded-xl text-xs transition">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة تأكيد حذف المقايسة السحابية -->
     <div id="delete-cloud-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-red-500/30 rounded-2xl p-6 max-w-sm w-full shadow-2xl text-center">
             <div class="w-12 h-12 bg-red-500/20 border border-red-500/40 rounded-xl flex items-center justify-center mx-auto mb-3 text-red-400 text-xl">
@@ -287,13 +337,12 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=100.0"></script>
+    <script src="app.js?v=101.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
         }
 
-        // إظهار بصمة الجهاز تلقائياً في شاشة القفل
         window.addEventListener('DOMContentLoaded', () => {
             const devBox = document.getElementById('device-id-box');
             if (devBox && typeof getDeviceID === 'function') {
@@ -314,3 +363,4 @@
     </script>
 </body>
 </html>
+ 
