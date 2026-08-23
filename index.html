@@ -19,6 +19,13 @@
             background-color: #020617 !important;
         }
         
+        input:read-only {
+            background-color: #0f172a !important;
+            color: #38bdf8 !important;
+            cursor: not-allowed;
+            border-color: #1e293b !important;
+        }
+        
         @media print {
             body {
                 background-color: #ffffff !important;
@@ -234,6 +241,7 @@
                 
                 <select id="inline-item-recipe" class="p-2.5 bg-slate-950 border border-cyan-500/30 rounded-xl text-xs text-cyan-300 outline-none focus:border-cyan-400 font-semibold" onchange="handleInlineRecipeSelect(this.value)">
                     <option value="none">بدون خلطة (تسعير يدوي)</option>
+                    <option value="default_mix">الخلطة الافتراضية القياسية</option>
                 </select>
 
                 <select id="inline-item-unit" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500 font-semibold">
@@ -247,7 +255,12 @@
             </div>
             <textarea id="inline-item-desc" rows="2" placeholder="التوصيف الفني للبند (اختياري)" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500 mb-3"></textarea>
             <div class="grid grid-cols-2 gap-3 mb-3">
-                <input type="number" id="inline-item-mat" placeholder="سعر الخامات للوحدة" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
+                <div>
+                    <input type="number" id="inline-item-mat" placeholder="سعر الخامات للوحدة" class="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
+                    <p id="inline-mat-lock-note" class="hidden text-[10px] text-cyan-400 mt-1 font-semibold flex items-center gap-1">
+                        <i class="fas fa-lock"></i> محمي ومحسوب آلياً بالخلطة
+                    </p>
+                </div>
                 <input type="number" id="inline-item-lab" placeholder="سعر المصنعية للوحدة" class="p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-100 outline-none focus:border-indigo-500">
             </div>
             <div class="flex gap-2">
@@ -378,7 +391,7 @@
         جميع الحقوق محفوظة &copy; Smart Contractor By Ahmed Mohamed 2026
     </footer>
 
-    <script src="app.js?v=105.0"></script>
+    <script src="app.js?v=110.0"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./sw.js");
@@ -405,4 +418,3 @@
     </script>
 </body>
 </html>
- 
