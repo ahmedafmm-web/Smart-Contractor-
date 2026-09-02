@@ -19,7 +19,10 @@ const i18n = {
         placeholderArea: "الكمية / المساحة",
         placeholderDesc: "التوصيف الفني للبند (اختياري)...",
         txtValid: "هذه المقايسة سارية لمدة 3 أيام فقط من تاريخ الإصدار نتيجه تذبذب أسعار السوق.",
-        txtPayments: "طريقة الدفع الافتراضية: 50% مقدم تعاقد، 30% عند توريد المواد، 20% عند الاستلام النهائي."
+        txtPayments: "طريقة الدفع الافتراضية: 50% مقدم تعاقد، 30% عند توريد المواد، 20% عند الاستلام النهائي.",
+        lblSubItems: "مشتملات البند",
+        btnAddSubItem: "+ إضافة مشتمل فرعي",
+        placeholderSubItem: "اكتب مشتمل البند أو خطوة التنفيذ..."
     },
     en: {
         appTitle: "The Smart Contractor",
@@ -41,7 +44,10 @@ const i18n = {
         placeholderArea: "Quantity / Area",
         placeholderDesc: "Technical Item Description (Optional)...",
         txtValid: "This quotation is valid for 3 days only from the date of issue due to market price fluctuations.",
-        txtPayments: "Default Payment Terms: 50% Advance, 30% upon Material Delivery, 20% upon Final Handover."
+        txtPayments: "Default Payment Terms: 50% Advance, 30% upon Material Delivery, 20% upon Final Handover.",
+        lblSubItems: "Item Breakdown / Sub-items",
+        btnAddSubItem: "+ Add Sub-item",
+        placeholderSubItem: "Enter sub-item or execution step..."
     }
 };
 
@@ -89,6 +95,36 @@ let targetDeleteRowId = null;
 
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
+
+// 🔔 دوال إشعارات النظام الخارجية (Web / Native Push Notifications)
+function requestNotificationPermission() {
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+}
+
+function triggerNativeNotification(title, bodyText) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const options = {
+        body: bodyText,
+        icon: "icon-192.png",
+        badge: "icon-192.png",
+        vibrate: [200, 100, 200],
+        dir: currentLang === 'ar' ? 'rtl' : 'ltr',
+        lang: currentLang
+    };
+
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, options);
+        }).catch(() => {
+            new Notification(title, options);
+        });
+    } else {
+        new Notification(title, options);
+    }
+}
 
 function generateDeviceFingerprint() {
     const specs = [
@@ -198,7 +234,6 @@ function renderRecipesCatalog() {
     if (!list) return;
     list.innerHTML = '';
 
-    // عرض الخلطة الافتراضية
     const defaultCost = calculateRecipeUnitCost(defaultSystemMix);
     list.innerHTML += `
         <div class="flex items-center justify-between bg-slate-950 p-2.5 rounded-lg border border-cyan-500/30 text-xs">
@@ -373,6 +408,85 @@ function handleItemRecipeSelect(itemId, recipeId) {
     }
 }
 
+// 📋 إدارة المشتملات والبنود الفرعية لكل بند (Sub-items Breakdown)
+function addSubItem(itemId) {
+    if (!itemDetailsCache[itemId]) itemDetailsCache[itemId] = {};
+    if (!Array.isArray(itemDetailsCache[itemId].subItems)) itemDetailsCache[itemId].subItems = [];
+
+    itemDetailsCache[itemId].subItems.push("");
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+    renderSubItemsUI(itemId);
+
+    setTimeout(() => {
+        const inputs = document.querySelectorAll(`.subitem-input-${itemId}`);
+        if (inputs.length > 0) inputs[inputs.length - 1].focus();
+    }, 50);
+}
+
+function updateSubItemText(itemId, index, value) {
+    if (itemDetailsCache[itemId] && Array.isArray(itemDetailsCache[itemId].subItems)) {
+        itemDetailsCache[itemId].subItems[index] = value;
+        localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+    }
+}
+
+function moveSubItem(itemId, index, direction) {
+    if (!itemDetailsCache[itemId] || !Array.isArray(itemDetailsCache[itemId].subItems)) return;
+    const list = itemDetailsCache[itemId].subItems;
+    const targetIdx = index + direction;
+
+    if (targetIdx < 0 || targetIdx >= list.length) return;
+
+    const temp = list[index];
+    list[index] = list[targetIdx];
+    list[targetIdx] = temp;
+
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+    renderSubItemsUI(itemId);
+}
+
+function removeSubItem(itemId, index) {
+    if (!itemDetailsCache[itemId] || !Array.isArray(itemDetailsCache[itemId].subItems)) return;
+    itemDetailsCache[itemId].subItems.splice(index, 1);
+    localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
+    renderSubItemsUI(itemId);
+}
+
+function renderSubItemsUI(itemId) {
+    const listContainer = document.getElementById(`subitems-container-${itemId}`);
+    if (!listContainer) return;
+
+    const cached = itemDetailsCache[itemId] || {};
+    const subItems = Array.isArray(cached.subItems) ? cached.subItems : [];
+
+    listContainer.innerHTML = '';
+
+    subItems.forEach((subText, idx) => {
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-1.5 bg-slate-950/70 p-1.5 rounded-lg border border-slate-800/80";
+        row.innerHTML = `
+            <span class="w-5 h-5 rounded bg-slate-900 border border-slate-700 text-cyan-400 font-mono text-[10px] flex items-center justify-center font-bold shrink-0">
+                ${idx + 1}
+            </span>
+            <input type="text" value="${subText.replace(/"/g, '&quot;')}" placeholder="${i18n[currentLang].placeholderSubItem}"
+                   class="subitem-input-${itemId} bg-transparent border-b border-transparent hover:border-slate-700 focus:border-indigo-500 outline-none text-xs text-slate-200 px-1 py-0.5 flex-1 transition"
+                   oninput="updateSubItemText('${itemId}', ${idx}, this.value)">
+            <div class="flex items-center gap-0.5 shrink-0 text-slate-400">
+                <button type="button" onclick="moveSubItem('${itemId}', ${idx}, -1)" ${idx === 0 ? 'disabled class="opacity-30 cursor-not-allowed p-1"' : 'class="hover:text-cyan-400 p-1 transition"'} title="تحريك لأعلى">
+                    <i class="fas fa-arrow-up text-[10px]"></i>
+                </button>
+                <button type="button" onclick="moveSubItem('${itemId}', ${idx}, 1)" ${idx === subItems.length - 1 ? 'disabled class="opacity-30 cursor-not-allowed p-1"' : 'class="hover:text-cyan-400 p-1 transition"'} title="تحريك لأسفل">
+                    <i class="fas fa-arrow-down text-[10px]"></i>
+                </button>
+                <button type="button" onclick="removeSubItem('${itemId}', ${idx})" class="text-slate-500 hover:text-red-400 p-1 transition ml-1" title="حذف هذا المشتمل">
+                    <i class="fas fa-trash-alt text-[10px]"></i>
+                </button>
+            </div>
+        `;
+        listContainer.appendChild(row);
+    });
+}
+
 function renderItems(skipSnapshot = false) {
     const container = document.getElementById('dynamic-items-list');
     if (!container) return;
@@ -411,7 +525,7 @@ function renderItems(skipSnapshot = false) {
         });
 
         const itemHTML = `
-            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group" id="card-${item.id}">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm relative group mb-4" id="card-${item.id}">
                 <button onclick="deleteWorkItem('${item.id}')" title="حذف هذا البند" class="absolute top-3 left-3 text-slate-500 hover:text-red-400 p-1.5 transition text-xs">
                     <i class="fas fa-trash-alt"></i>
                 </button>
@@ -451,6 +565,19 @@ function renderItems(skipSnapshot = false) {
                     <textarea data-type="desc" data-id="${item.id}" onchange="saveItemDetail('${item.id}', 'desc', this.value)" placeholder="${i18n[currentLang].placeholderDesc}" rows="1" class="w-full p-2 bg-slate-950 border border-slate-800/80 rounded-lg outline-none focus:border-indigo-500 text-xs text-slate-300 resize-none">${itemDesc}</textarea>
                 </div>
 
+                <!-- 📋 قسم مشتملات وتفاصيل البند الفرعية -->
+                <div class="mb-3 bg-slate-950/50 p-2.5 rounded-lg border border-slate-800/60">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                            <i class="fas fa-list-ol text-cyan-400"></i> ${i18n[currentLang].lblSubItems}
+                        </span>
+                        <button type="button" onclick="addSubItem('${item.id}')" class="text-[10px] text-cyan-400 hover:text-cyan-300 font-bold bg-cyan-950/50 border border-cyan-500/30 px-2 py-0.5 rounded transition flex items-center gap-1">
+                            ${i18n[currentLang].btnAddSubItem}
+                        </button>
+                    </div>
+                    <div id="subitems-container-${item.id}" class="space-y-1.5"></div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
                     <div class="md:col-span-2">
                         <input type="number" step="any" value="${itemArea}" data-id="${item.id}" data-type="area" placeholder="${i18n[currentLang].placeholderArea}" 
@@ -475,6 +602,7 @@ function renderItems(skipSnapshot = false) {
             </div>
         `;
         container.insertAdjacentHTML('beforeend', itemHTML);
+        renderSubItemsUI(item.id);
     });
 }
 
@@ -542,7 +670,7 @@ function commitInlineNewItem() {
     localStorage.setItem('contractor_custom_items', JSON.stringify(customItems));
 
     if (!itemDetailsCache[newItemId]) itemDetailsCache[newItemId] = {};
-    itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit, recipe: recipe };
+    itemDetailsCache[newItemId] = { name: name, desc: desc, unit: unit, recipe: recipe, subItems: [] };
     localStorage.setItem('contractor_items_details', JSON.stringify(itemDetailsCache));
 
     document.getElementById('inline-item-name').value = '';
@@ -598,6 +726,7 @@ async function saveCurrentQuotationToCloud() {
         });
 
         if (response.ok) {
+            triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
@@ -861,6 +990,8 @@ async function checkSubscriptionManually() {
             localStorage.setItem('contractor_last_online_check', now.toISOString());
             handleOnlineStatus();
 
+            triggerNativeNotification("The Smart Contractor", "✅ تم التحقق وتفعيل اشتراكك بنجاح!");
+
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
                 expiryBox.classList.remove('hidden');
@@ -1043,6 +1174,9 @@ function checkOfflineGracePeriod() {
             showLockScreen("⚠️ انتهت مهلة العمل بدون إنترنت (48 ساعة). يرجى الاتصال بالإنترنت للتحقق من التفعيل.");
         } else {
             showOfflineBanner(remainingMs);
+            if (remainingMs < 5 * 60 * 60 * 1000) {
+                triggerNativeNotification("The Smart Contractor", "📡 تنبيه: يرجى الاتصال بالإنترنت للتحقق من التفعيل قبل انتهاء المهلة.");
+            }
         }
     } else {
         handleOnlineStatus();
@@ -1084,6 +1218,7 @@ function hideSplashScreen() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+    requestNotificationPermission();
     updateUILanguage();
     renderItems();
     fetchCloudQuotations();
@@ -1235,6 +1370,7 @@ function generateQuotationPDF() {
 
         const cached = itemDetailsCache[item.id] || {};
         const itemImg = cached.img || item.img || '';
+        const itemSubItems = Array.isArray(cached.subItems) ? cached.subItems.filter(s => s && s.trim() !== '') : [];
         
         if (!isNaN(area) && area > 0) {
             const totalMaterialCost = area * currentMatCost * (1 + waste);
@@ -1244,7 +1380,6 @@ function generateQuotationPDF() {
             
             grandTotal += finalPrice;
 
-            // حساب التوريدات إذا كان البند مربوطاً بخلطة
             if (currentRecipeId !== 'none') {
                 const recipeObj = allAvailable.find(r => r.id === currentRecipeId);
                 if (recipeObj) {
@@ -1254,15 +1389,25 @@ function generateQuotationPDF() {
                     totalGypsumBags += area * (recipeObj.gypsum || 0) * (1 + waste);
                 }
             }
+
+            let subItemsHTML = '';
+            if (itemSubItems.length > 0) {
+                subItemsHTML = `
+                    <ul style="margin: 5px 0 0 0; padding-inline-start: 18px; font-size: 11px; color: #475569; line-height: 1.4;">
+                        ${itemSubItems.map(s => `<li>${s}</li>`).join('')}
+                    </ul>
+                `;
+            }
             
             rowsHTML += `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                     <td style="padding: 10px; text-align: start; vertical-align: middle;">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            ${itemImg ? `<img src="${itemImg}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; shrink: 0;">` : ''}
+                        <div style="display: flex; align-items: flex-start; gap: 12px;">
+                            ${itemImg ? `<img src="${itemImg}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; shrink: 0; margin-top: 3px;">` : ''}
                             <div>
                                 <span style="font-weight: 700; display: block; font-size: 14px; color: #0f172a;">${currentItemName}</span>
                                 ${currentItemDesc ? `<span style="font-size: 11px; color: #64748b; font-weight: 500; display: block; margin-top: 2px;">${currentItemDesc}</span>` : ''}
+                                ${subItemsHTML}
                             </div>
                         </div>
                     </td>
