@@ -731,21 +731,27 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (نفس المنطق القديم 100%)
+// ☁️ 1. رفع وحفظ المقايسة بالسحابة (حل تعارض المتصفحات مع إظهار أي خطأ حقيقي بدقة)
 async function saveCurrentQuotationToCloud() {
-    const clientName = document.getElementById('client-name').value.trim();
-    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
+    const clientNameInput = document.getElementById('client-name');
+    const clientName = clientNameInput ? clientNameInput.value.trim() : '';
+    if (!clientName) { 
+        alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); 
+        return; 
+    }
 
     const btn = document.getElementById('save-current-q-btn');
-    btn.disabled = true;
-    btn.innerText = "جاري الحفظ بالسحابة...";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "جاري الحفظ بالسحابة...";
+    }
 
     snapshotCurrentInputs();
 
     const deviceId = getDeviceID();
     const qDataObj = {
         clientName: clientName,
-        clientPhone: document.getElementById('client-phone').value.trim(),
+        clientPhone: document.getElementById('client-phone') ? document.getElementById('client-phone').value.trim() : '',
         currency: document.getElementById('projectCurrency') ? document.getElementById('projectCurrency').value : 'AED',
         markup: document.getElementById('markup-rate').value,
         contingency: document.getElementById('contingency-rate').value,
@@ -762,7 +768,7 @@ async function saveCurrentQuotationToCloud() {
                 "apikey": SUPABASE_KEY,
                 "Authorization": `Bearer ${SUPABASE_KEY}`,
                 "Content-Type": "application/json",
-                "Prefer": "return=representation"
+                "Prefer": "return=minimal"
             },
             body: JSON.stringify({
                 device_id: deviceId,
@@ -772,19 +778,28 @@ async function saveCurrentQuotationToCloud() {
             })
         });
 
-        if (response.ok) {
+        if (response.ok || response.status === 201 || response.status === 204) {
             triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
-            throw new Error("فشل الحفظ في Supabase");
+            let serverErrorText = "";
+            try {
+                const errData = await response.json();
+                serverErrorText = errData.message || errData.details || JSON.stringify(errData);
+            } catch (e) {
+                serverErrorText = await response.text();
+            }
+            throw new Error(`[كود الخطأ ${response.status}]: ${serverErrorText || "فشل الاتصال بجدول السحابة"}`);
         }
     } catch (err) {
-        console.error(err);
-        alert("❌ خطأ: لم نتمكن من الحفظ بالسحابة، تحقّق من الاتصال بالإنترنت والجدول.");
+        console.error("Cloud Save Error:", err);
+        alert(`❌ خطأ أثناء الحفظ:\n${err.message || "تحقق من اتصالك بالإنترنت والجدول."}`);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
+        }
     }
 }
 
@@ -1568,4 +1583,3 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
- 
