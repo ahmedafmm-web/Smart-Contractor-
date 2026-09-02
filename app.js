@@ -150,6 +150,7 @@ async function handleNotificationButtonClick() {
     }
 }
 
+// 🔔 دالة الإشعارات المصححة المتوافقة 100% مع أندرويد وChrome PWA
 function triggerNativeNotification(title, bodyText) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
@@ -162,14 +163,12 @@ function triggerNativeNotification(title, bodyText) {
         lang: currentLang
     };
 
-    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+    if ("serviceWorker" in navigator) {
         navigator.serviceWorker.ready.then(registration => {
             registration.showNotification(title, options);
-        }).catch(() => {
-            new Notification(title, options);
+        }).catch(err => {
+            console.warn("SW Notification Error:", err);
         });
-    } else {
-        new Notification(title, options);
     }
 }
 
@@ -731,7 +730,7 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالسحابة (حل تعارض المتصفحات مع إظهار أي خطأ حقيقي بدقة)
+// ☁️ 1. رفع وحفظ المقايسة بالسحابة (مؤمنة وسريعة بدون أخطاء Notification)
 async function saveCurrentQuotationToCloud() {
     const clientNameInput = document.getElementById('client-name');
     const clientName = clientNameInput ? clientNameInput.value.trim() : '';
@@ -1583,3 +1582,4 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
