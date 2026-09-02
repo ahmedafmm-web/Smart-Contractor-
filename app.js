@@ -731,28 +731,48 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (نسخة مؤمنة وخفيفة)
 async function saveCurrentQuotationToCloud() {
-    const clientName = document.getElementById('client-name').value.trim();
-    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
+    const clientNameInput = document.getElementById('client-name');
+    const clientName = clientNameInput ? clientNameInput.value.trim() : '';
+    if (!clientName) { 
+        alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); 
+        return; 
+    }
 
     const btn = document.getElementById('save-current-q-btn');
-    btn.disabled = true;
-    btn.innerText = "جاري الحفظ بالسحابة...";
+    if (btn) {
+        btn.disabled = true;
+        btn.innerText = "جاري الحفظ بالسحابة...";
+    }
 
     snapshotCurrentInputs();
 
     const deviceId = getDeviceID();
+    
+    // تنظيف كائن تفاصيل البنود واستبعاد الصور الـ Base64 الضخمة حتى يقبلها السيرفر مباشرة
+    const cleanItemDetails = {};
+    Object.keys(itemDetailsCache).forEach(k => {
+        const item = itemDetailsCache[k];
+        cleanItemDetails[k] = {
+            name: item.name || '',
+            desc: item.desc || '',
+            unit: item.unit || 'm2',
+            recipe: item.recipe || 'none',
+            subItems: Array.isArray(item.subItems) ? item.subItems : []
+        };
+    });
+
     const qDataObj = {
         clientName: clientName,
-        clientPhone: document.getElementById('client-phone').value.trim(),
+        clientPhone: document.getElementById('client-phone') ? document.getElementById('client-phone').value.trim() : '',
         currency: document.getElementById('projectCurrency') ? document.getElementById('projectCurrency').value : 'AED',
-        markup: document.getElementById('markup-rate').value,
-        contingency: document.getElementById('contingency-rate').value,
-        waste: document.getElementById('waste-rate').value,
+        markup: document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15",
+        contingency: document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5",
+        waste: document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5",
         inputs: activeInputValues,
         customItems: customItems,
-        itemDetailsCache: itemDetailsCache
+        itemDetailsCache: cleanItemDetails
     };
 
     try {
@@ -777,14 +797,18 @@ async function saveCurrentQuotationToCloud() {
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
-            throw new Error("فشل الحفظ في Supabase");
+            const errDetails = await response.text();
+            console.error("Supabase Error:", errDetails);
+            throw new Error(errDetails);
         }
     } catch (err) {
-        console.error(err);
+        console.error("Save Error:", err);
         alert("❌ خطأ: لم نتمكن من الحفظ بالسحابة، تحقّق من الاتصال بالإنترنت والجدول.");
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
+        }
     }
 }
 
@@ -1568,4 +1592,3 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
- 
