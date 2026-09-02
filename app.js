@@ -123,14 +123,14 @@ async function handleNotificationButtonClick() {
     }
 
     if (Notification.permission === "granted") {
-        triggerNativeNotification("The Smart Contractor", "🔔 إشعارات النظام مفعلة وشغالة بنجاح!");
+        await triggerNativeNotification("The Smart Contractor", "🔔 إشعارات النظام مفعلة وشغالة بنجاح!");
         alert("✅ الإشعارات مفعلة وشغالة بنجاح على هذا الجهاز.");
         updateNotificationIconState();
         return;
     }
 
     if (Notification.permission === "denied") {
-        alert("⚠️ الإشعارات محظورة في هذا التطبيق.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط مطولاً على أيقونة التطبيق بشاشة الهاتف واختر (معلومات التطبيق / App info).\n2. ادخل على (الإشعارات / Notifications) واضغط سماح أو تفعيل.\n3. أعد فتح التطبيق وستعمل فوراً.");
+        alert("⚠️ الإشعارات محظورة في هذا التطبيق.\n\nيرجى فتح إعدادات الهاتف -> التطبيقات -> Chrome -> الإشعارات -> وتفعيل خيار السماح بالإشعارات.");
         return;
     }
 
@@ -138,7 +138,7 @@ async function handleNotificationButtonClick() {
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
             updateNotificationIconState();
-            triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
+            await triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
             alert("✅ تم تفعيل إشعارات النظام بنجاح!");
         } else {
             updateNotificationIconState();
@@ -150,25 +150,30 @@ async function handleNotificationButtonClick() {
     }
 }
 
-// 🔔 دالة الإشعارات المصححة المتوافقة 100% مع أندرويد وChrome PWA
-function triggerNativeNotification(title, bodyText) {
+// 🔔 دالة الإشعارات المتوافقة 100% مع أندرويد وChrome PWA
+async function triggerNativeNotification(title, bodyText) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
     const options = {
         body: bodyText,
         icon: "icon-192.png",
         badge: "icon-192.png",
-        vibrate: [200, 100, 200],
+        vibrate: [300, 150, 300],
+        tag: "sc-notif-" + Date.now(),
+        renotify: true,
         dir: currentLang === 'ar' ? 'rtl' : 'ltr',
         lang: currentLang
     };
 
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, options);
-        }).catch(err => {
-            console.warn("SW Notification Error:", err);
-        });
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            if (reg && reg.showNotification) {
+                await reg.showNotification(title, options);
+            }
+        } catch (err) {
+            console.warn("ServiceWorker Notification Error:", err);
+        }
     }
 }
 
@@ -730,7 +735,7 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالسحابة (مؤمنة وسريعة بدون أخطاء Notification)
+// ☁️ 1. رفع وحفظ المقايسة بالسحابة (حل تعارض المتصفحات مع إظهار أي خطأ حقيقي بدقة)
 async function saveCurrentQuotationToCloud() {
     const clientNameInput = document.getElementById('client-name');
     const clientName = clientNameInput ? clientNameInput.value.trim() : '';
@@ -778,7 +783,7 @@ async function saveCurrentQuotationToCloud() {
         });
 
         if (response.ok || response.status === 201 || response.status === 204) {
-            triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
+            await triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
@@ -1051,7 +1056,7 @@ async function checkSubscriptionManually() {
             localStorage.setItem('contractor_last_online_check', now.toISOString());
             handleOnlineStatus();
 
-            triggerNativeNotification("The Smart Contractor", "✅ تم التحقق وتفعيل اشتراكك بنجاح!");
+            await triggerNativeNotification("The Smart Contractor", "✅ تم التحقق وتفعيل اشتراكك بنجاح!");
 
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
@@ -1582,4 +1587,3 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
- 
