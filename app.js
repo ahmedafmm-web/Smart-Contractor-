@@ -123,7 +123,7 @@ async function handleNotificationButtonClick() {
     }
 
     if (Notification.permission === "granted") {
-        await triggerNativeNotification("The Smart Contractor", "🔔 إشعارات النظام مفعلة وشغالة بنجاح!");
+        triggerNativeNotification("The Smart Contractor", "🔔 إشعارات النظام مفعلة وشغالة بنجاح!");
         alert("✅ الإشعارات مفعلة وشغالة بنجاح على هذا الجهاز.");
         updateNotificationIconState();
         return;
@@ -138,7 +138,7 @@ async function handleNotificationButtonClick() {
         const permission = await Notification.requestPermission();
         if (permission === "granted") {
             updateNotificationIconState();
-            await triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
+            triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
             alert("✅ تم تفعيل إشعارات النظام بنجاح!");
         } else {
             updateNotificationIconState();
@@ -150,8 +150,8 @@ async function handleNotificationButtonClick() {
     }
 }
 
-// 🔔 دالة الإشعارات المتوافقة 100% مع أندرويد وChrome PWA
-async function triggerNativeNotification(title, bodyText) {
+// 🔔 دالة الإشعارات الفورية بدون تعليق (Non-blocking & Safe)
+function triggerNativeNotification(title, bodyText) {
     if (!("Notification" in window) || Notification.permission !== "granted") return;
 
     const options = {
@@ -166,14 +166,11 @@ async function triggerNativeNotification(title, bodyText) {
     };
 
     if ("serviceWorker" in navigator) {
-        try {
-            const reg = await navigator.serviceWorker.ready;
+        navigator.serviceWorker.ready.then(reg => {
             if (reg && reg.showNotification) {
-                await reg.showNotification(title, options);
+                reg.showNotification(title, options);
             }
-        } catch (err) {
-            console.warn("ServiceWorker Notification Error:", err);
-        }
+        }).catch(() => {});
     }
 }
 
@@ -783,7 +780,7 @@ async function saveCurrentQuotationToCloud() {
         });
 
         if (response.ok || response.status === 201 || response.status === 204) {
-            await triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
+            triggerNativeNotification("The Smart Contractor", `✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
@@ -1056,7 +1053,7 @@ async function checkSubscriptionManually() {
             localStorage.setItem('contractor_last_online_check', now.toISOString());
             handleOnlineStatus();
 
-            await triggerNativeNotification("The Smart Contractor", "✅ تم التحقق وتفعيل اشتراكك بنجاح!");
+            triggerNativeNotification("The Smart Contractor", "✅ تم التحقق وتفعيل اشتراكك بنجاح!");
 
             if (expiryBox && expiryDateText) {
                 expiryDateText.innerText = expiryDateFormatted;
@@ -1587,3 +1584,4 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
