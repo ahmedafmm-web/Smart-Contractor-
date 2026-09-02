@@ -130,7 +130,7 @@ async function handleNotificationButtonClick() {
     }
 
     if (Notification.permission === "denied") {
-        alert("⚠️ الإشعارات محظورة في هذا المتصفح.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط مطولاً على أيقونة التطبيق واختر (معلومات التطبيق / App info).\n2. ادخل على (الإشعارات / Notifications) واضغط سماح أو تفعيل.\n3. أعد فتح التطبيق وستعمل فوراً.");
+        alert("⚠️ الإشعارات محظورة في هذا التطبيق.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط مطولاً على أيقونة التطبيق بشاشة الهاتف واختر (معلومات التطبيق / App info).\n2. ادخل على (الإشعارات / Notifications) واضغط سماح أو تفعيل.\n3. أعد فتح التطبيق وستعمل فوراً.");
         return;
     }
 
@@ -731,7 +731,7 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (بمنطقك الأصلي الدقيق والخفيف)
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (نفس المنطق القديم 100%)
 async function saveCurrentQuotationToCloud() {
     const clientName = document.getElementById('client-name').value.trim();
     if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
@@ -743,15 +743,6 @@ async function saveCurrentQuotationToCloud() {
     snapshotCurrentInputs();
 
     const deviceId = getDeviceID();
-
-    // ننسخ الكاش ونحذف فقط كود الصورة الضخم لكي يقبل Supabase الحفظ فوراً دون أخطاء حجم
-    const sanitizedCache = JSON.parse(JSON.stringify(itemDetailsCache));
-    Object.keys(sanitizedCache).forEach(k => {
-        if (sanitizedCache[k] && sanitizedCache[k].img) {
-            delete sanitizedCache[k].img;
-        }
-    });
-
     const qDataObj = {
         clientName: clientName,
         clientPhone: document.getElementById('client-phone').value.trim(),
@@ -761,7 +752,7 @@ async function saveCurrentQuotationToCloud() {
         waste: document.getElementById('waste-rate').value,
         inputs: activeInputValues,
         customItems: customItems,
-        itemDetailsCache: sanitizedCache
+        itemDetailsCache: itemDetailsCache
     };
 
     try {
@@ -1577,3 +1568,4 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
