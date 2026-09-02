@@ -96,10 +96,57 @@ let targetDeleteRowId = null;
 const SUPABASE_URL = "https://nnglxiwqwwjcsejmtvxb.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5uZ2x4aXdxd3dqY3Nlam10dnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMzEwOTcsImV4cCI6MjA5NjYwNzA5N30.crw2NNA7hpOH77_i4mzDqrh0PbPeYlmY7nVCtukDmIQ";
 
-// 🔔 دوال إشعارات النظام الخارجية (Web / Native Push Notifications)
-function requestNotificationPermission() {
-    if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
+// 🔔 دوال إشعارات النظام الخارجية والتحكم في الزر
+function updateNotificationIconState() {
+    const btn = document.getElementById('enable-notifications-btn');
+    const icon = document.getElementById('notif-icon');
+    const warnIcon = document.getElementById('notif-warn-icon');
+    if (!btn || !icon || !("Notification" in window)) return;
+
+    if (Notification.permission === "granted") {
+        btn.className = "bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-400 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm";
+        icon.className = "fas fa-bell text-amber-400";
+        if (warnIcon) warnIcon.classList.add('hidden');
+        btn.title = "الإشعارات مفعلة وشغالة بنجاح";
+    } else {
+        btn.className = "bg-black text-black border border-slate-800 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm";
+        icon.className = "fas fa-bell text-black";
+        if (warnIcon) warnIcon.classList.remove('hidden');
+        btn.title = Notification.permission === "denied" ? "الإشعارات محظورة - اضغط لمعرفة طريقة فك الحظر" : "الإشعارات غير مفعلة - اضغط للتفعيل";
+    }
+}
+
+async function handleNotificationButtonClick() {
+    if (!("Notification" in window)) {
+        alert("عفواً، جهازك أو متصفحك لا يدعم إشعارات النظام.");
+        return;
+    }
+
+    if (Notification.permission === "granted") {
+        triggerNativeNotification("The Smart Contractor", "🔔 إشعارات النظام مفعلة وشغالة بنجاح!");
+        alert("✅ الإشعارات مفعلة وشغالة بنجاح على هذا الجهاز.");
+        updateNotificationIconState();
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        alert("⚠️ الإشعارات محظورة في هذا المتصفح.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط على أيقونة (القفل 🔒) أو علامة الإعدادات بجانب رابط الموقع بالأعلى.\n2. اختر (الأذونات / Permissions) ثم (الإشعارات / Notifications).\n3. غيّر الحالة إلى (سماح / Allow).\n4. أعد تحميل الصفحة وستعمل فوراً.");
+        return;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        if (permission === "granted") {
+            updateNotificationIconState();
+            triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
+            alert("✅ تم تفعيل إشعارات النظام بنجاح! ستصلك تنبيهات الحفظ السحابي وحالة التراخيص.");
+        } else {
+            updateNotificationIconState();
+            alert("لم يتم تفعيل الإشعارات.");
+        }
+    } catch (e) {
+        console.error(e);
+        updateNotificationIconState();
     }
 }
 
@@ -1218,7 +1265,7 @@ function hideSplashScreen() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
-    requestNotificationPermission();
+    updateNotificationIconState();
     updateUILanguage();
     renderItems();
     fetchCloudQuotations();
@@ -1521,3 +1568,4 @@ function generateQuotationPDF() {
 
 setTimeout(hideSplashScreen, 2000);
 window.addEventListener('load', hideSplashScreen);
+ 
