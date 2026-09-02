@@ -130,7 +130,7 @@ async function handleNotificationButtonClick() {
     }
 
     if (Notification.permission === "denied") {
-        alert("⚠️ الإشعارات محظورة في هذا المتصفح.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط على أيقونة (القفل 🔒) أو علامة الإعدادات بجانب رابط الموقع بالأعلى.\n2. اختر (الأذونات / Permissions) ثم (الإشعارات / Notifications).\n3. غيّر الحالة إلى (سماح / Allow).\n4. أعد تحميل الصفحة وستعمل فوراً.");
+        alert("⚠️ الإشعارات محظورة في هذا المتصفح.\n\nلفك الحظر وتشغيلها بسهولة:\n1. اضغط مطولاً على أيقونة التطبيق واختر (معلومات التطبيق / App info).\n2. ادخل على (الإشعارات / Notifications) واضغط سماح أو تفعيل.\n3. أعد فتح التطبيق وستعمل فوراً.");
         return;
     }
 
@@ -139,7 +139,7 @@ async function handleNotificationButtonClick() {
         if (permission === "granted") {
             updateNotificationIconState();
             triggerNativeNotification("The Smart Contractor", "🎉 تم تفعيل إشعارات النظام بنجاح!");
-            alert("✅ تم تفعيل إشعارات النظام بنجاح! ستصلك تنبيهات الحفظ السحابي وحالة التراخيص.");
+            alert("✅ تم تفعيل إشعارات النظام بنجاح!");
         } else {
             updateNotificationIconState();
             alert("لم يتم تفعيل الإشعارات.");
@@ -731,48 +731,37 @@ function commitInlineNewItem() {
     renderItems();
 }
 
-// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (نسخة مؤمنة وخفيفة)
+// ☁️ 1. رفع وحفظ المقايسة بالكامل على سحابة Supabase (بمنطقك الأصلي الدقيق والخفيف)
 async function saveCurrentQuotationToCloud() {
-    const clientNameInput = document.getElementById('client-name');
-    const clientName = clientNameInput ? clientNameInput.value.trim() : '';
-    if (!clientName) { 
-        alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); 
-        return; 
-    }
+    const clientName = document.getElementById('client-name').value.trim();
+    if (!clientName) { alert('برجاء كتابة اسم العميل أولاً لحفظ المقايسة باسمه بالسحابة!'); return; }
 
     const btn = document.getElementById('save-current-q-btn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerText = "جاري الحفظ بالسحابة...";
-    }
+    btn.disabled = true;
+    btn.innerText = "جاري الحفظ بالسحابة...";
 
     snapshotCurrentInputs();
 
     const deviceId = getDeviceID();
-    
-    // تنظيف كائن تفاصيل البنود واستبعاد الصور الـ Base64 الضخمة حتى يقبلها السيرفر مباشرة
-    const cleanItemDetails = {};
-    Object.keys(itemDetailsCache).forEach(k => {
-        const item = itemDetailsCache[k];
-        cleanItemDetails[k] = {
-            name: item.name || '',
-            desc: item.desc || '',
-            unit: item.unit || 'm2',
-            recipe: item.recipe || 'none',
-            subItems: Array.isArray(item.subItems) ? item.subItems : []
-        };
+
+    // ننسخ الكاش ونحذف فقط كود الصورة الضخم لكي يقبل Supabase الحفظ فوراً دون أخطاء حجم
+    const sanitizedCache = JSON.parse(JSON.stringify(itemDetailsCache));
+    Object.keys(sanitizedCache).forEach(k => {
+        if (sanitizedCache[k] && sanitizedCache[k].img) {
+            delete sanitizedCache[k].img;
+        }
     });
 
     const qDataObj = {
         clientName: clientName,
-        clientPhone: document.getElementById('client-phone') ? document.getElementById('client-phone').value.trim() : '',
+        clientPhone: document.getElementById('client-phone').value.trim(),
         currency: document.getElementById('projectCurrency') ? document.getElementById('projectCurrency').value : 'AED',
-        markup: document.getElementById('markup-rate') ? document.getElementById('markup-rate').value : "15",
-        contingency: document.getElementById('contingency-rate') ? document.getElementById('contingency-rate').value : "5",
-        waste: document.getElementById('waste-rate') ? document.getElementById('waste-rate').value : "5",
+        markup: document.getElementById('markup-rate').value,
+        contingency: document.getElementById('contingency-rate').value,
+        waste: document.getElementById('waste-rate').value,
         inputs: activeInputValues,
         customItems: customItems,
-        itemDetailsCache: cleanItemDetails
+        itemDetailsCache: sanitizedCache
     };
 
     try {
@@ -797,18 +786,14 @@ async function saveCurrentQuotationToCloud() {
             alert(`✅ تم حفظ مقايسة (${clientName}) بنجاح بالسحابة!`);
             fetchCloudQuotations();
         } else {
-            const errDetails = await response.text();
-            console.error("Supabase Error:", errDetails);
-            throw new Error(errDetails);
+            throw new Error("فشل الحفظ في Supabase");
         }
     } catch (err) {
-        console.error("Save Error:", err);
+        console.error(err);
         alert("❌ خطأ: لم نتمكن من الحفظ بالسحابة، تحقّق من الاتصال بالإنترنت والجدول.");
     } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
-        }
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-cloud-upload-alt"></i> <span>حفظ سحابي للمقايسة الحالية</span>`;
     }
 }
 
