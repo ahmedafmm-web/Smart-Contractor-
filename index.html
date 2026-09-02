@@ -155,7 +155,13 @@
                     <p class="text-xs text-slate-400">By Ahmed Mohamed</p>
                 </div>
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 items-center">
+                <!-- 🔔 زر الإشعارات التفاعلي الذكي -->
+                <button id="enable-notifications-btn" onclick="handleNotificationButtonClick()" title="فحص وتفعيل إشعارات النظام" class="bg-black text-black border border-slate-800 px-2.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                    <i id="notif-icon" class="fas fa-bell"></i>
+                    <i id="notif-warn-icon" class="fas fa-exclamation-triangle text-amber-400 text-[10px]"></i>
+                </button>
+
                 <button onclick="goToSubscriptionPage()" class="bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition flex items-center gap-1.5">
                     <i class="fas fa-crown text-amber-400"></i>
                     <span>الاشتراكات والتفعيل</span>
